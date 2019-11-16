@@ -1,0 +1,129 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:blue="http://www.nuget.org/Blue.MVVM"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:eyeConverters="clr-namespace:PoeShared.Converters;assembly=PoeShared"
+                    xmlns:viewModels1="clr-namespace:EyeAuras.UI.Core.ViewModels"
+                    xmlns:kent="http://schemas.kent.boogaart.com/converters"
+                    xmlns:eye="http://coderush.net/poeeye/"
+                    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+                    xmlns:dragablz="http://dragablz.net/winfx/xaml/dragablz"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/EyeAuras;component/Themes/Converters.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/CommandWrapperView.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <DataTemplate x:Key="AuraViewModelHeaderTemplateKey" DataType="{x:Type viewModels1:OverlayAuraViewModel}">
+        <DockPanel TextBlock.Foreground="WhiteSmoke" HorizontalAlignment="Stretch"
+                   Height="30"
+                   x:Name="AuraContainer">
+            <Grid DockPanel.Dock="Left" Margin="5,0" VerticalAlignment="Center" Width="16">
+                <Grid Visibility="{Binding Model.IsEnabled, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}">
+                    <materialDesign:PackIcon
+                        Foreground="{StaticResource NegativeBrush}"
+                        ToolTip="Aura is NOT active"
+                        Visibility="{Binding Model.IsActive, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}"
+                        Kind="CheckboxBlankCircleOutline" />
+                    <materialDesign:PackIcon
+                        Foreground="{StaticResource PositiveBrush}"
+                        ToolTip="Aura is active"
+                        Visibility="{Binding Model.IsActive, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                        Kind="CheckboxMarkedCircleOutline" />
+                </Grid>
+
+                <Grid Visibility="{Binding Model.IsEnabled, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}">
+                    <TextBlock Text="&#xf070;" Foreground="{StaticResource NegativeBrush}" ToolTip="Aura is disabled" Style="{StaticResource IconTextBlock}" HorizontalAlignment="Center" />
+                </Grid>
+            </Grid>
+
+            <ContentControl Content="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType={x:Type dragablz:TabablzControl}}}"
+                            DockPanel.Dock="Right" ToolTip="Remove aura" x:Name="RemoveAuraButton"
+                            eye:CommandWrapperHelper.Icon="&#xf00d;"
+                            Width="24" Height="24" Margin="5,0"
+                            Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type dragablz:DragablzItem}}, Path=IsMouseOver, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                            ContentTemplate="{StaticResource CommandWrapperIcon}"
+                            eye:CommandWrapperHelper.CommandParameter="{Binding}" />
+
+            <ToggleButton DockPanel.Dock="Right"
+                          Style="{StaticResource MaterialDesignActionToggleButton}"
+                          
+                          Width="20" Height="20" Margin="0,0,10,0"
+                          Visibility="{Binding Path=IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type dragablz:DragablzItem}}, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                          IsChecked="{Binding Model.IsEnabled}"
+                          Background="{StaticResource PrimaryHueMidBrush}" >
+                <ToggleButton.Content>
+                    <TextBlock x:Name="EyeOn" Text="&#xf06e;" ToolTip="Enable Aura" Style="{StaticResource IconTextBlock}" Foreground="{StaticResource PositiveBrush}"/>
+                </ToggleButton.Content>
+                <materialDesign:ToggleButtonAssist.OnContent>
+                    <TextBlock x:Name="EyeOff" Text="&#xf070;" ToolTip="Disable Aura" Style="{StaticResource IconTextBlock}" Foreground="{StaticResource NegativeBrush}"/>
+                </materialDesign:ToggleButtonAssist.OnContent>
+            </ToggleButton>
+
+            <materialDesign:Flipper DockPanel.Dock="Left"
+                                    VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                    IsHitTestVisible="{Binding RelativeSource={RelativeSource Self}, Path=IsFlipped}"
+                                    IsFlipped="{Binding IsFlipped, Mode=TwoWay}"
+                                    Focusable="False"
+                                    Style="{StaticResource SimpleFlipper}"
+                                    x:Name="TabNameFlipper">
+                <materialDesign:Flipper.FrontContent>
+                    <TextBlock
+                        Text="{Binding TabName, Mode=OneWay}"
+                        IsHitTestVisible="False"
+                        FontSize="16" TextWrapping="Wrap" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Model.IsEnabled}" Value="False">
+                                        <Setter Property="Opacity" Value="0.5"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </materialDesign:Flipper.FrontContent>
+
+                <materialDesign:Flipper.BackContent>
+                    <DockPanel eye:AccessKeyScoper.IsAccessKeyScope="True">
+                        <Button
+                            Command="{Binding RenameCommand}"
+                            Style="{StaticResource InvisibleButtonStyleKey}"
+                            DockPanel.Dock="Right"
+                            IsCancel="True"
+                            Content="Cancel" />
+                        <Button
+                            Command="{Binding RenameCommand}"
+                            CommandParameter="{Binding ElementName=TabNameEditor, Path=Text}"
+                            Style="{StaticResource InvisibleButtonStyleKey}"
+                            DockPanel.Dock="Right"
+                            IsDefault="True"
+                            Content="Commit" />
+                        <TextBox x:Name="TabNameEditor"
+                                 eye:FocusHelper.IsFocused="True"
+                                 TextWrapping="Wrap"
+                                 DockPanel.Dock="Left"
+                                 VerticalContentAlignment="Center"
+                                 mah:TextBoxHelper.AutoWatermark="True"
+                                 mah:TextBoxHelper.Watermark="{Binding DefaultTabName, Mode=OneWay}"
+                                 FontSize="15">
+                            <TextBox.Style>
+                                <Style TargetType="{x:Type TextBox}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFlipped}" Value="True">
+                                            <Setter Property="Text" Value="{Binding TabName, Mode=OneWay}" />
+                                        </DataTrigger>
+                                        <Trigger Property="mah:TextBoxHelper.HasText" Value="True">
+                                            <Setter Property="mah:TextBoxHelper.ClearTextButton" Value="True" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                    </DockPanel>
+                </materialDesign:Flipper.BackContent>
+            </materialDesign:Flipper>
+
+        </DockPanel>
+    </DataTemplate>
+</ResourceDictionary>

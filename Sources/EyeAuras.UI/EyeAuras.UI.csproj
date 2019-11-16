@@ -1,0 +1,84 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <AssemblyName>EyeAuras</AssemblyName>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <IsPackable>false</IsPackable>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <ApplicationIcon>Resources/mainIcon.ico</ApplicationIcon>
+        <ApplicationManifest>EyeAuras.exe.manifest</ApplicationManifest>
+        <Configurations>Debug</Configurations>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <OutputPath>..\bin\</OutputPath>
+      <WarningsAsErrors />
+      <PlatformTarget>AnyCPU</PlatformTarget>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\EyeAuras.DefaultAuras\EyeAuras.DefaultAuras.csproj" />
+      <ProjectReference Include="..\EyeAuras.Loader\EyeAuras.Loader.csproj" />
+      <ProjectReference Include="..\EyeAuras.OnTopReplica\EyeAuras.OnTopReplica.csproj" />
+      <ProjectReference Include="..\EyeAuras.OpenCVAuras\EyeAuras.OpenCVAuras.csproj" />
+      <ProjectReference Include="..\EyeAuras.Shared\EyeAuras.Shared.csproj" />
+      <ProjectReference Include="..\PoeShared.Core\PoeShared.csproj" />
+      <ProjectReference Include="..\PoeShared.Squirrel\PoeShared.Squirrel.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Blue.MVVM.Converter" Version="1.5.0" />
+      <PackageReference Include="CompareNETObjects" Version="3.6.0" />
+      <PackageReference Include="dnlib" Version="3.3.0" />
+      <PackageReference Include="Dragablz" Version="0.0.3.203" />
+      <PackageReference Include="DynamicData" Version="6.13.13" />
+      <PackageReference Include="Extended.Wpf.Toolkit" Version="3.6.0" />
+      <PackageReference Include="FontAwesome.WPF" Version="4.7.0.9" />
+      <PackageReference Include="JetBrains.Annotations" Version="2019.1.3" />
+      <PackageReference Include="Kent.Boogaart.Converters" Version="1.3.1" />
+      <PackageReference Include="log4net" Version="2.0.8" />
+      <PackageReference Include="MahApps.Metro" Version="2.0.0-alpha0490" />
+      <PackageReference Include="MahApps.Metro.Resources" Version="0.6.1" />
+      <PackageReference Include="MaterialDesignColors" Version="1.2.0" />
+      <PackageReference Include="MaterialDesignThemes" Version="3.0.0-ci683" />
+      <PackageReference Include="Prism.Core" Version="7.2.0.1367" />
+      <PackageReference Include="Prism.Unity" Version="7.2.0.1367" />
+      <PackageReference Include="Prism.Wpf" Version="7.2.0.1367" />
+      <PackageReference Include="ReactiveUI" Version="10.4.1" />
+      <PackageReference Include="squirrel.windows" Version="1.9.0" />
+      <PackageReference Include="System.Reactive" Version="4.2.0" />
+      <PackageReference Include="Unity" Version="5.10.3" />
+      <PackageReference Include="Windows-Forms-Aero" Version="3.1.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="log4net.config">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="EyeAuras.exe.manifest">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Resources\mainIcon.png" />
+      <Resource Include="Resources\mainIcon.png" />
+      <None Remove="Resources\mainIcon.ico" />
+      <Resource Include="Resources\mainIcon.ico">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Resource>
+      <None Remove="Resources\SplashRing.png" />
+      <Resource Include="Resources\SplashRing.png" />
+      <None Remove="Resources\Splash.png" />
+      <Resource Include="Resources\Splash.png" />
+      <None Remove="Resources\Play-Bold.ttf" />
+      <Resource Include="Resources\Play-Bold.ttf" />
+      <None Remove="Resources\Play-Regular.ttf" />
+      <Resource Include="Resources\Play-Regular.ttf" />
+    </ItemGroup>
+
+</Project>

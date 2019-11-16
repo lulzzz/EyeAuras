@@ -1,0 +1,41 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:default="clr-namespace:EyeAuras.DefaultAuras.Actions.PlaySound">
+    
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Converters.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Colors.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Styles.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/CommandWrapperView.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+    
+    <DataTemplate DataType="{x:Type default:PlaySoundActionEditor}">
+        <DockPanel DockPanel.Dock="Left" Margin="10,0,0,0" >
+            <TextBlock DockPanel.Dock="Left" Text="Audio notification" />
+            
+            
+            <ContentControl DockPanel.Dock="Left" Margin="5,0,0,0"  >
+                <ComboBox ItemsSource="{Binding AudioNotificationSelector.Items}" SelectedValue="{Binding AudioNotificationSelector.SelectedValue}" SelectedValuePath="Value">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Margin="10,0,0,0"  Command="{Binding PlayNotificationCommand}" CommandParameter="{Binding}"
+                                        Width="24" Height="24"
+                                        BorderThickness="1"
+                                        Style="{StaticResource MaterialDesignFloatingActionButton}"
+
+                                        BorderBrush="{StaticResource MouseOverAccentBrushKey}">
+                                    <Button.Content>
+                                        <TextBlock Style="{StaticResource IconTextBlock}" Text="&#xf144;"/>
+                                    </Button.Content>
+                                </Button>
+                                <TextBlock Margin="5,0" Style="{StaticResource IconTextBlock}" Text="{Binding Name}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </ContentControl>
+        </DockPanel>
+        
+    </DataTemplate>
+</ResourceDictionary>

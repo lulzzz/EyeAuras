@@ -1,0 +1,363 @@
+﻿<mah:MetroWindow
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    x:Class="EyeAuras.UI.MainWindow.Views.MainWindow"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:viewModels="clr-namespace:EyeAuras.UI.MainWindow.ViewModels"
+    xmlns:eye="http://coderush.net/poeeye/"
+    xmlns:utilities="clr-namespace:EyeAuras.UI.Core.Utilities"
+    xmlns:dragablz="http://dragablz.net/winfx/xaml/dragablz"
+    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:viewModels1="clr-namespace:EyeAuras.UI.Core.ViewModels"
+    xmlns:blue="http://www.nuget.org/Blue.MVVM"
+    mc:Ignorable="d"
+    TextElement.Foreground="{StaticResource MaterialDesignBody}"
+    TextBlock.Foreground="{StaticResource MaterialDesignBody}"
+    TextElement.FontWeight="Regular"
+    TextElement.FontFamily="{StaticResource FontPlayRegular}"
+    TextOptions.TextFormattingMode="Ideal"
+    TextOptions.TextRenderingMode="Auto"
+    Width="{Binding Width, Mode=TwoWay}"
+    Height="{Binding Height, Mode=TwoWay}"
+    Left="{Binding Left, Mode=TwoWay}"
+    Top="{Binding Top, Mode=TwoWay}"
+    WindowState="{Binding WindowState, Mode=TwoWay}"
+    MinWidth="950"
+    MinHeight="650"
+    x:Name="MainWindowRoot"
+    Background="{StaticResource MaterialDesignPaper}"
+    Title="{Binding Title}"
+    d:DataContext="{d:DesignInstance viewModels:MainWindowViewModel}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="MainWindow.tab.xaml" />
+                <ResourceDictionary Source="EyeAurasSettingsView.xaml" />
+                <ResourceDictionary Source="PrismModuleStatusView.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <blue:MultiplyDoubleConverter x:Key="MultiplyDoubleDivideByThreeConverter" Factor="0.33" />
+            <blue:MultiplyDoubleConverter x:Key="MultiplyDoubleAuraListConverter" Factor="0.95" />
+
+            <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource SlimScrollBarStyleKey}" />
+        </ResourceDictionary>
+
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Gesture="CTRL+T" Command="{Binding CreateNewTabCommand}" />
+        <KeyBinding Gesture="CTRL+W" Command="{Binding CloseTabCommand}" CommandParameter="{Binding SelectedTab}" />
+        <KeyBinding Gesture="CTRL+V" Command="{Binding PasteTabCommand}" />
+        <KeyBinding Gesture="CTRL+D" Command="{Binding DuplicateTabCommand}" CommandParameter="{Binding SelectedTab}" />
+        <KeyBinding Gesture="CTRL+C" Command="{Binding CopyTabToClipboardCommand}" CommandParameter="{Binding SelectedTab}" />
+        <KeyBinding Gesture="CTRL+Z" Command="{Binding UndoCloseTabCommand}" />
+    </Window.InputBindings>
+
+    <DockPanel>
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem DockPanel.Dock="Left">
+                <ItemsControl ItemsSource="{Binding StatusBarItems}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <DockPanel LastChildFill="False" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="DockPanel.Dock" Value="Left"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ContentControl Content="{Binding}" />                            
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StatusBarItem>
+            
+            
+            <StatusBarItem DockPanel.Dock="Right" Visibility="{Binding ModuleStatus.IsVisible, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}">
+                <ContentControl Content="{Binding ModuleStatus}"/>
+            </StatusBarItem>
+            
+            <StatusBarItem DockPanel.Dock="Right">
+                <ContentControl Content="{Binding OpenAppDataDirectoryCommand}"
+                                eye:CommandWrapperHelper.Icon="&#xF07C;"
+                                ContentTemplate="{StaticResource CommandWrapperIcon}"
+                                ToolTip="Open EyeAuras folder" />
+            </StatusBarItem>
+            
+            <StatusBarItem DockPanel.Dock="Right">
+                <ToggleButton Style="{StaticResource MaterialDesignToggleButton}"
+                              Width="150"
+                              Margin="2.5,0"
+                              materialDesign:ButtonAssist.CornerRadius="2"
+                              Background="Transparent"
+                              IsChecked="{Binding GlobalHotkeyTrigger.IsActive}">
+                    <ToggleButton.Content>
+                        <Border Background="{StaticResource NegativeBrush}" BorderThickness="1" BorderBrush="{StaticResource WarningBrush}" HorizontalAlignment="Stretch" CornerRadius="6" ToolTip="Click to Enable all auras">
+                            <DockPanel Margin="5,0,0,0">
+                                <TextBlock Style="{StaticResource IconTextBlock}" Text="&#xf011;" />
+                                <TextBlock Text="Auras are DISABLED" HorizontalAlignment="Center" />
+                            </DockPanel>
+                        </Border>
+                    </ToggleButton.Content>
+                    <materialDesign:ToggleButtonAssist.OnContent>
+                        <Border Background="{StaticResource OverlayTitleBackgroundBrushKey}" HorizontalAlignment="Stretch" CornerRadius="6" ToolTip="Click to Disable all auras">
+                            <DockPanel Margin="5,0,0,0">
+                                <TextBlock Text="Auras are running" HorizontalAlignment="Center" />
+                            </DockPanel>
+                        </Border>
+                    </materialDesign:ToggleButtonAssist.OnContent>
+                </ToggleButton>
+
+            </StatusBarItem>
+        </StatusBar>
+        
+        <materialDesign:DrawerHost DockPanel.Dock="Top" x:Name="MainDrawerHost">
+
+            <Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{Binding ListWidth, Mode=TwoWay}"
+                                          MinWidth="250"
+                                          MaxWidth="{Binding ElementName=MainWindowRoot, Path=ActualWidth, Converter={StaticResource MultiplyDoubleDivideByThreeConverter}}" />
+                        <ColumnDefinition Width="5" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock x:Name="NoTabsTip" Grid.Row="0" Grid.Column="0" FontSize="16" Text="&#x2196; Click New aura'" VerticalAlignment="Top"
+                               HorizontalAlignment="Center"
+                               Visibility="{Binding SelectedTab, Converter={StaticResource NotNullToCollapsedConverter}}" />
+
+
+                    <DockPanel Grid.Column="0" Grid.Row="0" x:Name="WindowContent">
+                        <Border BorderBrush="{StaticResource SecondaryAccentBrush}" BorderThickness="0,0,1,0">
+                            <DockPanel Margin="2.5">
+                                <DockPanel.LayoutTransform>
+                                    <TransformGroup>
+                                        <RotateTransform Angle="-90" />
+                                    </TransformGroup>
+                                </DockPanel.LayoutTransform>
+
+                                <!-- Items are upside-down -->
+                                <ContentControl DockPanel.Dock="Left" x:Name="UndoCloseTabButton"
+                                                eye:CommandWrapperHelper.Text="UNDO CLOSE" eye:CommandWrapperHelper.Icon="&#xF0E2;"
+                                                ToolTip="CTRL+Z Undo close operation"
+                                                Content="{Binding UndoCloseTabCommand}" />
+
+                                <ContentControl DockPanel.Dock="Left" x:Name="CloneTabButton"
+                                                eye:CommandWrapperHelper.Text="CLONE" eye:CommandWrapperHelper.Icon="&#xF24D;"
+                                                eye:CommandWrapperHelper.CommandParameter="{Binding SelectedTab}"
+                                                ToolTip="CTRL+D Duplicate selected tab"
+                                                Content="{Binding DuplicateTabCommand}" />
+
+                                <ContentControl DockPanel.Dock="Left" x:Name="PasteTabButton"
+                                                eye:CommandWrapperHelper.Text="PASTE" eye:CommandWrapperHelper.Icon="&#xF0EA;"
+                                                ToolTip="CTRL+V Paste tab"
+                                                Content="{Binding PasteTabCommand}" />
+
+                                <ContentControl DockPanel.Dock="Left" x:Name="CopyTabButton"
+                                                eye:CommandWrapperHelper.Text="COPY" eye:CommandWrapperHelper.Icon="&#xF0C5;"
+                                                eye:CommandWrapperHelper.CommandParameter="{Binding SelectedTab}"
+                                                ToolTip="CTRL+C Copy selected tab to clipboard"
+                                                Content="{Binding CopyTabToClipboardCommand}" />
+
+                                <TextBlock DockPanel.Dock="Left"
+                                           Text="AURA LIST"
+                                           Margin="0,0,10,0"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right" />
+                            </DockPanel>
+                        </Border>
+
+                        <dragablz:TabablzControl Margin="2.5"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 x:Name="AuraList"
+                                                 Style="{StaticResource DragablzVerticalTabablzControl}"
+                                                 utilities:TabablzHelper.PositionMonitor="{Binding PositionMonitor, Mode=OneWay}"
+                                                 ItemsSource="{Binding TabsList}"
+                                                 TabStripPlacement="Left"
+                                                 SelectedItem="{Binding SelectedTab}"
+                                                 VirtualizingPanel.IsVirtualizing="False"
+                                                 VirtualizingPanel.IsContainerVirtualizable="False"
+                                                 HeaderItemTemplate="{StaticResource AuraViewModelHeaderTemplateKey}">
+                            <dragablz:TabablzControl.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Rename"
+                                              InputGestureText="F2"
+                                              Command="{Binding SelectedTab.RenameCommand}"
+                                              IsEnabled="{Binding SelectedTab, Converter={StaticResource NullToFalseConverter}}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xf044;" Style="{StaticResource IconTextBlock}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                    <MenuItem Header="Copy"
+                                              InputGestureText="CTRL+C"
+                                              Command="{Binding CopyTabToClipboardCommand}"
+                                              CommandParameter="{Binding SelectedTab}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xF0C5;" Style="{StaticResource IconTextBlock}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Paste"
+                                              InputGestureText="CTRL+V"
+                                              Command="{Binding PasteTabCommand}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xF0EA;" Style="{StaticResource IconTextBlock}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Clone"
+                                              InputGestureText="CTRL+D"
+                                              Command="{Binding DuplicateTabCommand}"
+                                              CommandParameter="{Binding SelectedTab}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xF24D;" Style="{StaticResource IconTextBlock}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="Close"
+                                              InputGestureText="CTRL+W"
+                                              eye:CommandWrapperHelper.CommandParameter="{Binding SelectedTab}"
+                                              Command="{Binding CloseTabCommand}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xf00d;" Style="{StaticResource IconTextBlock}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </dragablz:TabablzControl.ContextMenu>
+                            <dragablz:TabablzControl.ItemContainerStyle>
+                                <Style TargetType="{x:Type dragablz:DragablzItem}"
+                                       BasedOn="{StaticResource DragablzTabItemVerticalStyle}">
+                                    <Setter Property="BorderThickness" Value="0,2,0,2" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="Width" Value="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ScrollViewer}}, Path=ActualWidth}" />
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected}" />
+                                    <Style.Triggers>
+                                        <DataTrigger
+                                            Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ScrollViewer}}, Path=(ScrollViewer.ComputedVerticalScrollBarVisibility)}"
+                                            Value="{x:Static Visibility.Visible}">
+                                            <Setter Property="Width"
+                                                    Value="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type ScrollViewer}}, Path=ActualWidth, Converter={StaticResource MultiplyDoubleAuraListConverter}}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </dragablz:TabablzControl.ItemContainerStyle>
+                            <dragablz:TabablzControl.InputBindings>
+                                <KeyBinding Key="F2" Command="{Binding SelectedTab.RenameCommand}" />
+                            </dragablz:TabablzControl.InputBindings>
+                        </dragablz:TabablzControl>
+                    </DockPanel>
+
+                    <Image x:Name="AppBackgroundImage" Grid.Row="0" Grid.Column="2" Source="pack://application:,,,/Resources/mainIcon.png"
+                           Opacity="0.2" />
+
+                    <TextBlock x:Name="TabIsNotSelectedTip" Grid.Row="0" Grid.Column="2" FontSize="16" Text="Select or Add Aura" VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Visibility="{Binding SelectedTab, Converter={StaticResource NotNullToCollapsedConverter}}" />
+
+                    <Border x:Name="SelectedTabContent" Grid.Row="0" Grid.Column="2" Margin="2.5"
+                            Visibility="{Binding SelectedTab, Converter={StaticResource NullToCollapsedConverter}}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" IsTabStop="False" Focusable="False">
+                            <ItemsControl ItemsSource="{Binding TabsList}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type viewModels1:IOverlayAuraViewModel}">
+                                        <ContentControl Content="{Binding}">
+                                            <ContentControl.Visibility>
+                                                <MultiBinding Converter="{StaticResource EqualToVisibleConverter}">
+                                                    <Binding />
+                                                    <Binding Path="DataContext.SelectedTab" ElementName="SelectedTabContent" />
+                                                </MultiBinding>
+                                            </ContentControl.Visibility>
+                                        </ContentControl>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Grid.Row="0"
+                                  BorderBrush="{StaticResource SecondaryAccentBrush}" BorderThickness="1,0,1,0"
+                                  Width="5" HorizontalAlignment="Stretch" />
+                </Grid>
+
+                <materialDesign:DrawerHost
+                    IsBottomDrawerOpen="{Binding ApplicationUpdater.IsOpen}">
+                    <materialDesign:DrawerHost.BottomDrawerContent>
+                        <Grid Height="60">
+                            <ContentPresenter Content="{Binding ApplicationUpdater}" />
+                        </Grid>
+                    </materialDesign:DrawerHost.BottomDrawerContent>
+                </materialDesign:DrawerHost>
+
+                <materialDesign:DialogHost
+                    IsOpen="{Binding MessageBox.IsOpen}"
+                    Style="{StaticResource MaterialMessageBoxStyleKey}"
+                    materialDesign:TransitionAssist.DisableTransitions="True"
+                    Visibility="{Binding MessageBox.IsOpen, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                    DialogContent="{Binding MessageBox}" />
+
+                <materialDesign:DialogHost
+                    x:Name="SettingsHost"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    IsOpen="{Binding Settings.IsOpen}"
+                    Visibility="{Binding Settings.IsOpen, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                    materialDesign:TransitionAssist.DisableTransitions="True"
+                    Style="{StaticResource MaterialDesignEmbeddedDialogHost}"
+                    CloseOnClickAway="False">
+
+                    <materialDesign:DialogHost.DialogContent>
+                        <ContentPresenter
+                            MinWidth="250"
+                            MinHeight="150"
+                            MaxWidth="{Binding ElementName=MainWindowRoot, Path=ActualWidth}"
+                            MaxHeight="{Binding ElementName=MainWindowRoot, Path=ActualHeight}"
+                            Margin="10"
+                            Content="{Binding Settings}" />
+                    </materialDesign:DialogHost.DialogContent>
+                </materialDesign:DialogHost>
+
+
+            </Grid>
+        </materialDesign:DrawerHost>
+    </DockPanel>
+
+
+    <mah:MetroWindow.LeftWindowCommands>
+        <mah:WindowCommands ShowSeparators="True">
+            <ContentControl Content="{Binding CreateNewTabCommand}"
+                            eye:CommandWrapperHelper.Icon="&#xF055;"
+                            eye:CommandWrapperHelper.Text="New aura"
+                            ToolTip="CTRL+T Create new tab" />
+
+            <ContentControl Content="{Binding SelectRegionCommand}"
+                            eye:CommandWrapperHelper.Icon="&#xf140;"
+                            ContentTemplate="{StaticResource CommandWrapperIcon}"
+                            ToolTip="Select Window" />
+        </mah:WindowCommands>
+    </mah:MetroWindow.LeftWindowCommands>
+
+    <mah:MetroWindow.RightWindowCommands>
+        <mah:WindowCommands ShowSeparators="True">
+            <StackPanel Orientation="Horizontal" ToolTip="Application is running without Administrator privileges, not all features may work correctly, e.g. global hotkeys"
+                        Visibility="{Binding IsElevated, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}">
+                <materialDesign:PackIcon VerticalAlignment="Center" Kind="ShieldWarning" />
+                <TextBlock Margin="2.5,0,0,0" Text="USER-MODE" />
+            </StackPanel>
+            
+            <ContentControl Content="{Binding ApplicationUpdater.CheckForUpdatesCommand}"
+                            ToolTip="Check for updates"
+                            ContentTemplate="{StaticResource CommandWrapperIcon}"
+                            eye:CommandWrapperHelper.Icon="&#xF0ED;" />
+            <Button Content="&#xF085; Settings" FontFamily="{StaticResource FontAwesome}"
+                    Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                    CommandTarget="{Binding ElementName=SettingsHost}" />
+        </mah:WindowCommands>
+    </mah:MetroWindow.RightWindowCommands>
+
+
+</mah:MetroWindow>

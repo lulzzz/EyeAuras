@@ -1,0 +1,13 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mainWindow="clr-namespace:EyeAuras.UI.MainWindow"
+                    xmlns:eyeAuras="clr-namespace:EyeAuras;assembly=EyeAuras"
+                    xmlns:viewModels="clr-namespace:EyeAuras.UI.Core.ViewModels">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/EyeAuras;component/Themes/Converters.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <DataTemplate DataType="{x:Type viewModels:PropertyEditorViewModel}">
+        <ContentControl Content="{Binding ValueEditor}" />
+    </DataTemplate>
+</ResourceDictionary>

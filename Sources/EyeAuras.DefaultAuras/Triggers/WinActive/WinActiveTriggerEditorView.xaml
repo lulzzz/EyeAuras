@@ -1,0 +1,13 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:winActive1="clr-namespace:EyeAuras.DefaultAuras.Triggers.WinActive"
+                    xmlns:eye="http://coderush.net/poeeye/">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesigntheme.button.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesigntheme.textbox.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <DataTemplate DataType="{x:Type winActive1:WinActiveTriggerEditor}">
+        <ContentControl Content="{Binding WindowSelector}"/>
+    </DataTemplate>
+</ResourceDictionary>

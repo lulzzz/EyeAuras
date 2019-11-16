@@ -1,0 +1,33 @@
+﻿<Application x:Class="EyeAuras.UI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/themes/dark.blue.xaml" />
+
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesigntheme.dark.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Primary/materialdesigncolor.bluegrey.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Accent/materialdesigncolor.lightblue.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Generic.shared.xaml" />
+
+                <ResourceDictionary Source="Themes/Styles.xaml" />
+                <ResourceDictionary Source="Themes/Converters.xaml" />
+                <ResourceDictionary Source="Themes/ListBoxAsTabControlStyle.xaml" />
+
+                <ResourceDictionary Source="MainWindow/Views/MessageBoxView.xaml" />
+
+                <ResourceDictionary Source="SplashWindow/Views/SplashWindowView.xaml" />
+                <ResourceDictionary Source="Overlay/Views/EyeOverlayWindowView.xaml" />
+                <ResourceDictionary Source="Core/Views/OverlayAuraView.xaml" />
+                <ResourceDictionary Source="Core/Views/WindowSelectorView.xaml" />
+                <ResourceDictionary Source="Core/Views/PropertyEditorView.xaml" />
+                <ResourceDictionary Source="Core/Views/OverlayAuraEditor.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

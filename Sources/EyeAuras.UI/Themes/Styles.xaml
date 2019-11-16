@@ -1,0 +1,281 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+                    xmlns:eyeAuras="clr-namespace:EyeAuras;assembly=EyeAuras"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:overlay="clr-namespace:EyeAuras.UI.Overlay"
+                    xmlns:viewModels="clr-namespace:EyeAuras.UI.Overlay.ViewModels"
+                    xmlns:lib="clr-namespace:EyeAuras.OnTopReplica;assembly=EyeAuras.OnTopReplica"
+                    xmlns:eye="http://coderush.net/poeeye/">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Styles.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/SlimScrollbar.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesigntheme.togglebutton.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <FontFamily x:Key="FontPlayRegular">pack://application:,,,/Resources/#Play</FontFamily>
+
+    <Style x:Key="MaterialMessageBoxStyleKey" TargetType="{x:Type materialDesign:DialogHost}" BasedOn="{StaticResource MaterialDesignEmbeddedDialogHost}">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="CloseOnClickAway" Value="True" />
+    </Style>
+
+
+    <Style x:Key="MaterialNumericUpDownStyleKey"
+           TargetType="{x:Type xctk:InputBase}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryHueDarkForegroundBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="TextAlignment" Value="Right" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Control">
+                    <xctk:ButtonSpinner x:Name="PART_Spinner"
+                                        IsTabStop="False"
+                                        Background="{TemplateBinding Background}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch"
+                                        AllowSpin="{Binding AllowSpin, RelativeSource={RelativeSource TemplatedParent}}"
+                                        ShowButtonSpinner="{Binding ShowButtonSpinner, RelativeSource={RelativeSource TemplatedParent}}"
+                                        ButtonSpinnerLocation="{Binding ButtonSpinnerLocation, RelativeSource={RelativeSource TemplatedParent}}">
+                        <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                                 x:Name="PART_TextBox"
+                                 BorderThickness="0"
+                                 Background="{TemplateBinding Background}"
+                                 Foreground="{TemplateBinding Foreground}"
+                                 IsTabStop="True"
+                                 MinWidth="20"
+                                 AcceptsReturn="False"
+                                 TextWrapping="NoWrap" />
+                    </xctk:ButtonSpinner>
+                    <ControlTemplate.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsReadOnly, RelativeSource={RelativeSource Self}}"
+                                           Value="False" />
+                                <Condition Binding="{Binding AllowTextInput, RelativeSource={RelativeSource Self}}"
+                                           Value="False" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="IsReadOnly"
+                                    Value="True"
+                                    TargetName="PART_TextBox" />
+                        </MultiDataTrigger>
+                        <DataTrigger Binding="{Binding IsReadOnly, RelativeSource={RelativeSource Self}}"
+                                     Value="True">
+                            <Setter Property="IsReadOnly"
+                                    Value="True"
+                                    TargetName="PART_TextBox" />
+                        </DataTrigger>
+                        <Trigger Property="IsEnabled"
+                                 Value="False">
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
+                        </Trigger>
+                        <Trigger Property="IsFocused"
+                                 Value="True">
+                            <Setter TargetName="PART_TextBox"
+                                    Property="FocusManager.FocusedElement"
+                                    Value="{Binding ElementName=PART_TextBox}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <DataTemplate x:Key="EyeOverlayViewModelRegionEditor" DataType="{x:Type viewModels:EyeOverlayViewModel}">
+        <StackPanel DockPanel.Dock="Bottom">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="100" />
+                </Grid.ColumnDefinitions>
+
+                <xctk:DoubleUpDown Grid.Row="0" Grid.Column="0" Margin="0,0,0,0"
+                                   materialDesign:HintAssist.Hint="Region X" Minimum="0"
+                                   Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                   DisplayDefaultValueOnEmptyText="True"
+                                   DefaultValue="{x:Static system:Double.PositiveInfinity}"
+                                   FormatString="0"
+                                   Value="{Binding Region.RegionX, Mode=TwoWay, FallbackValue=0, UpdateSourceTrigger=PropertyChanged}" />
+
+                <xctk:DoubleUpDown Grid.Row="1" Grid.Column="0" Margin="0,5,0,0"
+                                   materialDesign:HintAssist.Hint="Region Y" Minimum="0"
+                                   Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                   DisplayDefaultValueOnEmptyText="True"
+                                   DefaultValue="{x:Static system:Double.PositiveInfinity}"
+                                   FormatString="0"
+                                   Value="{Binding Region.RegionY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <xctk:DoubleUpDown Grid.Row="0" Grid.Column="1" Margin="5,0,0,0"
+                                   materialDesign:HintAssist.Hint="Region Width" Minimum="0"
+                                   Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                   DisplayDefaultValueOnEmptyText="True"
+                                   DefaultValue="{x:Static system:Double.NegativeInfinity}"
+                                   FormatString="0"
+                                   Value="{Binding Region.RegionWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+
+                <xctk:DoubleUpDown Grid.Row="1" Grid.Column="1" Margin="5,5,0,0"
+                                   materialDesign:HintAssist.Hint="Region Height" Minimum="0"
+                                   Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                   DisplayDefaultValueOnEmptyText="True"
+                                   DefaultValue="{x:Static system:Double.NegativeInfinity}"
+                                   FormatString="0"
+                                   Value="{Binding Region.RegionHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+
+            <Grid Margin="0,5,0,0">
+                <ContentPresenter Grid.Column="0" Content="{Binding ResetRegionCommand}"
+                                  eye:CommandWrapperHelper.Text="Reset region" />
+            </Grid>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="EyeOverlayViewModelPositionEditor" DataType="{x:Type viewModels:EyeOverlayViewModel}">
+        <StackPanel DockPanel.Dock="Bottom">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="100" />
+                </Grid.ColumnDefinitions>
+
+                <xctk:IntegerUpDown Grid.Row="0" Grid.Column="0" Margin="0,0,0,0"
+                                    materialDesign:HintAssist.Hint="Overlay X" Minimum="0"
+                                    DisplayDefaultValueOnEmptyText="True"
+                                    DefaultValue="0"
+                                    Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                    Value="{Binding Left, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <xctk:IntegerUpDown Grid.Row="1" Grid.Column="0" Margin="0,5,0,0"
+                                    materialDesign:HintAssist.Hint="Overlay Y" Minimum="0"
+                                    DisplayDefaultValueOnEmptyText="True"
+                                    DefaultValue="0"
+                                    Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                    Value="{Binding Top, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <xctk:IntegerUpDown Grid.Row="0" Grid.Column="1" Margin="5,0,0,0"
+                                    materialDesign:HintAssist.Hint="Overlay Width" Minimum="0"
+                                    DisplayDefaultValueOnEmptyText="True"
+                                    DefaultValue="0"
+                                    Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                    Value="{Binding Width, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <xctk:IntegerUpDown Grid.Row="1" Grid.Column="1" Margin="5,5,0,0"
+                                    materialDesign:HintAssist.Hint="Overlay Height" Minimum="0"
+                                    DisplayDefaultValueOnEmptyText="True"
+                                    DefaultValue="0"
+                                    Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                    Value="{Binding Height, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </Grid>
+
+        </StackPanel>
+
+    </DataTemplate>
+
+    <Style TargetType="{x:Type materialDesign:Flipper}"
+           BasedOn="{StaticResource {x:Type materialDesign:Flipper}}"
+           x:Key="SimpleFlipper">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type materialDesign:Flipper}">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            x:Name="Border">
+                        <Grid>
+                            <ContentPresenter x:Name="FrontContentPresenter"
+                                              Visibility="{Binding IsFlipped, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}"
+                                              Margin="{TemplateBinding Padding}"
+                                              Content="{TemplateBinding FrontContent}"
+                                              ContentTemplate="{TemplateBinding FrontContentTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding FrontContentTemplateSelector}"
+                                              ContentStringFormat="{TemplateBinding FrontContentStringFormat}"
+                                              RenderTransformOrigin=".5,.5" />
+                            <ContentPresenter x:Name="BackContentPresenter"
+                                              Visibility="{Binding IsFlipped, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                                              Margin="{TemplateBinding Padding}"
+                                              Content="{TemplateBinding BackContent}"
+                                              ContentTemplate="{TemplateBinding BackContentTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding BackContentTemplateSelector}"
+                                              ContentStringFormat="{TemplateBinding BackContentStringFormat}"
+                                              RenderTransformOrigin=".5,.5" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type materialDesign:ColorPicker}" x:Key="ColorPickerWithPopupStyle">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type materialDesign:ColorPicker}">
+                    <Grid x:Name="colorPickerRoot">
+                        <Popup x:Name="colorPopup" StaysOpen="False" Height="150"
+                               Width="{Binding ElementName=colorPickerRoot, Path=ActualWidth}">
+                            <Border BorderThickness="1" BorderBrush="{StaticResource SecondaryAccentBrush}">
+                                <materialDesign:ColorPicker HueSliderPosition="{TemplateBinding HueSliderPosition}" x:Name="colorPicker"
+                                                            MinWidth="{TemplateBinding MinWidth}" MaxWidth="{TemplateBinding MaxWidth}"
+                                                            Color="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Color}" />
+                            </Border>
+                        </Popup>
+
+                        <DockPanel >
+                            <ToggleButton Height="36" Width="36"
+                                          Margin="5,0,0,0"
+                                          Focusable="False" IsTabStop="False"
+                                          Style="{StaticResource MaterialDesignFlatPrimaryToggleButton}"
+                                          IsHitTestVisible="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked, Converter={StaticResource NotConverter}}"
+                                          DockPanel.Dock="Right" IsChecked="{Binding ElementName=colorPopup, Path=IsOpen}">
+                                <Ellipse Width="36" Height="36" StrokeThickness="1" Stroke="{StaticResource SecondaryAccentBrush}">
+                                    <Ellipse.Fill>
+                                        <SolidColorBrush Color="{Binding ElementName=colorPicker, Path=Color}" />
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                            </ToggleButton>
+
+                            <TextBox x:Name="colorBox" DockPanel.Dock="Left"
+                                     eye:FocusHelper.IsFocused="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsFocused}"
+                                     Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                                     materialDesign:HintAssist.Hint="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(materialDesign:HintAssist.Hint)}" 
+                                     Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Color, Converter={StaticResource ColorToStringConverter}}" />
+                        </DockPanel>
+                    </Grid>
+
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <DataTemplate DataType="{x:Type lib:WindowHandle}">
+        <DockPanel Height="20">
+            <Image Source="{Binding IconBitmap}" Margin="5,0" Width="16" Height="16" />
+            <TextBlock Text="{Binding Title}"
+                       ToolTip="{Binding Title}"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center"
+                       TextAlignment="Left"
+                       TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+    </DataTemplate>
+</ResourceDictionary>

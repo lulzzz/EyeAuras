@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:default="clr-namespace:EyeAuras.DefaultAuras.Triggers.Default">
+    <DataTemplate DataType="{x:Type default:DefaultTriggerEditor}">
+        <CheckBox Content="Is Active" 
+                  Padding="5,0,0,0"
+                  VerticalContentAlignment="Center" 
+                  IsChecked="{Binding Source.IsActive}" />
+    </DataTemplate>
+</ResourceDictionary>

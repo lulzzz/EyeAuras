@@ -1,0 +1,171 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mainWindow="clr-namespace:EyeAuras.UI.MainWindow"
+                    xmlns:eye="http://coderush.net/poeeye/"
+                    xmlns:viewModels="clr-namespace:EyeAuras.UI.Overlay.ViewModels"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                    xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Generic.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/EyeAuras;component/Themes/Converters.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/EyeAuras;component/Themes/Styles.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+
+    <Style TargetType="{x:Type ContextMenu}" BasedOn="{StaticResource MaterialDesignContextMenu}" x:Key="OverlayContextMenuStyleKey">
+        <Setter Property="FontFamily" Value="{StaticResource FontPlayRegular}" />
+    </Style>
+
+    <DataTemplate DataType="{x:Type viewModels:EyeOverlayViewModel}">
+        <Grid RenderOptions.BitmapScalingMode="HighQuality" x:Name="OverlayMainPanel"
+              Background="Transparent" 
+              ContextMenuService.IsEnabled="{Binding IsInSelectMode, Converter={StaticResource NotConverter}}"
+              eye:EnableDragHelper.EnableDrag="{Binding IsInSelectMode, Converter={StaticResource NotConverter}}">
+            
+
+            <Grid.ContextMenu>
+                <ContextMenu StaysOpen="False" Style="{StaticResource OverlayContextMenuStyleKey}">
+
+                    <MenuItem Header="Select source" ItemsSource="{Binding WindowList}">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xf24d;" Style="{StaticResource IconTextBlock}" />
+                        </MenuItem.Icon>
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem">
+                                <Setter Property="Height" Value="24" />
+                                <Setter Property="Command"
+                                        Value="{Binding PlacementTarget.DataContext.SetAttachedWindowCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                <Setter Property="CommandParameter" Value="{Binding}" />
+                                <Setter Property="Visibility"
+                                        Value="{Binding RelativeSource={RelativeSource Self}, Path=IsEnabled, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}" />
+                            </Style>
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    <Separator />
+
+                    <MenuItem Header="Lock" Command="{Binding LockWindowCommand}"
+                              Visibility="{Binding IsLocked, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xf023;" Style="{StaticResource IconTextBlock}" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Unlock" Command="{Binding UnlockWindowCommand}"
+                              Visibility="{Binding IsLocked, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xf09c;" Style="{StaticResource IconTextBlock}" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Disable Aura"
+                              Command="{Binding DisableAuraCommand}">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xf070;" Foreground="{StaticResource NegativeBrush}" Style="{StaticResource IconTextBlock}" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Enable Click-Through mode"
+                              Visibility="{Binding IsClickThrough, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}"
+                              Command="{Binding SetClickThroughCommand}"
+                              CommandParameter="{StaticResource TrueValue}">
+                        <MenuItem.Icon>
+                            <materialDesign:PackIcon Kind="MouseOff" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Disable Click-Through mode"
+                              Visibility="{Binding IsClickThrough, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                              Command="{Binding SetClickThroughCommand}"
+                              CommandParameter="{StaticResource FalseValue}">
+                        <MenuItem.Icon>
+                            <materialDesign:PackIcon Kind="Mouse" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="Select region..."
+                              Command="{Binding SelectRegionCommand}">
+                        <MenuItem.Icon>
+                            <materialDesign:PackIcon Kind="Select" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+
+                    <MenuItem Header="Reset region"
+                              Command="{Binding ResetRegionCommand}">
+                        <MenuItem.Icon>
+                            <materialDesign:PackIcon Kind="SelectInverse" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+
+                    <MenuItem Header="1:4 Quarter Size"
+                              Command="{Binding FitOverlayCommand}"
+                              CommandParameter="{Binding ScaleRatioQuarter}" />
+                    <MenuItem Header="1:2 Half Size"
+                              Command="{Binding FitOverlayCommand}"
+                              CommandParameter="{Binding ScaleRatioHalf}" />
+                    <MenuItem Header="1:1 Actual Size"
+                              Command="{Binding FitOverlayCommand}"
+                              CommandParameter="{Binding ScaleRatioActual}" />
+                    <MenuItem Header="2:1 Double Size"
+                              Command="{Binding FitOverlayCommand}"
+                              CommandParameter="{Binding ScaleRatioDouble}" />
+                    <Separator />
+                    <MenuItem Header="Close Overlay and Aura"
+                              Command="{Binding CloseCommand}">
+                        <MenuItem.Icon>
+                            <TextBlock Text="&#xf00d;" Style="{StaticResource IconTextBlock}" />
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </Grid.ContextMenu>
+
+            <Border BorderThickness="{Binding BorderThickness, Converter={StaticResource ThicknessConverter}, ConverterParameter=''}">
+                <mainWindow:ThumbnailPanel
+                    x:Name="ThumbnailPanelElement"
+                    Background="{StaticResource MaxTransparencyBrush}"
+                    IsInSelectMode="{Binding IsInSelectMode, Mode=TwoWay}"
+                    ThumbnailOpacity="{Binding ActiveThumbnailOpacity, Mode=OneWay}"
+                    TargetWindow="{Binding AttachedWindow, Mode=OneWay}"
+                    Region="{Binding Region, Mode=OneWay}"
+                    IsHitTestVisible="{Binding IsInSelectMode, Mode=OneWay}"
+                    ThumbnailSize="{Binding ThumbnailSize, Mode=OneWayToSource}"
+                    TargetWindowSize="{Binding AttachedWindowSize, Mode=OneWayToSource}" />
+            </Border>
+            
+            <Border BorderThickness="{Binding BorderThickness, Converter={StaticResource ThicknessConverter}, ConverterParameter=''}"
+                    Opacity="{Binding ActiveThumbnailOpacity}">
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="{Binding BorderColor}" />
+                </Border.BorderBrush>
+            </Border>
+
+            <StackPanel Orientation="Vertical"
+                        IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Center" TextBlock.FontSize="18" TextBlock.TextAlignment="Center"
+                        Visibility="{Binding IsInEditMode, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}">
+                <StackPanel Orientation="Horizontal"
+                            Visibility="{Binding ElementName=OverlayMainPanel, Path=IsMouseOver, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}">
+                    <Image Width="16" Height="16" VerticalAlignment="Center" HorizontalAlignment="Center"
+                           Source="{Binding AttachedWindow.IconBitmap}" Margin="2,0" Opacity="0.5"
+                           Visibility="{Binding AttachedWindow.IconBitmap, Converter={StaticResource NullToCollapsedConverter}}" />
+                    <TextBlock Text="{Binding OverlayName, StringFormat='{}{0}'}" />
+                </StackPanel>
+                <TextBlock Text="Right-click to start"
+                           Visibility="{Binding AttachedWindow, Converter={StaticResource NotNullToCollapsedConverter}}" />
+
+            </StackPanel>
+
+            <StackPanel Orientation="Vertical" IsHitTestVisible="False" Focusable="False" Visibility="Collapsed">
+                <TextBlock Text="{Binding AttachedWindow, StringFormat='Attached window: {0}'}" />
+                <TextBlock Text="{Binding ViewModelLocation, StringFormat='Overlay canvas location: {0}'}" />
+                <TextBlock Text="{Binding ElementName=ThumbnailPanelElement, Path=Dpi, StringFormat='Overlay DPI: {0}'}" />
+                <TextBlock Text="{Binding Bounds.Location, StringFormat='Overlay location: {0}'}" />
+                <TextBlock Text="{Binding Bounds.Size, StringFormat='Overlay size(DPI): {0}'}" />
+                <TextBlock Text="{Binding AspectRatio, StringFormat='Aspect ratio: {0}'}" />
+                <TextBlock Text="{Binding TargetAspectRatio, StringFormat='Target Aspect ratio: {0}'}" />
+                <TextBlock Text="{Binding AttachedWindowSize, StringFormat='Thumbnail window size: {0}'}" />
+                <TextBlock Text="{Binding Region, StringFormat='Thumbnail region: {0}'}" />
+                <TextBlock Text="{Binding ThumbnailSize, StringFormat='Thumbnail size: {0}'}" />
+                <TextBlock Text="{Binding OverlayWindow.ActualHeight, StringFormat='Actual height: {0}'}" />
+                <TextBlock Text="{Binding OverlayWindow.ActualWidth, StringFormat='Actual width: {0}'}" />
+
+            </StackPanel>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>
