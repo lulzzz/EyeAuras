@@ -23,7 +23,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PoeShared.Tests", "PoeShare
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EyeAuras.Loader", "EyeAuras.Loader\EyeAuras.Loader.csproj", "{EDA7B7DB-50D0-492C-86C0-ECD991338144}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EyeAuras.Web", "..\Submodules\EyeAuras.Plus\EyeAuras.Web\EyeAuras.Web.csproj", "{6923F689-7278-467B-9776-3367919092B9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EyeAuras.Web", "EyeAuras.Web\EyeAuras.Web.csproj", "{6923F689-7278-467B-9776-3367919092B9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

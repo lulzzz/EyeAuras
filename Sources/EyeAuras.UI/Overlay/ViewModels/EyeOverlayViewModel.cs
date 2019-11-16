@@ -103,6 +103,22 @@ namespace EyeAuras.UI.Overlay.ViewModels
             setClickThroughCommand = CommandWrapper.Create<bool?>(SetClickThroughModeExecuted);
             DisableAuraCommand = CommandWrapper.Create(() => auraModelController.IsEnabled = false);
             CloseCommand = CommandWrapper.Create(CloseCommandExecuted, auraModelController.WhenAnyValue(x => x.CloseController).Select(CloseCommandCanExecute));
+            ToggleLockStateCommand = CommandWrapper.Create(
+                () =>
+                {
+                    if (IsLocked && UnlockWindowCommand.CanExecute(null))
+                    {
+                        UnlockWindowCommand.Execute(null);
+                    }
+                    else if (!IsLocked && LockWindowCommand.CanExecute(null))
+                    {
+                        LockWindowCommand.Execute(null);
+                    }
+                    else
+                    {
+                        throw new ApplicationException($"Something went wrong - invalid Overlay Lock state: {new {IsLocked, IsUnlockable, CanUnlock = UnlockWindowCommand.CanExecute(null), CanLock = LockWindowCommand.CanExecute(null)  }}");
+                    }
+                });
 
             auraModelController.WhenAnyValue(x => x.Name)
                 .Where(x => !string.IsNullOrEmpty(x))
@@ -165,6 +181,8 @@ namespace EyeAuras.UI.Overlay.ViewModels
         }
         
         public ReadOnlyObservableCollection<WindowHandle> WindowList => windowListProvider.WindowList;
+        
+        public ICommand ToggleLockStateCommand { get; }
 
         public ICommand CloseConfigEditorCommand => closeConfigEditorCommand;
 

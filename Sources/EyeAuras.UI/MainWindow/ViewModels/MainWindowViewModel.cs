@@ -409,6 +409,10 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                 };
                 Log.Info($"Quick-Creating new tab using {newTabProperties.DumpToTextRaw()} args...");
                 var viewModel = CreateAndAddTab(newTabProperties);
+                if (viewModel.Model.Overlay.UnlockWindowCommand.CanExecute(null))
+                {
+                    viewModel.Model.Overlay.UnlockWindowCommand.Execute(null);
+                }
             }
             else
             {
