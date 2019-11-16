@@ -13,7 +13,6 @@ namespace EyeAuras.OnTopReplica
         private int regionWidth;
         private int regionX;
         private int regionY;
-        private Rectangle clientBounds;
 
         private readonly ObservableAsPropertyHelper<Rectangle> bounds;
 

@@ -221,6 +221,7 @@ ModelManifest.xml
 Sources/PoeShared
 Sources/PoeShared.Core
 Sources/PoeShared.Tests
+Sources/PoeShared.OpenCV
 Sources/OnTopReplica
 Sources/EyeAuras.OpenCVAuras
 Sources/EyeAuras.Loader
