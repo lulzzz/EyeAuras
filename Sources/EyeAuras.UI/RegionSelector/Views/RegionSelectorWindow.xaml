@@ -10,6 +10,7 @@
                           xmlns:eyeAuras="clr-namespace:EyeAuras;assembly=EyeAuras"
                           xmlns:viewModels="clr-namespace:EyeAuras.UI.Overlay.ViewModels"
                           xmlns:viewModels1="clr-namespace:EyeAuras.UI.RegionSelector.ViewModels"
+                          xmlns:blue="http://www.nuget.org/Blue.MVVM"
                           mc:Ignorable="d"
                           Title="RegionSelector" 
                           ResizeMode="NoResize"
@@ -25,6 +26,10 @@
                           ShowActivated="True"
                           WindowState="Maximized" 
                           d:DataContext="{d:DesignInstance viewModels1:RegionSelectorViewModel}">
+    <Window.Resources>
+        <blue:MultiplyDoubleConverter x:Key="MultiplyDoubleDivideByThreeConverter" Factor="0.33" />
+    </Window.Resources>
+    
     <Grid x:Name="RegionSelectorRoot">
         <Border 
                 Background="{StaticResource OverlayWindowTitleBackgroundBrushKey}"
@@ -38,11 +43,13 @@
         <TextBlock VerticalAlignment="Center"
                    FontSize="20"
                    Foreground="Aqua"
+                   TextTrimming="CharacterEllipsis"
+                   MaxWidth="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=ActualWidth, Converter={StaticResource MultiplyDoubleDivideByThreeConverter}}"
                    HorizontalAlignment="Center">
             <TextBlock.Inlines>
-                <Run Text="{Binding MouseRegion.Window.Title, Mode=OneWay}"/> : 
-                WindowRect = <Run Text="{Binding MouseRegion.Window.WindowBounds, Mode=OneWay}"/>
-                Selection = <Run Text="{Binding MouseRegion.Selection, Mode=OneWay}"/>
+                <Run Text="{Binding MouseRegion.Window.Title, Mode=OneWay}" /><LineBreak/>
+                Window bounds: <Run Text="{Binding MouseRegion.Window.WindowBounds, Mode=OneWay}"/><LineBreak/>
+                Selection bounds: <Run Text="{Binding MouseRegion.Selection, Mode=OneWay}"/>
                 
             </TextBlock.Inlines>
         </TextBlock>

@@ -1,5 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using EyeAuras.OnTopReplica.Native;
+using PoeShared.Native;
 
 namespace EyeAuras.OnTopReplica.WindowSeekers
 {
@@ -8,15 +12,41 @@ namespace EyeAuras.OnTopReplica.WindowSeekers
     /// </summary>
     public sealed class TaskWindowSeeker : BaseWindowSeeker
     {
-        public override IList<WindowHandle> Windows { get; } = new List<WindowHandle>();
+        private readonly ConcurrentDictionary<IntPtr, WindowHandle> windows = new ConcurrentDictionary<IntPtr, WindowHandle>();
+
+        public override IEnumerable<WindowHandle> Windows => windows.Values;
 
         public override void Refresh()
         {
-            Windows.Clear();
-            base.Refresh();
+            var windowsSnapshot = new ConcurrentDictionary<IntPtr, WindowHandle>();
+            WindowManagerMethods.EnumWindows((hwnd, lParam) => RefreshCallback(hwnd, lParam, handle => windowsSnapshot[handle.Handle] = handle), IntPtr.Zero);
+            
+            var windowHandles = windowsSnapshot.ToArray();
+            var zOrder = UnsafeNative.GetZOrder(windowHandles.Select(x => x.Key).ToArray());
+            for (var i = 0; i < zOrder.Length; i++)
+            {
+                windowHandles[i].Value.ZOrder = zOrder[i];
+            }
         }
 
-        protected override bool InspectWindow(WindowHandle handle)
+        private bool RefreshCallback(IntPtr hwnd, IntPtr lParam, Action<WindowHandle> addHandler)
+        {
+            if (BlacklistedWindows.Contains(hwnd))
+            {
+                return true;
+            }
+
+            if (SkipNotVisibleWindows && !WindowManagerMethods.IsWindowVisible(hwnd))
+            {
+                return true;
+            }
+
+            var handle = new WindowHandle(hwnd);
+
+            return InspectWindow(handle);
+        }
+
+        private bool InspectWindow(WindowHandle handle)
         {
             //Code taken from: http://www.thescarms.com/VBasic/alttab.aspx
 
@@ -43,10 +73,11 @@ namespace EyeAuras.OnTopReplica.WindowSeekers
                 (exStyle & WindowMethods.WindowExStyles.AppWindow) == WindowMethods.WindowExStyles.AppWindow && hasOwner)
             {
                 //owned application window
-                Windows.Add(handle);
+                windows[handle.Handle] = handle;
             }
 
             return true;
         }
+        
     }
 }

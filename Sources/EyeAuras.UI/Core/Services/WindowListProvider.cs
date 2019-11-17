@@ -21,7 +21,7 @@ namespace EyeAuras.UI.Core.Services
         private readonly ReadOnlyObservableCollection<WindowHandle> windowList;
         private readonly SourceList<WindowHandle> windowListSource;
 
-        private readonly BaseWindowSeeker windowSeeker;
+        private readonly IWindowSeeker windowSeeker;
         
 
         public WindowListProvider()

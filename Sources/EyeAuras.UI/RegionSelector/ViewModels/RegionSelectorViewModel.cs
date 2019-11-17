@@ -13,6 +13,7 @@ using System;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using EyeAuras.OnTopReplica.WindowSeekers;
 using JetBrains.Annotations;
 using log4net;
 using PoeShared.Prism;
@@ -27,18 +28,20 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
         private static readonly TimeSpan ThrottlingPeriod = TimeSpan.FromMilliseconds(100);
         private static readonly int CurrentProcessId = Process.GetCurrentProcess().Id;
 
-        private readonly IWindowListProvider windowListProvider;
         private Rectangle selection;
-        private System.Drawing.Point mouseLocation;
+        private Point mouseLocation;
         private RegionSelectorResult mouseRegion;
+        private readonly IWindowSeeker windowSeeker;
 
         public RegionSelectorViewModel(
-            [NotNull] IWindowListProvider windowListProvider,
             [NotNull] IKeyboardEventsSource eventListener,
             [NotNull] ICloseController<RegionSelectorResult> closeController,
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
         {
-            this.windowListProvider = windowListProvider;
+            windowSeeker = new TaskWindowSeeker()
+            {
+                SkipNotVisibleWindows = true
+            };
             eventListener.InitializeMouseHook().AddTo(Anchors);
             eventListener.WhenMouseMove
                 .Select(x => x.Location)
@@ -64,6 +67,10 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                         closeController.Close(result);
                     })
                 .AddTo(Anchors);
+            
+            Observable.Timer(DateTimeOffset.Now, TimeSpan.FromSeconds(1))
+                .Subscribe(() => windowSeeker.Refresh())
+                .AddTo(Anchors);
         }
 
         public Rectangle Selection
@@ -78,7 +85,7 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
             set => this.RaiseAndSetIfChanged(ref mouseRegion, value);
         }
 
-        public System.Drawing.Point MouseLocation
+        public Point MouseLocation
         {
             get => mouseLocation;
             set => this.RaiseAndSetIfChanged(ref mouseLocation, value);
@@ -90,8 +97,8 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
             {
                 return new RegionSelectorResult { Reason = "Selected Empty screen region" };
             }
-
-            var (window, selection) = FindMatchingWindow(screenRegion, windowListProvider.WindowList);
+            
+            var (window, selection) = FindMatchingWindow(screenRegion, windowSeeker.Windows);
 
             if (window != null)
             {
