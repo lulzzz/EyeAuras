@@ -52,7 +52,7 @@
                         eye:CommandWrapperHelper.DataContext="{Binding}"
                         eye:CommandWrapperHelper.Icon="&#xf2d0;">
                         <eye:CommandWrapperHelper.Text>
-                            <TextBlock Text="{Binding LatestVersion, StringFormat='Restart application to migrate to v{0}'}"/>
+                            <TextBlock Text="{Binding UpdatedVersion, StringFormat='Restart application to migrate to v{0}'}"/>
                         </eye:CommandWrapperHelper.Text>
                         <ContentControl.Visibility>
                             <MultiBinding Converter="{StaticResource MultiBooleanAllTrueToVisibleFalseToCollapsedConverter}">
@@ -84,7 +84,6 @@
                     </ContentControl>
 
                     <ProgressBar Margin="5, 10" VerticalAlignment="Center"
-                                 IsIndeterminate="{Binding ProgressPercent, Converter={StaticResource ZeroToTrueConverter}}"
                                  Value="{Binding ProgressPercent, Mode=OneWay}"
                                  Visibility="{Binding IsBusy, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}" />
                 </Grid>
