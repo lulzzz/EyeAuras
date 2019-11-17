@@ -48,7 +48,7 @@ namespace EyeAuras.DefaultAuras.Triggers.HotkeyIsActive
                          */
                         if (mainWindowTracker.ActiveProcessId != CurrentProcessId)
                         {
-                            Log.Debug($"Application is NOT active, processing hotkey {hotkeyData.Hotkey} (isDown: {hotkeyData.KeyDown}, suppressKey: {suppressKey})");
+                            Log.Debug($"Application is NOT active, processing hotkey {hotkeyData.Hotkey} (isDown: {hotkeyData.KeyDown}, suppressKey: {suppressKey},  configuredKey: {Hotkey}, mode: {HotkeyMode})");
                             if (suppressKey)
                             {
                                 hotkeyData.MarkAsHandled();
@@ -56,7 +56,7 @@ namespace EyeAuras.DefaultAuras.Triggers.HotkeyIsActive
                             return true;
                         }
 
-                        Log.Debug($"Application is active, skipping hotkey {hotkeyData.Hotkey} (isDown: {hotkeyData.KeyDown})");
+                        Log.Debug($"Application is active, skipping hotkey {hotkeyData.Hotkey} (isDown: {hotkeyData.KeyDown}, suppressKey: {suppressKey},  configuredKey: {Hotkey}, mode: {HotkeyMode})");
                         return false;
                     })
                 .Subscribe(
@@ -143,14 +143,12 @@ namespace EyeAuras.DefaultAuras.Triggers.HotkeyIsActive
             IKeyboardEventsSource eventSource)
         {
             var hotkeyDown =
-                eventSource.WhenMouseDown.Select(HotkeyData.FromEvent)
-                    .Merge(
-                        eventSource.WhenKeyDown.Select(HotkeyData.FromEvent)
-                            .Where(IsConfiguredHotkey)
-                            .Select(x => x.SetKeyDown(true)));
+                Observable.Merge(eventSource.WhenMouseDown.Select(HotkeyData.FromEvent), eventSource.WhenKeyDown.Select(HotkeyData.FromEvent))
+                    .Where(IsConfiguredHotkey)
+                    .Select(x => x.SetKeyDown(true));
+            
             var hotkeyUp =
-                eventSource.WhenMouseUp.Select(HotkeyData.FromEvent)
-                    .Merge(eventSource.WhenKeyUp.Select(HotkeyData.FromEvent))
+                Observable.Merge(eventSource.WhenMouseUp.Select(HotkeyData.FromEvent), eventSource.WhenKeyUp.Select(HotkeyData.FromEvent))
                     .Where(IsConfiguredHotkey)
                     .Select(x => x.SetKeyDown(false));
 

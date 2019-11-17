@@ -136,7 +136,7 @@ namespace EyeAuras.UI.MainWindow
                                     return Observable.Return(Rect.Empty);
                                 }
 
-                                if (result.Width * result.Height < 10)
+                                if (result.Width * result.Height < 20)
                                 {
                                     result = new Rect(mousePosition.X, mousePosition.Y, 0, 0);
                                 }
