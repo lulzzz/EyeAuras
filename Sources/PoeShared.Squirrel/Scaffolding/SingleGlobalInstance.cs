@@ -1,13 +1,17 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Reactive.Disposables;
 using System.Threading;
+using log4net;
 using Splat;
 
-namespace PoeShared.Squirrel.Utility
+namespace PoeShared.Squirrel.Scaffolding
 {
     internal sealed class SingleGlobalInstance : IDisposable, IEnableLogger
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof(SingleGlobalInstance));
+
         private IDisposable handle;
 
         public SingleGlobalInstance(string key, TimeSpan timeOut)
@@ -33,7 +37,7 @@ namespace PoeShared.Squirrel.Utility
                 }
                 catch (Exception ex)
                 {
-                    this.Log().WarnException("Failed to grab lockfile, will retry: " + path, ex);
+                    Log.Warn("Failed to grab lockfile, will retry: " + path, ex);
                     Thread.Sleep(250);
                 }
             }

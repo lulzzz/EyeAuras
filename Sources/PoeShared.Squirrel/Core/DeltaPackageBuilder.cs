@@ -8,7 +8,6 @@ using System.Text.RegularExpressions;
 using DeltaCompressionDotNet.MsDelta;
 using log4net;
 using PoeShared.Squirrel.Scaffolding;
-using PoeShared.Squirrel.Utility;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Zip;
 using SharpCompress.Compressors.Deflate;
@@ -57,24 +56,20 @@ namespace PoeShared.Squirrel.Core
                 throw new FileNotFoundException("The new package release does not exist", newPackage.ReleasePackageFile);
             }
 
-            string baseTempPath = null;
-            string tempPath = null;
-
-            using (Utility.Utility.WithTempDirectory(out baseTempPath))
-            using (Utility.Utility.WithTempDirectory(out tempPath))
+            using (Utility.WithTempDirectory(out var baseTempPath))
+            using (Utility.WithTempDirectory(out var tempPath))
             {
                 var baseTempInfo = new DirectoryInfo(baseTempPath);
                 var tempInfo = new DirectoryInfo(tempPath);
 
-                this.Log()
-                    .Info(
+                Log.InfoFormat(
                         "Extracting {0} and {1} into {2}",
                         basePackage.ReleasePackageFile,
                         newPackage.ReleasePackageFile,
                         tempPath);
 
-                Utility.Utility.ExtractZipToDirectory(basePackage.ReleasePackageFile, baseTempInfo.FullName).Wait();
-                Utility.Utility.ExtractZipToDirectory(newPackage.ReleasePackageFile, tempInfo.FullName).Wait();
+                Utility.ExtractZipToDirectory(basePackage.ReleasePackageFile, baseTempInfo.FullName).Wait();
+                Utility.ExtractZipToDirectory(newPackage.ReleasePackageFile, tempInfo.FullName).Wait();
 
                 // Collect a list of relative paths under 'lib' and map them
                 // to their full name. We'll use this later to determine in
@@ -88,11 +83,11 @@ namespace PoeShared.Squirrel.Core
 
                 foreach (var libFile in newLibDir.GetAllFilesRecursively())
                 {
-                    createDeltaForSingleFile(libFile, tempInfo, baseLibFiles);
+                    CreateDeltaForSingleFile(libFile, tempInfo, baseLibFiles);
                 }
 
-                ReleasePackage.addDeltaFilesToContentTypes(tempInfo.FullName);
-                Utility.Utility.CreateZipFromDirectory(outputFile, tempInfo.FullName).Wait();
+                ReleasePackage.AddDeltaFilesToContentTypes(tempInfo.FullName);
+                Utility.CreateZipFromDirectory(outputFile, tempInfo.FullName).Wait();
             }
 
             return new ReleasePackage(outputFile);
@@ -103,11 +98,8 @@ namespace PoeShared.Squirrel.Core
             Guard.ArgumentIsTrue(deltaPackage != null, "deltaPackage != null");
             Guard.ArgumentIsTrue(!string.IsNullOrEmpty(outputFile) && !File.Exists(outputFile), "!string.IsNullOrEmpty(outputFile) && !File.Exists(outputFile)");
 
-            string workingPath;
-            string deltaPath;
-
-            using (Utility.Utility.WithTempDirectory(out deltaPath, localAppDirectory))
-            using (Utility.Utility.WithTempDirectory(out workingPath, localAppDirectory))
+            using (Utility.WithTempDirectory(out var deltaPath, localAppDirectory))
+            using (Utility.WithTempDirectory(out var workingPath, localAppDirectory))
             {
                 var opts = new ExtractionOptions {ExtractFullPath = true, Overwrite = true, PreserveFileTime = true};
 
@@ -140,7 +132,7 @@ namespace PoeShared.Squirrel.Core
                         file =>
                         {
                             pathsVisited.Add(Regex.Replace(file, @"\.(bs)?diff$", "").ToLowerInvariant());
-                            applyDiffToFile(deltaPath, file, workingPath);
+                            ApplyDiffToFile(deltaPath, file, workingPath);
                         });
 
                 // Delete all of the files that were in the old package but
@@ -151,7 +143,7 @@ namespace PoeShared.Squirrel.Core
                     .ForEach(
                         x =>
                         {
-                            this.Log().Info("{0} was in old package but not in new one, deleting", x);
+                            Log.InfoFormat("{0} was in old package but not in new one, deleting", x);
                             File.Delete(Path.Combine(workingPath, x));
                         });
 
@@ -162,13 +154,13 @@ namespace PoeShared.Squirrel.Core
                     .ForEach(
                         x =>
                         {
-                            this.Log().Info("Updating metadata file: {0}", x);
+                            Log.InfoFormat("Updating metadata file: {0}", x);
                             File.Copy(Path.Combine(deltaPath, x), Path.Combine(workingPath, x), true);
                         });
 
-                this.Log().Info("Repacking into full package: {0}", outputFile);
+                Log.InfoFormat("Repacking into full package: {0}", outputFile);
                 using (var za = ZipArchive.Create())
-                using (var tgt = File.OpenWrite(outputFile))
+                using (var tgt = File.OpenWrite(outputFile ?? throw new ArgumentNullException(nameof(outputFile))))
                 {
                     za.DeflateCompressionLevel = CompressionLevel.BestSpeed;
                     za.AddAllFromDirectory(workingPath);
@@ -179,7 +171,7 @@ namespace PoeShared.Squirrel.Core
             return new ReleasePackage(outputFile);
         }
 
-        private void createDeltaForSingleFile(FileInfo targetFile, DirectoryInfo workingDirectory, Dictionary<string, string> baseFileListing)
+        private void CreateDeltaForSingleFile(FileInfo targetFile, DirectoryInfo workingDirectory, Dictionary<string, string> baseFileListing)
         {
             // NB: There are three cases here that we'll handle:
             //
@@ -194,16 +186,16 @@ namespace PoeShared.Squirrel.Core
 
             if (!baseFileListing.ContainsKey(relativePath))
             {
-                this.Log().Info("{0} not found in base package, marking as new", relativePath);
+                Log.InfoFormat("{0} not found in base package, marking as new", relativePath);
                 return;
             }
 
             var oldData = File.ReadAllBytes(baseFileListing[relativePath]);
             var newData = File.ReadAllBytes(targetFile.FullName);
 
-            if (bytesAreIdentical(oldData, newData))
+            if (BytesAreIdentical(oldData, newData))
             {
-                this.Log().Info("{0} hasn't changed, writing dummy file", relativePath);
+                Log.InfoFormat("{0} hasn't changed, writing dummy file", relativePath);
 
                 File.Create(targetFile.FullName + ".diff").Dispose();
                 File.Create(targetFile.FullName + ".shasum").Dispose();
@@ -211,7 +203,7 @@ namespace PoeShared.Squirrel.Core
                 return;
             }
 
-            this.Log().Info("Delta patching {0} => {1}", baseFileListing[relativePath], targetFile.FullName);
+            Log.InfoFormat("Delta patching {0} => {1}", baseFileListing[relativePath], targetFile.FullName);
             var msDelta = new MsDeltaCompression();
 
             if (targetFile.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase) ||
@@ -225,7 +217,7 @@ namespace PoeShared.Squirrel.Core
                 }
                 catch (Exception)
                 {
-                    this.Log().Warn("We couldn't create a delta for {0}, attempting to create bsdiff", targetFile.Name);
+                    Log.WarnFormat("We couldn't create a delta for {0}, attempting to create bsdiff", targetFile.Name);
                 }
             }
 
@@ -244,10 +236,10 @@ namespace PoeShared.Squirrel.Core
             }
             catch (Exception ex)
             {
-                this.Log().WarnException($"We really couldn't create a delta for {targetFile.Name}", ex);
+                Log.Warn($"We really couldn't create a delta for {targetFile.Name}", ex);
 
-                Utility.Utility.DeleteFileHarder(targetFile.FullName + ".bsdiff", true);
-                Utility.Utility.DeleteFileHarder(targetFile.FullName + ".diff", true);
+                Utility.DeleteFileHarder(targetFile.FullName + ".bsdiff", true);
+                Utility.DeleteFileHarder(targetFile.FullName + ".diff", true);
                 return;
             }
 
@@ -259,20 +251,19 @@ namespace PoeShared.Squirrel.Core
         }
 
 
-        private void applyDiffToFile(string deltaPath, string relativeFilePath, string workingDirectory)
+        private void ApplyDiffToFile(string deltaPath, string relativeFilePath, string workingDirectory)
         {
             var inputFile = Path.Combine(deltaPath, relativeFilePath);
             var finalTarget = Path.Combine(workingDirectory, Regex.Replace(relativeFilePath, @"\.(bs)?diff$", ""));
 
-            var tempTargetFile = default(string);
-            Utility.Utility.WithTempFile(out tempTargetFile, localAppDirectory);
+            Utility.WithTempFile(out var tempTargetFile, localAppDirectory);
 
             try
             {
                 // NB: Zero-length diffs indicate the file hasn't actually changed
                 if (new FileInfo(inputFile).Length == 0)
                 {
-                    this.Log().Info("{0} exists unchanged, skipping", relativeFilePath);
+                    Log.InfoFormat("{0} exists unchanged, skipping", relativeFilePath);
                     return;
                 }
 
@@ -281,26 +272,26 @@ namespace PoeShared.Squirrel.Core
                     using (var of = File.OpenWrite(tempTargetFile))
                     using (var inf = File.OpenRead(finalTarget))
                     {
-                        this.Log().Info("Applying BSDiff to {0}", relativeFilePath);
+                        Log.InfoFormat("Applying BSDiff to {0}", relativeFilePath);
                         BinaryPatchUtility.Apply(inf, () => File.OpenRead(inputFile), of);
                     }
 
-                    verifyPatchedFile(relativeFilePath, inputFile, tempTargetFile);
+                    VerifyPatchedFile(relativeFilePath, inputFile, tempTargetFile);
                 }
                 else if (relativeFilePath.EndsWith(".diff", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    this.Log().Info("Applying MSDiff to {0}", relativeFilePath);
+                    Log.InfoFormat("Applying MSDiff to {0}", relativeFilePath);
                     var msDelta = new MsDeltaCompression();
                     msDelta.ApplyDelta(inputFile, finalTarget, tempTargetFile);
 
-                    verifyPatchedFile(relativeFilePath, inputFile, tempTargetFile);
+                    VerifyPatchedFile(relativeFilePath, inputFile, tempTargetFile);
                 }
                 else
                 {
                     using (var of = File.OpenWrite(tempTargetFile))
                     using (var inf = File.OpenRead(inputFile))
                     {
-                        this.Log().Info("Adding new file: {0}", relativeFilePath);
+                        Log.InfoFormat("Adding new file: {0}", relativeFilePath);
                         inf.CopyTo(of);
                     }
                 }
@@ -322,12 +313,12 @@ namespace PoeShared.Squirrel.Core
             {
                 if (File.Exists(tempTargetFile))
                 {
-                    Utility.Utility.DeleteFileHarder(tempTargetFile, true);
+                    Utility.DeleteFileHarder(tempTargetFile, true);
                 }
             }
         }
 
-        private void verifyPatchedFile(string relativeFilePath, string inputFile, string tempTargetFile)
+        private void VerifyPatchedFile(string relativeFilePath, string inputFile, string tempTargetFile)
         {
             var shaFile = Regex.Replace(inputFile, @"\.(bs)?diff$", ".shasum");
             var expectedReleaseEntry = ReleaseEntry.ParseReleaseEntry(File.ReadAllText(shaFile, Encoding.UTF8));
@@ -335,8 +326,7 @@ namespace PoeShared.Squirrel.Core
 
             if (expectedReleaseEntry.Filesize != actualReleaseEntry.Filesize)
             {
-                this.Log()
-                    .Warn(
+                Log.WarnFormat(
                         "Patched file {0} has incorrect size, expected {1}, got {2}",
                         relativeFilePath,
                         expectedReleaseEntry.Filesize,
@@ -346,8 +336,7 @@ namespace PoeShared.Squirrel.Core
 
             if (expectedReleaseEntry.SHA1 != actualReleaseEntry.SHA1)
             {
-                this.Log()
-                    .Warn(
+                Log.WarnFormat(
                         "Patched file {0} has incorrect SHA1, expected {1}, got {2}",
                         relativeFilePath,
                         expectedReleaseEntry.SHA1,
@@ -356,7 +345,7 @@ namespace PoeShared.Squirrel.Core
             }
         }
 
-        private bool bytesAreIdentical(byte[] oldData, byte[] newData)
+        private bool BytesAreIdentical(byte[] oldData, byte[] newData)
         {
             if (oldData == null || newData == null)
             {

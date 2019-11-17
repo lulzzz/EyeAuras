@@ -19,11 +19,10 @@ namespace PoeShared.Squirrel.Updater
         private static readonly ILog Log = LogManager.GetLogger(typeof(ApplicationUpdaterViewModel));
 
         private readonly IApplicationUpdaterModel updaterModel;
-        private string error = string.Empty;
 
         private bool isOpen;
-
         private string statusText;
+        private bool isInErrorStatus;
 
         public ApplicationUpdaterViewModel(
             [NotNull] IApplicationUpdaterModel updaterModel,
@@ -43,11 +42,13 @@ namespace PoeShared.Squirrel.Updater
 
             CheckForUpdatesCommand
                 .ThrownExceptions
-                .Subscribe(ex => Error = $"Update error: {ex.Message}")
+                .Subscribe(ex => SetError($"Update error: {ex.Message}"))
                 .AddTo(Anchors);
 
             this.RaiseWhenSourceValue(x => x.UpdatedVersion, updaterModel, x => x.UpdatedVersion, uiScheduler).AddTo(Anchors);
             this.RaiseWhenSourceValue(x => x.LatestVersion, updaterModel, x => x.LatestVersion, uiScheduler).AddTo(Anchors);
+            this.RaiseWhenSourceValue(x => x.ProgressPercent, updaterModel, x => x.ProgressPercent, uiScheduler).AddTo(Anchors);
+            this.RaiseWhenSourceValue(x => x.IsBusy, updaterModel, x => x.IsBusy, uiScheduler).AddTo(Anchors);
 
             //FIXME UI THREAD ?
             RestartCommand = CommandWrapper
@@ -55,7 +56,7 @@ namespace PoeShared.Squirrel.Updater
 
             RestartCommand
                 .ThrownExceptions
-                .Subscribe(ex => Error = $"Restart error: {ex.Message}")
+                .Subscribe(ex => SetError($"Restart error: {ex.Message}"))
                 .AddTo(Anchors);
 
             configProvider
@@ -87,16 +88,16 @@ namespace PoeShared.Squirrel.Updater
 
         public CommandWrapper ApplyUpdate { get; }
 
-        public string Error
+        public bool IsInErrorStatus
         {
-            get => error;
-            set => RaiseAndSetIfChanged(ref error, value);
+            get => isInErrorStatus;
+            private set => RaiseAndSetIfChanged(ref isInErrorStatus, value);
         }
 
         public string StatusText
         {
             get => statusText;
-            set => RaiseAndSetIfChanged(ref statusText, value);
+            private set => RaiseAndSetIfChanged(ref statusText, value);
         }
 
         public bool IsOpen
@@ -108,6 +109,10 @@ namespace PoeShared.Squirrel.Updater
         [CanBeNull] public Version UpdatedVersion => updaterModel.UpdatedVersion;
 
         [CanBeNull] public Version LatestVersion => updaterModel.LatestVersion?.FutureReleaseEntry?.Version?.Version;
+        
+        public int ProgressPercent => updaterModel.ProgressPercent;
+        
+        public bool IsBusy => updaterModel.IsBusy;
 
         private async Task CheckForUpdatesCommandExecuted()
         {
@@ -119,8 +124,7 @@ namespace PoeShared.Squirrel.Updater
                 return;
             }
 
-            StatusText = "Checking for updates...";
-            Error = string.Empty;
+            SetStatus("Checking for updates...");
             updaterModel.Reset();
 
             // delaying update so the user could see the progress ring
@@ -133,19 +137,18 @@ namespace PoeShared.Squirrel.Updater
                 if (newVersion != null)
                 {
                     IsOpen = true;
-                    StatusText = $"New {LatestVersion} version available";
+                    SetStatus($"New version available is available");
                 }
                 else
                 {
-                    StatusText = "Latest version is already installed";
+                    SetStatus("Latest version is already installed");
                 }
             }
             catch (Exception ex)
             {
-                Log.HandleUiException(ex);
+                Log.HandleException(ex);
                 IsOpen = true;
-                Error = ex.Message;
-                StatusText = string.Empty;
+                SetError(ex.Message);
             }
         }
 
@@ -159,8 +162,7 @@ namespace PoeShared.Squirrel.Updater
                 return;
             }
 
-            StatusText = $"Applying update {LatestVersion}...";
-            Error = string.Empty;
+            SetStatus($"Downloading and Applying update {LatestVersion}...");
 
             if (updaterModel.LatestVersion == null)
             {
@@ -173,26 +175,36 @@ namespace PoeShared.Squirrel.Updater
             {
                 await updaterModel.ApplyRelease(updaterModel.LatestVersion);
                 IsOpen = true;
-                StatusText = $"Successfully updated to the version {LatestVersion}";
+                SetStatus($"Successfully updated to the version {LatestVersion}");
             }
             catch (Exception ex)
             {
-                Log.HandleUiException(ex);
+                Log.HandleException(ex);
                 IsOpen = true;
-                Error = ex.Message;
-                StatusText = null;
+                SetError(ex.Message);
             }
         }
 
+        private void SetStatus(string text)
+        {
+            IsInErrorStatus = false;
+            StatusText = text;
+        }
+
+        private void SetError(string text)
+        {
+            IsInErrorStatus = true;
+            StatusText = text;
+        }
+        
         private async Task RestartCommandExecuted()
         {
             Log.Debug("[ApplicationUpdaterViewModel] Restart application requested");
-            Error = string.Empty;
 
             try
             {
                 IsOpen = true;
-                StatusText = "Restarting application...";
+                SetStatus("Restarting application...");
 
                 await updaterModel.RestartApplication();
             }
@@ -201,8 +213,7 @@ namespace PoeShared.Squirrel.Updater
                 IsOpen = true;
 
                 Log.HandleUiException(ex);
-                Error = ex.Message;
-                StatusText = null;
+                SetError(ex.Message);
             }
         }
     }

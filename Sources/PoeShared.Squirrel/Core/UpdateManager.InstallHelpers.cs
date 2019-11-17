@@ -6,10 +6,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using log4net;
 using Microsoft.Win32;
 using NuGet;
 using PoeShared.Squirrel.Scaffolding;
-using PoeShared.Squirrel.Utility;
 using Splat;
 using Squirrel;
 
@@ -19,8 +19,10 @@ namespace PoeShared.Squirrel.Core
     {
         internal class InstallHelperImpl : IEnableLogger
         {
-            private const string currentVersionRegSubKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall";
-            private const string uninstallRegSubKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall";
+            private static readonly ILog Log = LogManager.GetLogger(typeof(InstallHelperImpl));
+
+            private const string CurrentVersionRegSubKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall";
+            private const string UninstallRegSubKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall";
             private readonly string applicationName;
             private readonly string rootAppDirectory;
 
@@ -52,13 +54,13 @@ namespace PoeShared.Squirrel.Core
                 }
 
                 var key = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default)
-                    .CreateSubKey(uninstallRegSubKey + "\\" + applicationName, RegistryKeyPermissionCheck.ReadWriteSubTree);
+                    .CreateSubKey(UninstallRegSubKey + "\\" + applicationName, RegistryKeyPermissionCheck.ReadWriteSubTree);
 
                 if (zp.IconUrl != null && !File.Exists(targetIco))
                 {
                     try
                     {
-                        using (var wc = Utility.Utility.CreateWebClient())
+                        using (var wc = Utility.CreateWebClient())
                         {
                             await wc.DownloadFileTaskAsync(zp.IconUrl, targetPng);
                             using (var fs = new FileStream(targetIco, FileMode.Create))
@@ -83,7 +85,7 @@ namespace PoeShared.Squirrel.Core
                     }
                     catch (Exception ex)
                     {
-                        this.Log().InfoException("Couldn't write uninstall icon, don't care", ex);
+                        Log.Info("Couldn't write uninstall icon, don't care", ex);
                     }
                     finally
                     {
@@ -172,7 +174,7 @@ namespace PoeShared.Squirrel.Core
                         {
                             try
                             {
-                                this.WarnIfThrows(() => Process.GetProcessById(x.Item2).Kill());
+                                Log.WarnIfThrows(() => Process.GetProcessById(x.Item2).Kill());
                             }
                             catch
                             {
@@ -189,7 +191,7 @@ namespace PoeShared.Squirrel.Core
             public void RemoveUninstallerRegistryEntry()
             {
                 var key = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default)
-                    .OpenSubKey(uninstallRegSubKey, true);
+                    .OpenSubKey(UninstallRegSubKey, true);
                 key.DeleteSubKeyTree(applicationName);
             }
         }

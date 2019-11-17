@@ -5,21 +5,25 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reactive.Disposables;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using log4net;
 using NuGet;
 using Splat;
 using Squirrel;
 using HttpUtility = System.Web.HttpUtility;
 
-namespace PoeShared.Squirrel.Utility
+namespace PoeShared.Squirrel.Scaffolding
 {
     internal static class Utility
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof(Utility));
+
         private static readonly Lazy<string> DirectoryChars = new Lazy<string>(
             () =>
             {
@@ -36,8 +40,6 @@ namespace PoeShared.Squirrel.Utility
             });
 
         private static readonly string[] PeExtensions = {".exe", ".dll", ".node"};
-
-        private static IFullLogger Logger;
 
         /// <summary>
         ///     The namespace for fully-qualified domain names (from RFC 4122, Appendix C).
@@ -177,7 +179,7 @@ namespace PoeShared.Squirrel.Utility
 
             if (!File.Exists(from))
             {
-                Log().Warn("The file {0} does not exist", from);
+                Log.WarnFormat("The file {0} does not exist", from);
 
                 // TODO: should we fail this operation?
                 return;
@@ -372,11 +374,11 @@ namespace PoeShared.Squirrel.Utility
         {
             Guard.ArgumentIsTrue(!string.IsNullOrEmpty(directoryPath), "!string.IsNullOrEmpty(directoryPath)");
 
-            Log().Debug("Starting to delete folder: {0}", directoryPath);
+            Log.DebugFormat("Starting to delete folder: {0}", directoryPath);
 
             if (!Directory.Exists(directoryPath))
             {
-                Log().Warn("DeleteDirectory: does not exist - {0}", directoryPath);
+                Log.WarnFormat("DeleteDirectory: does not exist - {0}", directoryPath);
                 return;
             }
 
@@ -389,7 +391,7 @@ namespace PoeShared.Squirrel.Utility
             catch (UnauthorizedAccessException ex)
             {
                 var message = $"The files inside {directoryPath} could not be read";
-                Log().Warn(message, ex);
+                Log.WarnFormat(message, ex);
             }
 
             var dirs = new string[0];
@@ -400,7 +402,7 @@ namespace PoeShared.Squirrel.Utility
             catch (UnauthorizedAccessException ex)
             {
                 var message = $"The directories inside {directoryPath} could not be read";
-                Log().Warn(message, ex);
+                Log.WarnFormat(message, ex);
             }
 
             var fileOperations = files.ForEachAsync(
@@ -415,7 +417,7 @@ namespace PoeShared.Squirrel.Utility
 
             await Task.WhenAll(fileOperations, directoryOperations);
 
-            Log().Debug("Now deleting folder: {0}", directoryPath);
+            Log.DebugFormat("Now deleting folder: {0}", directoryPath);
             File.SetAttributes(directoryPath, FileAttributes.Normal);
 
             try
@@ -425,7 +427,7 @@ namespace PoeShared.Squirrel.Utility
             catch (Exception ex)
             {
                 var message = $"DeleteDirectory: could not delete - {directoryPath}";
-                Log().ErrorException(message, ex);
+                Log.Error(message, ex);
             }
         }
 
@@ -483,7 +485,7 @@ namespace PoeShared.Squirrel.Utility
             }
             catch (Exception ex)
             {
-                Log().Error($"Failed to extract file {zipFilePath} to {outFolder}\n{ex.Message}");
+                Log.Error($"Failed to extract file {zipFilePath} to {outFolder}", ex);
                 throw;
             }
         }
@@ -511,7 +513,7 @@ namespace PoeShared.Squirrel.Utility
             }
             catch (Exception ex)
             {
-                Log().Error($"Failed to extract file {zipFilePath} to {inFolder}\n{ex.Message}");
+                Log.Error($"Failed to extract file {zipFilePath} to {inFolder}", ex);
                 throw;
             }
         }
@@ -571,8 +573,7 @@ namespace PoeShared.Squirrel.Utility
 
         public static bool IsHttpUrl(string urlOrPath)
         {
-            var uri = default(Uri);
-            if (!Uri.TryCreate(urlOrPath, UriKind.Absolute, out uri))
+            if (!Uri.TryCreate(urlOrPath, UriKind.Absolute, out var uri))
             {
                 return false;
             }
@@ -625,7 +626,7 @@ namespace PoeShared.Squirrel.Utility
                     return;
                 }
 
-                LogHost.Default.ErrorException("Really couldn't delete file: " + path, ex);
+                Log.Error("Really couldn't delete file: " + path, ex);
                 throw;
             }
         }
@@ -692,126 +693,6 @@ namespace PoeShared.Squirrel.Utility
 
             // NB: We want to match things like `/lib/net45/foo.exe` but not `/lib/net45/bar/foo.exe`
             return relativePath.Split(Path.DirectorySeparatorChar).Length == 4;
-        }
-
-        public static void LogIfThrows(this IFullLogger This, LogLevel level, string message, Action block)
-        {
-            try
-            {
-                block();
-            }
-            catch (Exception ex)
-            {
-                switch (level)
-                {
-                    case LogLevel.Debug:
-                        This.DebugException(message ?? "", ex);
-                        break;
-                    case LogLevel.Info:
-                        This.InfoException(message ?? "", ex);
-                        break;
-                    case LogLevel.Warn:
-                        This.WarnException(message ?? "", ex);
-                        break;
-                    case LogLevel.Error:
-                        This.ErrorException(message ?? "", ex);
-                        break;
-                }
-
-                throw;
-            }
-        }
-
-        public static async Task LogIfThrows(this IFullLogger This, LogLevel level, string message, Func<Task> block)
-        {
-            try
-            {
-                await block();
-            }
-            catch (Exception ex)
-            {
-                switch (level)
-                {
-                    case LogLevel.Debug:
-                        This.DebugException(message ?? "", ex);
-                        break;
-                    case LogLevel.Info:
-                        This.InfoException(message ?? "", ex);
-                        break;
-                    case LogLevel.Warn:
-                        This.WarnException(message ?? "", ex);
-                        break;
-                    case LogLevel.Error:
-                        This.ErrorException(message ?? "", ex);
-                        break;
-                }
-
-                throw;
-            }
-        }
-
-        public static async Task<T> LogIfThrows<T>(this IFullLogger This, LogLevel level, string message, Func<Task<T>> block)
-        {
-            try
-            {
-                return await block();
-            }
-            catch (Exception ex)
-            {
-                switch (level)
-                {
-                    case LogLevel.Debug:
-                        This.DebugException(message ?? "", ex);
-                        break;
-                    case LogLevel.Info:
-                        This.InfoException(message ?? "", ex);
-                        break;
-                    case LogLevel.Warn:
-                        This.WarnException(message ?? "", ex);
-                        break;
-                    case LogLevel.Error:
-                        This.ErrorException(message ?? "", ex);
-                        break;
-                }
-
-                throw;
-            }
-        }
-
-        public static void WarnIfThrows(this IEnableLogger This, Action block, string message = null)
-        {
-            This.Log().LogIfThrows(LogLevel.Warn, message, block);
-        }
-
-        public static Task WarnIfThrows(this IEnableLogger This, Func<Task> block, string message = null)
-        {
-            return This.Log().LogIfThrows(LogLevel.Warn, message, block);
-        }
-
-        public static Task<T> WarnIfThrows<T>(this IEnableLogger This, Func<Task<T>> block, string message = null)
-        {
-            return This.Log().LogIfThrows(LogLevel.Warn, message, block);
-        }
-
-        public static void ErrorIfThrows(this IEnableLogger This, Action block, string message = null)
-        {
-            This.Log().LogIfThrows(LogLevel.Error, message, block);
-        }
-
-        public static Task ErrorIfThrows(this IEnableLogger This, Func<Task> block, string message = null)
-        {
-            return This.Log().LogIfThrows(LogLevel.Error, message, block);
-        }
-
-        public static Task<T> ErrorIfThrows<T>(this IEnableLogger This, Func<Task<T>> block, string message = null)
-        {
-            return This.Log().LogIfThrows(LogLevel.Error, message, block);
-        }
-
-        private static IFullLogger Log()
-        {
-            return Logger ??
-                   (Logger = Locator.Current.GetService<ILogManager>().GetLogger(typeof(Utility)));
         }
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]

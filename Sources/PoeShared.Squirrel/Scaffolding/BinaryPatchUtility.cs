@@ -5,12 +5,12 @@ using SharpCompress.Compressors;
 using SharpCompress.Compressors.BZip2;
 using Squirrel.Bsdiff;
 
-namespace PoeShared.Squirrel.Utility
+namespace PoeShared.Squirrel.Scaffolding
 {
     internal class BinaryPatchUtility
     {
-        private const long c_fileSignature = 0x3034464649445342L;
-        private const int c_headerSize = 32;
+        private const long CFileSignature = 0x3034464649445342L;
+        private const int CHeaderSize = 32;
 
         /// <summary>
         ///     Creates a binary patch (in <a href="http://www.daemonology.net/bsdiff/">bsdiff</a> format) that can be used
@@ -86,8 +86,8 @@ namespace PoeShared.Squirrel.Utility
                 32  ??  Bzip2ed ctrl block
                 ??  ??  Bzip2ed diff block
                 ??  ??  Bzip2ed extra block */
-            var header = new byte[c_headerSize];
-            WriteInt64(c_fileSignature, header, 0); // "BSDIFF40"
+            var header = new byte[CHeaderSize];
+            WriteInt64(CFileSignature, header, 0); // "BSDIFF40"
             WriteInt64(0, header, 8);
             WriteInt64(0, header, 16);
             WriteInt64(newData.Length, header, 24);
@@ -241,7 +241,7 @@ namespace PoeShared.Squirrel.Utility
 
             // compute size of compressed ctrl data
             var controlEndPosition = output.Position;
-            WriteInt64(controlEndPosition - startPosition - c_headerSize, header, 8);
+            WriteInt64(controlEndPosition - startPosition - CHeaderSize, header, 8);
 
             // write compressed diff data
             using (var wrappingStream = new WrappingStream(output, Ownership.None))
@@ -326,11 +326,11 @@ namespace PoeShared.Squirrel.Utility
                     throw new ArgumentException("Patch stream must be seekable.", "openPatchStream");
                 }
 
-                var header = patchStream.ReadExactly(c_headerSize);
+                var header = patchStream.ReadExactly(CHeaderSize);
 
                 // check for appropriate magic
                 var signature = ReadInt64(header, 0);
-                if (signature != c_fileSignature)
+                if (signature != CFileSignature)
                 {
                     throw new InvalidOperationException("Corrupt patch.");
                 }
@@ -346,9 +346,9 @@ namespace PoeShared.Squirrel.Utility
             }
 
             // preallocate buffers for reading and writing
-            const int c_bufferSize = 1048576;
-            var newData = new byte[c_bufferSize];
-            var oldData = new byte[c_bufferSize];
+            const int cBufferSize = 1048576;
+            var newData = new byte[cBufferSize];
+            var oldData = new byte[cBufferSize];
 
             // prepare to read three parts of the patch in parallel
             using (var compressedControlStream = openPatchStream())
@@ -356,9 +356,9 @@ namespace PoeShared.Squirrel.Utility
             using (var compressedExtraStream = openPatchStream())
             {
                 // seek to the start of each part
-                compressedControlStream.Seek(c_headerSize, SeekOrigin.Current);
-                compressedDiffStream.Seek(c_headerSize + controlLength, SeekOrigin.Current);
-                compressedExtraStream.Seek(c_headerSize + controlLength + diffLength, SeekOrigin.Current);
+                compressedControlStream.Seek(CHeaderSize, SeekOrigin.Current);
+                compressedDiffStream.Seek(CHeaderSize + controlLength, SeekOrigin.Current);
+                compressedExtraStream.Seek(CHeaderSize + controlLength + diffLength, SeekOrigin.Current);
 
                 // decompress each part (to read it)
                 using (var controlStream = new BZip2Stream(compressedControlStream, CompressionMode.Decompress))
@@ -391,7 +391,7 @@ namespace PoeShared.Squirrel.Utility
                         var bytesToCopy = (int) control[0];
                         while (bytesToCopy > 0)
                         {
-                            var actualBytesToCopy = Math.Min(bytesToCopy, c_bufferSize);
+                            var actualBytesToCopy = Math.Min(bytesToCopy, cBufferSize);
 
                             // read diff string
                             diffStream.ReadExactly(newData, 0, actualBytesToCopy);
@@ -423,7 +423,7 @@ namespace PoeShared.Squirrel.Utility
                         bytesToCopy = (int) control[1];
                         while (bytesToCopy > 0)
                         {
-                            var actualBytesToCopy = Math.Min(bytesToCopy, c_bufferSize);
+                            var actualBytesToCopy = Math.Min(bytesToCopy, cBufferSize);
 
                             extraStream.ReadExactly(newData, 0, actualBytesToCopy);
                             output.Write(newData, 0, actualBytesToCopy);

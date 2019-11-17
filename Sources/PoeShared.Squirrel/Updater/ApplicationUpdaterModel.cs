@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reactive.Disposables;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
@@ -23,6 +24,8 @@ namespace PoeShared.Squirrel.Updater
         private Version mostRecentVersion;
         private DirectoryInfo mostRecentVersionAppFolder;
         private UpdateSourceInfo updateSource;
+        private int progressPercent;
+        private bool isBusy;
 
         public ApplicationUpdaterModel()
         {
@@ -60,49 +63,69 @@ namespace PoeShared.Squirrel.Updater
             private set => RaiseAndSetIfChanged(ref latestVersion, value);
         }
 
+        public int ProgressPercent
+        {
+            get => progressPercent;
+            private set => RaiseAndSetIfChanged(ref progressPercent, value);
+        }
+
+        public bool IsBusy
+        {
+            get => isBusy;
+            private set => RaiseAndSetIfChanged(ref isBusy, value);
+        }
+
         public async Task ApplyRelease(UpdateInfo updateInfo)
         {
             Guard.ArgumentNotNull(updateInfo, nameof(updateInfo));
 
             Log.Debug($"Applying update {updateInfo.DumpToTextRaw()}");
 
-            using (var mgr = await CreateManager())
+            using var unused = CreateIsBusyAnchor();
+            using var mgr = await CreateManager();
+            
+            Log.Debug("Downloading releases...");
+            await mgr.DownloadReleases(updateInfo.ReleasesToApply, x => UpdateProgress(x, "DownloadRelease"));
+
+            string newVersionFolder;
+            if (string.IsNullOrWhiteSpace(GetSquirrelUpdateExe()))
             {
-                Log.Debug("Downloading releases...");
-                await mgr.DownloadReleases(updateInfo.ReleasesToApply, UpdateProgress);
-
-                string newVersionFolder;
-                if (string.IsNullOrWhiteSpace(GetSquirrelUpdateExe()))
+                Log.Warn("Not a Squirrel-app or debug mode detected, skipping update");
+                newVersionFolder = AppDomain.CurrentDomain.BaseDirectory;
+                for (var i = 0; i < 100; i++)
                 {
-                    Log.Warn("Not a Squirrel-app or debug mode detected, skipping update");
-                    newVersionFolder = AppDomain.CurrentDomain.BaseDirectory;
+                    UpdateProgress(i, "Debug");
+                    await Task.Delay(5000);
                 }
-                else
-                {
-                    Log.Debug("Applying releases...");
-                    newVersionFolder = await mgr.ApplyReleases(updateInfo);
-                }
-
-                var lastAppliedRelease = updateInfo.ReleasesToApply.Last();
-
-                Log.Debug(
-                    $"Update completed to v{lastAppliedRelease.Version}, result: {newVersionFolder}");
-
-                if (string.IsNullOrWhiteSpace(newVersionFolder))
-                {
-                    throw new ApplicationException("Expected non-empty new version folder path");
-                }
-
-                MostRecentVersionAppFolder = new DirectoryInfo(newVersionFolder);
-                UpdatedVersion = lastAppliedRelease.Version.Version;
-                LatestVersion = null;
             }
+            else
+            {
+                Log.Debug("Applying releases...");
+                newVersionFolder = await mgr.ApplyReleases(updateInfo, x => UpdateProgress(x, "ApplyRelease"));
+            }
+
+            var lastAppliedRelease = updateInfo.ReleasesToApply.Last();
+
+            Log.Debug(
+                $"Update completed to v{lastAppliedRelease.Version}, result: {newVersionFolder}");
+
+            if (string.IsNullOrWhiteSpace(newVersionFolder))
+            {
+                throw new ApplicationException("Expected non-empty new version folder path");
+            }
+
+            MostRecentVersionAppFolder = new DirectoryInfo(newVersionFolder);
+            UpdatedVersion = lastAppliedRelease.Version.Version;
+            LatestVersion = null;
+            ProgressPercent = 0;
         }
 
         public void Reset()
         {
             LatestVersion = null;
             UpdatedVersion = null;
+            IsBusy = false;
+            ProgressPercent = 0;
         }
 
         /// <summary>
@@ -112,28 +135,28 @@ namespace PoeShared.Squirrel.Updater
         public async Task<UpdateInfo> CheckForUpdates()
         {
             Log.Debug("Update check requested");
-
+            using var unused = CreateIsBusyAnchor();
             Reset();
 
-            using (var mgr = await CreateManager())
+            using var mgr = await CreateManager();
+            Log.Debug("Checking for updates...");
+
+            var updateInfo = await mgr.CheckForUpdate(true, CheckUpdateProgress);
+
+            Log.Debug($"UpdateInfo:\r\n{updateInfo?.DumpToText()}");
+            if (updateInfo == null || updateInfo.ReleasesToApply.Count == 0)
             {
-                Log.Debug("Checking for updates...");
-
-                var updateInfo = await mgr.CheckForUpdate(true, CheckUpdateProgress);
-
-                Log.Debug($"UpdateInfo:\r\n{updateInfo?.DumpToText()}");
-                if (updateInfo == null || updateInfo.ReleasesToApply.Count == 0)
-                {
-                    return null;
-                }
-
-                LatestVersion = updateInfo;
-                return updateInfo;
+                return null;
             }
+
+            LatestVersion = updateInfo;
+            return updateInfo;
         }
 
         public async Task RestartApplication()
         {
+            using var unused = CreateIsBusyAnchor();
+            
             var updatedExecutable = new FileInfo(Path.Combine(mostRecentVersionAppFolder.FullName, ApplicationName));
             Log.Debug(
                 $"Restarting app, folder: {mostRecentVersionAppFolder}, appName: {ApplicationName}, exePath: {updatedExecutable}(exists: {updatedExecutable.Exists})...");
@@ -196,9 +219,10 @@ namespace PoeShared.Squirrel.Updater
             }
         }
 
-        private void UpdateProgress(int progressPercent)
+        private void UpdateProgress(int progressPercent, string taskName)
         {
-            Log.Debug($"[ApplicationUpdaterModel.UpdateProgress] Update is in progress: {progressPercent}%");
+            Log.Debug($"[ApplicationUpdaterModel.UpdateProgress] {taskName} is in progress: {progressPercent}%");
+            ProgressPercent = progressPercent;
         }
 
         private void CheckUpdateProgress(int progressPercent)
@@ -225,7 +249,7 @@ namespace PoeShared.Squirrel.Updater
         {
             Log.Debug("[ApplicationUpdaterModel.OnFirstRun] App started for the first time");
         }
-
+        
         private static string GetSquirrelUpdateExe()
         {
             const string updaterExecutableName = "update.exe";
@@ -255,6 +279,19 @@ namespace PoeShared.Squirrel.Updater
             }
 
             return fileInfo.FullName;
+        }
+
+        private IDisposable CreateIsBusyAnchor()
+        {
+            IsBusy = true;
+            ProgressPercent = 0;
+
+            return Disposable.Create(
+                () =>
+                {
+                    IsBusy = false;
+                    ProgressPercent = 0;
+                });
         }
     }
 }

@@ -2,7 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:fa="http://schemas.fontawesome.io/icons/"
                     xmlns:eye="http://coderush.net/poeeye/"
-                    xmlns:updater1="clr-namespace:PoeShared.Squirrel.Updater">
+                    xmlns:updater1="clr-namespace:PoeShared.Squirrel.Updater"
+                    xmlns:converters="http://schemas.kent.boogaart.com/converters">
     <ResourceDictionary.MergedDictionaries>
 
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/recommended/accent/materialdesigncolor.lightblue.xaml" />
@@ -15,10 +16,10 @@
         <DockPanel>
             <fa:FontAwesome Icon="Warning"
                             Margin="5,0"
-                            Visibility="{Binding Error, Converter={StaticResource NullToCollapsedConverter}}"
+                            Visibility="{Binding IsInErrorStatus, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
                             Foreground="{StaticResource WarningBrush}"
                             VerticalAlignment="Center"
-                            ToolTip="{Binding Error}"
+                            ToolTip="{Binding StatusText}"
                             FontSize="32" />
 
             <fa:FontAwesome Icon="Refresh"
@@ -41,40 +42,71 @@
                             Foreground="{StaticResource PositiveBrush}"
                             VerticalAlignment="Center"
                             FontSize="32" />
-
             <DockPanel>
-                <ContentControl DockPanel.Dock="Bottom"
-                                Visibility="{Binding UpdatedVersion, Converter={StaticResource NullToCollapsedConverter}}"
-                                Content="{Binding RestartCommand}"
-                                Focusable="False"
-                                IsTabStop="False"
-                                Margin="10"
-                                eye:CommandWrapperHelper.Text="&#xf2d0; Restart application" />
 
-                <ContentControl DockPanel.Dock="Bottom"
-                                Visibility="{Binding LatestVersion, Converter={StaticResource NullToCollapsedConverter}}"
-                                Content="{Binding ApplyUpdate}"
-                                Focusable="False"
-                                IsTabStop="False"
-                                Margin="5"
-                                eye:CommandWrapperHelper.Text="&#xF0ED; Download and apply" />
+                <Grid Margin="10,0" DockPanel.Dock="Bottom" Height="30">
+                    <ContentControl
+                        Content="{Binding RestartCommand}"
+                        Focusable="False"
+                        IsTabStop="False"
+                        eye:CommandWrapperHelper.DataContext="{Binding}"
+                        eye:CommandWrapperHelper.Icon="&#xf2d0;">
+                        <eye:CommandWrapperHelper.Text>
+                            <TextBlock Text="{Binding LatestVersion, StringFormat='Restart application to migrate to v{0}'}"/>
+                        </eye:CommandWrapperHelper.Text>
+                        <ContentControl.Visibility>
+                            <MultiBinding Converter="{StaticResource MultiBooleanAllTrueToVisibleFalseToCollapsedConverter}">
+                                <MultiBinding.Bindings>
+                                    <Binding Path="UpdatedVersion" Converter="{StaticResource NullToFalseConverter}" />
+                                    <Binding Path="IsBusy" Converter="{StaticResource NotConverter}" />
+                                </MultiBinding.Bindings>
+                            </MultiBinding>
+                        </ContentControl.Visibility>
+                    </ContentControl>
 
-                <DockPanel Margin="10,0" DockPanel.Dock="Top">
+                    <ContentControl
+                        Content="{Binding ApplyUpdate}"
+                        Focusable="False"
+                        IsTabStop="False"
+                        eye:CommandWrapperHelper.DataContext="{Binding}"
+                        eye:CommandWrapperHelper.Icon="&#xF0ED;">
+                        <eye:CommandWrapperHelper.Text>
+                            <TextBlock Text="{Binding LatestVersion, StringFormat='Download and apply v{0}'}"/>
+                        </eye:CommandWrapperHelper.Text>
+                        <ContentControl.Visibility>
+                            <MultiBinding Converter="{StaticResource MultiBooleanAllTrueToVisibleFalseToCollapsedConverter}">
+                                <MultiBinding.Bindings>
+                                    <Binding Path="LatestVersion" Converter="{StaticResource NullToFalseConverter}" />
+                                    <Binding Path="IsBusy" Converter="{StaticResource NotConverter}" />
+                                </MultiBinding.Bindings>
+                            </MultiBinding>
+                        </ContentControl.Visibility>
+                    </ContentControl>
+
+                    <ProgressBar Margin="5, 10" VerticalAlignment="Center"
+                                 IsIndeterminate="{Binding ProgressPercent, Converter={StaticResource ZeroToTrueConverter}}"
+                                 Value="{Binding ProgressPercent, Mode=OneWay}"
+                                 Visibility="{Binding IsBusy, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}" />
+                </Grid>
+
+                <Grid Margin="10,0" DockPanel.Dock="Top">
                     <TextBlock
-                        Visibility="{Binding Error, Converter={StaticResource NullToCollapsedConverter}}"
+                        Visibility="{Binding IsInErrorStatus, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
                         FontWeight="Bold"
-                        ToolTip="{Binding Error}"
+                        ToolTip="{Binding StatusText}"
                         TextWrapping="WrapWithOverflow"
+                        HorizontalAlignment="Center"
                         Foreground="{StaticResource NegativeBrush}"
-                        Text="{Binding Error}" />
+                        Text="{Binding StatusText}" />
 
-                    <TextBlock DockPanel.Dock="Top" Visibility="{Binding StatusText, Converter={StaticResource NullToCollapsedConverter}}"
+                    <TextBlock Visibility="{Binding StatusText, Converter={StaticResource NullToCollapsedConverter}}"
                                Foreground="WhiteSmoke"
                                FontWeight="Bold"
+                               HorizontalAlignment="Center"
                                ToolTip="{Binding StatusText}"
                                TextWrapping="WrapWithOverflow"
                                Text="{Binding StatusText}" />
-                </DockPanel>
+                </Grid>
             </DockPanel>
         </DockPanel>
     </DataTemplate>

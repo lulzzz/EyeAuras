@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using log4net;
 using PoeShared.Squirrel.Scaffolding;
 using Splat;
 using Squirrel;
@@ -15,6 +16,8 @@ namespace PoeShared.Squirrel.Core
     {
         internal class CheckForUpdateImpl : IEnableLogger
         {
+            private static readonly ILog Log = LogManager.GetLogger(typeof(CheckForUpdateImpl));
+
             private readonly string rootAppDirectory;
 
             public CheckForUpdateImpl(string rootAppDirectory)
@@ -32,23 +35,23 @@ namespace PoeShared.Squirrel.Core
                 progress = progress ?? (_ => { });
 
                 var localReleases = Enumerable.Empty<ReleaseEntry>();
-                var stagingId = getOrCreateStagedUserId();
+                var stagingId = GetOrCreateStagedUserId();
 
                 var shouldInitialize = false;
                 try
                 {
-                    localReleases = Utility.Utility.LoadLocalReleases(localReleaseFile);
+                    localReleases = Utility.LoadLocalReleases(localReleaseFile);
                 }
                 catch (Exception ex)
                 {
                     // Something has gone pear-shaped, let's start from scratch
-                    this.Log().WarnException("Failed to load local releases, starting from scratch", ex);
+                    Log.Warn("Failed to load local releases, starting from scratch", ex);
                     shouldInitialize = true;
                 }
 
                 if (shouldInitialize)
                 {
-                    await initializeClientAppDirectory();
+                    await InitializeClientAppDirectory();
                 }
 
                 string releaseFile;
@@ -59,14 +62,14 @@ namespace PoeShared.Squirrel.Core
 
                 // Fetch the remote RELEASES file, whether it's a local dir or an
                 // HTTP URL
-                if (Utility.Utility.IsHttpUrl(updateUrlOrPath))
+                if (Utility.IsHttpUrl(updateUrlOrPath))
                 {
                     if (updateUrlOrPath.EndsWith("/"))
                     {
                         updateUrlOrPath = updateUrlOrPath.Substring(0, updateUrlOrPath.Length - 1);
                     }
 
-                    this.Log().Info("Downloading RELEASES file from {0}", updateUrlOrPath);
+                    Log.InfoFormat("Downloading RELEASES file from {0}", updateUrlOrPath);
 
                     var retries = 3;
 
@@ -74,11 +77,11 @@ namespace PoeShared.Squirrel.Core
 
                     try
                     {
-                        var uri = Utility.Utility.AppendPathToUri(new Uri(updateUrlOrPath), "RELEASES");
+                        var uri = Utility.AppendPathToUri(new Uri(updateUrlOrPath), "RELEASES");
 
                         if (latestLocalRelease != null)
                         {
-                            uri = Utility.Utility.AddQueryParamsToUri(
+                            uri = Utility.AddQueryParamsToUri(
                                 uri,
                                 new Dictionary<string, string>
                                 {
@@ -97,7 +100,7 @@ namespace PoeShared.Squirrel.Core
                     }
                     catch (WebException ex)
                     {
-                        this.Log().InfoException("Download resulted in WebException (returning blank release list)", ex);
+                        Log.Info("Download resulted in WebException (returning blank release list)", ex);
 
                         if (retries <= 0)
                         {
@@ -112,7 +115,7 @@ namespace PoeShared.Squirrel.Core
                 }
                 else
                 {
-                    this.Log().Info("Reading RELEASES file from {0}", updateUrlOrPath);
+                    Log.InfoFormat("Reading RELEASES file from {0}", updateUrlOrPath);
 
                     if (!Directory.Exists(updateUrlOrPath))
                     {
@@ -126,7 +129,7 @@ namespace PoeShared.Squirrel.Core
                     {
                         var message = $"The file {fi.FullName} does not exist, something is probably broken with your application";
 
-                        this.Log().Warn(message);
+                        Log.WarnFormat(message);
 
                         var packages = new DirectoryInfo(updateUrlOrPath).GetFiles("*.nupkg");
                         if (packages.Length == 0)
@@ -153,41 +156,41 @@ namespace PoeShared.Squirrel.Core
                     throw new Exception("Remote release File is empty or corrupted");
                 }
 
-                ret = determineUpdateInfo(localReleases, remoteReleases, ignoreDeltaUpdates);
+                ret = DetermineUpdateInfo(localReleases, remoteReleases, ignoreDeltaUpdates);
 
                 progress(100);
                 return ret;
             }
 
-            private async Task initializeClientAppDirectory()
+            private async Task InitializeClientAppDirectory()
             {
                 // On bootstrap, we won't have any of our directories, create them
                 var pkgDir = Path.Combine(rootAppDirectory, "packages");
                 if (Directory.Exists(pkgDir))
                 {
-                    await Utility.Utility.DeleteDirectory(pkgDir);
+                    await Utility.DeleteDirectory(pkgDir);
                 }
 
                 Directory.CreateDirectory(pkgDir);
             }
 
-            private UpdateInfo determineUpdateInfo(IEnumerable<ReleaseEntry> localReleases, IEnumerable<ReleaseEntry> remoteReleases, bool ignoreDeltaUpdates)
+            private UpdateInfo DetermineUpdateInfo(IEnumerable<ReleaseEntry> localReleases, IEnumerable<ReleaseEntry> remoteReleases, bool ignoreDeltaUpdates)
             {
-                var packageDirectory = Utility.Utility.PackageDirectoryForAppDir(rootAppDirectory);
+                var packageDirectory = Utility.PackageDirectoryForAppDir(rootAppDirectory);
                 localReleases = localReleases ?? Enumerable.Empty<ReleaseEntry>();
 
                 if (remoteReleases == null)
                 {
-                    this.Log().Warn("Release information couldn't be determined due to remote corrupt RELEASES file");
+                    Log.WarnFormat("Release information couldn't be determined due to remote corrupt RELEASES file");
                     throw new Exception("Corrupt remote RELEASES file");
                 }
 
-                var latestFullRelease = Utility.Utility.FindCurrentVersion(remoteReleases);
-                var currentRelease = Utility.Utility.FindCurrentVersion(localReleases);
+                var latestFullRelease = Utility.FindCurrentVersion(remoteReleases);
+                var currentRelease = Utility.FindCurrentVersion(localReleases);
 
                 if (latestFullRelease == currentRelease)
                 {
-                    this.Log().Info("No updates, remote and local are the same");
+                    Log.InfoFormat("No updates, remote and local are the same");
 
                     var info = UpdateInfo.Create(currentRelease, new[] {latestFullRelease}, packageDirectory);
                     return info;
@@ -200,20 +203,20 @@ namespace PoeShared.Squirrel.Core
 
                 if (!localReleases.Any())
                 {
-                    this.Log().Warn("First run or local directory is corrupt, starting from scratch");
+                    Log.WarnFormat("First run or local directory is corrupt, starting from scratch");
                     return UpdateInfo.Create(null, new[] {latestFullRelease}, packageDirectory);
                 }
 
                 if (localReleases.Max(x => x.Version) > remoteReleases.Max(x => x.Version))
                 {
-                    this.Log().Warn("hwhat, local version is greater than remote version");
-                    return UpdateInfo.Create(Utility.Utility.FindCurrentVersion(localReleases), new[] {latestFullRelease}, packageDirectory);
+                    Log.WarnFormat("hwhat, local version is greater than remote version");
+                    return UpdateInfo.Create(Utility.FindCurrentVersion(localReleases), new[] {latestFullRelease}, packageDirectory);
                 }
 
                 return UpdateInfo.Create(currentRelease, remoteReleases, packageDirectory);
             }
 
-            internal Guid? getOrCreateStagedUserId()
+            internal Guid? GetOrCreateStagedUserId()
             {
                 var stagedUserIdFile = Path.Combine(rootAppDirectory, "packages", ".betaId");
                 var ret = default(Guid);
@@ -225,28 +228,28 @@ namespace PoeShared.Squirrel.Core
                         throw new Exception("File was read but contents were invalid");
                     }
 
-                    this.Log().Info("Using existing staging user ID: {0}", ret.ToString());
+                    Log.InfoFormat("Using existing staging user ID: {0}", ret.ToString());
                     return ret;
                 }
                 catch (Exception ex)
                 {
-                    this.Log().DebugException("Couldn't read staging user ID, creating a blank one", ex);
+                    Log.Debug("Couldn't read staging user ID, creating a blank one", ex);
                 }
 
                 var prng = new Random();
                 var buf = new byte[4096];
                 prng.NextBytes(buf);
 
-                ret = Utility.Utility.CreateGuidFromHash(buf);
+                ret = Utility.CreateGuidFromHash(buf);
                 try
                 {
                     File.WriteAllText(stagedUserIdFile, ret.ToString(), Encoding.UTF8);
-                    this.Log().Info("Generated new staging user ID: {0}", ret.ToString());
+                    Log.InfoFormat("Generated new staging user ID: {0}", ret.ToString());
                     return ret;
                 }
                 catch (Exception ex)
                 {
-                    this.Log().WarnException("Couldn't write out staging user ID, this user probably shouldn't get beta anything", ex);
+                    Log.Warn("Couldn't write out staging user ID, this user probably shouldn't get beta anything", ex);
                     return null;
                 }
             }

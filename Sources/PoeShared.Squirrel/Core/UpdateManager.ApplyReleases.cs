@@ -9,10 +9,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using log4net;
 using Microsoft.Win32;
 using NuGet;
 using PoeShared.Squirrel.Scaffolding;
-using PoeShared.Squirrel.Utility;
 using Splat;
 using Squirrel;
 using Squirrel.Shell;
@@ -24,6 +24,8 @@ namespace PoeShared.Squirrel.Core
     {
         internal class ApplyReleasesImpl : IEnableLogger
         {
+            private static readonly ILog Log = LogManager.GetLogger(typeof(ApplyReleasesImpl));
+            
             private readonly string rootAppDirectory;
 
             public ApplyReleasesImpl(string rootAppDirectory)
@@ -36,52 +38,52 @@ namespace PoeShared.Squirrel.Core
                 progress = progress ?? (_ => { });
 
                 progress(0);
-                var release = await createFullPackagesFromDeltas(updateInfo.ReleasesToApply, updateInfo.CurrentlyInstalledVersion);
+                var release = await CreateFullPackagesFromDeltas(updateInfo.ReleasesToApply, updateInfo.CurrentlyInstalledVersion);
                 progress(10);
 
                 if (release == null)
                 {
                     if (attemptingFullInstall)
                     {
-                        this.Log().Info("No release to install, running the app");
-                        await invokePostInstall(updateInfo.CurrentlyInstalledVersion.Version, false, true, silentInstall);
+                        Log.InfoFormat("No release to install, running the app");
+                        await InvokePostInstall(updateInfo.CurrentlyInstalledVersion.Version, false, true, silentInstall);
                     }
 
                     progress(100);
-                    return getDirectoryForRelease(updateInfo.CurrentlyInstalledVersion.Version).FullName;
+                    return GetDirectoryForRelease(updateInfo.CurrentlyInstalledVersion.Version).FullName;
                 }
 
-                var ret = await this.ErrorIfThrows(
-                    () => installPackageToAppDir(updateInfo, release),
+                var ret = await Log.ErrorIfThrows(
+                    () => InstallPackageToAppDir(updateInfo, release),
                     "Failed to install package to app dir");
                 progress(30);
 
-                var currentReleases = await this.ErrorIfThrows(
-                    updateLocalReleasesFile,
+                var currentReleases = await Log.ErrorIfThrows(
+                    UpdateLocalReleasesFile,
                     "Failed to update local releases file");
                 progress(50);
 
                 var newVersion = currentReleases.MaxBy(x => x.Version).First().Version;
-                executeSelfUpdate(newVersion);
+                ExecuteSelfUpdate(newVersion);
 
-                await this.ErrorIfThrows(
-                    () => invokePostInstall(newVersion, attemptingFullInstall, false, silentInstall),
+                await Log.ErrorIfThrows(
+                    () => InvokePostInstall(newVersion, attemptingFullInstall, false, silentInstall),
                     "Failed to invoke post-install");
                 progress(75);
 
-                this.Log().Info("Starting fixPinnedExecutables");
-                this.ErrorIfThrows(() => fixPinnedExecutables(updateInfo.FutureReleaseEntry.Version));
+                Log.InfoFormat("Starting fixPinnedExecutables");
+                Log.ErrorIfThrows(() => FixPinnedExecutables(updateInfo.FutureReleaseEntry.Version));
 
-                this.Log().Info("Fixing up tray icons");
+                Log.InfoFormat("Fixing up tray icons");
 
                 var trayFixer = new TrayStateChanger();
-                var appDir = new DirectoryInfo(Utility.Utility.AppDirForRelease(rootAppDirectory, updateInfo.FutureReleaseEntry));
+                var appDir = new DirectoryInfo(Utility.AppDirForRelease(rootAppDirectory, updateInfo.FutureReleaseEntry));
                 var allExes = appDir.GetFiles("*.exe").Select(x => x.Name).ToList();
 
-                this.ErrorIfThrows(() => trayFixer.RemoveDeadEntries(allExes, rootAppDirectory, updateInfo.FutureReleaseEntry.Version.ToString()));
+                Log.ErrorIfThrows(() => trayFixer.RemoveDeadEntries(allExes, rootAppDirectory, updateInfo.FutureReleaseEntry.Version.ToString()));
                 progress(80);
 
-                unshimOurselves();
+                UnshimOurselves();
                 progress(85);
 
                 try
@@ -90,11 +92,11 @@ namespace PoeShared.Squirrel.Core
                         ? updateInfo.CurrentlyInstalledVersion.Version
                         : null;
 
-                    await cleanDeadVersions(currentVersion, newVersion);
+                    await CleanDeadVersions(currentVersion, newVersion);
                 }
                 catch (Exception ex)
                 {
-                    this.Log().WarnException("Failed to clean dead versions, continuing anyways", ex);
+                    Log.Warn("Failed to clean dead versions, continuing anyways", ex);
                 }
 
                 progress(100);
@@ -104,9 +106,9 @@ namespace PoeShared.Squirrel.Core
 
             public async Task FullUninstall()
             {
-                var currentRelease = getReleases().MaxBy(x => x.Name.ToSemanticVersion()).First();
+                var currentRelease = GetReleases().MaxBy(x => x.Name.ToSemanticVersion()).First();
 
-                this.Log().Info("Starting full uninstall");
+                Log.InfoFormat("Starting full uninstall");
                 if (currentRelease.Exists)
                 {
                     var version = currentRelease.Name.ToSemanticVersion();
@@ -115,7 +117,7 @@ namespace PoeShared.Squirrel.Core
                     {
                         var squirrelAwareApps = SquirrelAwareExecutableDetector.GetAllSquirrelAwareApps(currentRelease.FullName);
 
-                        if (isAppFolderDead(currentRelease.FullName))
+                        if (IsAppFolderDead(currentRelease.FullName))
                         {
                             throw new Exception("App folder is dead, but we're trying to uninstall it?");
                         }
@@ -138,11 +140,11 @@ namespace PoeShared.Squirrel.Core
 
                                         try
                                         {
-                                            await Utility.Utility.InvokeProcessAsync(exe, $"--squirrel-uninstall {version}", cts.Token);
+                                            await Utility.InvokeProcessAsync(exe, $"--squirrel-uninstall {version}", cts.Token);
                                         }
                                         catch (Exception ex)
                                         {
-                                            this.Log().ErrorException("Failed to run cleanup hook, continuing: " + exe, ex);
+                                            Log.Error("Failed to run cleanup hook, continuing: " + exe, ex);
                                         }
                                     }
                                 },
@@ -155,20 +157,20 @@ namespace PoeShared.Squirrel.Core
                     }
                     catch (Exception ex)
                     {
-                        this.Log().WarnException("Failed to run pre-uninstall hooks, uninstalling anyways", ex);
+                        Log.Warn("Failed to run pre-uninstall hooks, uninstalling anyways", ex);
                     }
                 }
 
                 try
                 {
-                    this.ErrorIfThrows(() => fixPinnedExecutables(new SemanticVersion(255, 255, 255, 255), true));
+                    Log.ErrorIfThrows(() => FixPinnedExecutables(new SemanticVersion(255, 255, 255, 255), true));
                 }
                 catch
                 {
                 }
 
-                await this.ErrorIfThrows(
-                    () => Utility.Utility.DeleteDirectoryOrJustGiveUp(rootAppDirectory),
+                await Log.ErrorIfThrows(
+                    () => Utility.DeleteDirectoryOrJustGiveUp(rootAppDirectory),
                     "Failed to delete app directory: " + rootAppDirectory);
 
                 // NB: We drop this file here so that --checkInstall will ignore 
@@ -185,17 +187,17 @@ namespace PoeShared.Squirrel.Core
 
             public Dictionary<ShortcutLocation, ShellLink> GetShortcutsForExecutable(string exeName, ShortcutLocation locations, string programArguments)
             {
-                this.Log().Info("About to create shortcuts for {0}, rootAppDir {1}", exeName, rootAppDirectory);
+                Log.InfoFormat("About to create shortcuts for {0}, rootAppDir {1}", exeName, rootAppDirectory);
 
-                var releases = Utility.Utility.LoadLocalReleases(Utility.Utility.LocalReleaseFileForAppDir(rootAppDirectory));
-                var thisRelease = Utility.Utility.FindCurrentVersion(releases);
+                var releases = Utility.LoadLocalReleases(Utility.LocalReleaseFileForAppDir(rootAppDirectory));
+                var thisRelease = Utility.FindCurrentVersion(releases);
 
                 var zf = new ZipPackage(
                     Path.Combine(
-                        Utility.Utility.PackageDirectoryForAppDir(rootAppDirectory),
+                        Utility.PackageDirectoryForAppDir(rootAppDirectory),
                         thisRelease.Filename));
 
-                var exePath = Path.Combine(Utility.Utility.AppDirForRelease(rootAppDirectory, thisRelease), exeName);
+                var exePath = Path.Combine(Utility.AppDirForRelease(rootAppDirectory, thisRelease), exeName);
                 var fileVerInfo = FileVersionInfo.GetVersionInfo(exePath);
 
                 var ret = new Dictionary<ShortcutLocation, ShellLink>();
@@ -206,12 +208,12 @@ namespace PoeShared.Squirrel.Core
                         continue;
                     }
 
-                    var file = linkTargetForVersionInfo(f, zf, fileVerInfo);
+                    var file = LinkTargetForVersionInfo(f, zf, fileVerInfo);
                     var appUserModelId = $"com.squirrel.{zf.Id.Replace(" ", "")}.{exeName.Replace(".exe", "").Replace(" ", "")}";
-                    var toastActivatorCLSDID = Utility.Utility.CreateGuidFromHash(appUserModelId).ToString();
+                    var toastActivatorClsdid = Utility.CreateGuidFromHash(appUserModelId).ToString();
 
-                    this.Log().Info("Creating shortcut for {0} => {1}", exeName, file);
-                    this.Log().Info("appUserModelId: {0} | toastActivatorCLSID: {1}", appUserModelId, toastActivatorCLSDID);
+                    Log.InfoFormat("Creating shortcut for {0} => {1}", exeName, file);
+                    Log.InfoFormat("appUserModelId: {0} | toastActivatorCLSID: {1}", appUserModelId, toastActivatorClsdid);
 
                     var target = Path.Combine(rootAppDirectory, exeName);
                     var sl = new ShellLink
@@ -229,7 +231,7 @@ namespace PoeShared.Squirrel.Core
                     }
 
                     sl.SetAppUserModelId(appUserModelId);
-                    sl.SetToastActivatorCLSID(toastActivatorCLSDID);
+                    sl.SetToastActivatorCLSID(toastActivatorClsdid);
 
                     ret.Add(f, sl);
                 }
@@ -239,17 +241,17 @@ namespace PoeShared.Squirrel.Core
 
             public void CreateShortcutsForExecutable(string exeName, ShortcutLocation locations, bool updateOnly, string programArguments, string icon)
             {
-                this.Log().Info("About to create shortcuts for {0}, rootAppDir {1}", exeName, rootAppDirectory);
+                Log.InfoFormat("About to create shortcuts for {0}, rootAppDir {1}", exeName, rootAppDirectory);
 
-                var releases = Utility.Utility.LoadLocalReleases(Utility.Utility.LocalReleaseFileForAppDir(rootAppDirectory));
-                var thisRelease = Utility.Utility.FindCurrentVersion(releases);
+                var releases = Utility.LoadLocalReleases(Utility.LocalReleaseFileForAppDir(rootAppDirectory));
+                var thisRelease = Utility.FindCurrentVersion(releases);
 
                 var zf = new ZipPackage(
                     Path.Combine(
-                        Utility.Utility.PackageDirectoryForAppDir(rootAppDirectory),
+                        Utility.PackageDirectoryForAppDir(rootAppDirectory),
                         thisRelease.Filename));
 
-                var exePath = Path.Combine(Utility.Utility.AppDirForRelease(rootAppDirectory, thisRelease), exeName);
+                var exePath = Path.Combine(Utility.AppDirForRelease(rootAppDirectory, thisRelease), exeName);
                 var fileVerInfo = FileVersionInfo.GetVersionInfo(exePath);
 
                 foreach (var f in (ShortcutLocation[]) Enum.GetValues(typeof(ShortcutLocation)))
@@ -259,7 +261,7 @@ namespace PoeShared.Squirrel.Core
                         continue;
                     }
 
-                    var file = linkTargetForVersionInfo(f, zf, fileVerInfo);
+                    var file = LinkTargetForVersionInfo(f, zf, fileVerInfo);
                     var fileExists = File.Exists(file);
 
                     // NB: If we've already installed the app, but the shortcut
@@ -268,15 +270,15 @@ namespace PoeShared.Squirrel.Core
                     // annoy them by recreating it.
                     if (!fileExists && updateOnly)
                     {
-                        this.Log().Warn("Wanted to update shortcut {0} but it appears user deleted it", file);
+                        Log.WarnFormat("Wanted to update shortcut {0} but it appears user deleted it", file);
                         continue;
                     }
 
-                    this.Log().Info("Creating shortcut for {0} => {1}", exeName, file);
+                    Log.InfoFormat("Creating shortcut for {0} => {1}", exeName, file);
 
                     ShellLink sl;
-                    this.ErrorIfThrows(
-                        () => Utility.Utility.Retry(
+                    Log.ErrorIfThrows(
+                        () => Utility.Retry(
                             () =>
                             {
                                 File.Delete(file);
@@ -297,19 +299,18 @@ namespace PoeShared.Squirrel.Core
                                 }
 
                                 var appUserModelId = $"com.squirrel.{zf.Id.Replace(" ", "")}.{exeName.Replace(".exe", "").Replace(" ", "")}";
-                                var toastActivatorCLSID = Utility.Utility.CreateGuidFromHash(appUserModelId).ToString();
+                                var toastActivatorClsid = Utility.CreateGuidFromHash(appUserModelId).ToString();
 
                                 sl.SetAppUserModelId(appUserModelId);
-                                sl.SetToastActivatorCLSID(toastActivatorCLSID);
+                                sl.SetToastActivatorCLSID(toastActivatorClsid);
 
-                                this.Log()
-                                    .Info(
+                                Log.InfoFormat(
                                         "About to save shortcut: {0} (target {1}, workingDir {2}, args {3}, toastActivatorCSLID {4})",
                                         file,
                                         sl.Target,
                                         sl.WorkingDirectory,
                                         sl.Arguments,
-                                        toastActivatorCLSID);
+                                        toastActivatorClsid);
                                 if (ModeDetector.InUnitTestRunner() == false)
                                 {
                                     sl.Save(file);
@@ -319,21 +320,21 @@ namespace PoeShared.Squirrel.Core
                         "Can't write shortcut: " + file);
                 }
 
-                fixPinnedExecutables(zf.Version);
+                FixPinnedExecutables(zf.Version);
             }
 
             public void RemoveShortcutsForExecutable(string exeName, ShortcutLocation locations)
             {
-                var releases = Utility.Utility.LoadLocalReleases(Utility.Utility.LocalReleaseFileForAppDir(rootAppDirectory));
-                var thisRelease = Utility.Utility.FindCurrentVersion(releases);
+                var releases = Utility.LoadLocalReleases(Utility.LocalReleaseFileForAppDir(rootAppDirectory));
+                var thisRelease = Utility.FindCurrentVersion(releases);
 
                 var zf = new ZipPackage(
                     Path.Combine(
-                        Utility.Utility.PackageDirectoryForAppDir(rootAppDirectory),
+                        Utility.PackageDirectoryForAppDir(rootAppDirectory),
                         thisRelease.Filename));
 
                 var fileVerInfo = FileVersionInfo.GetVersionInfo(
-                    Path.Combine(Utility.Utility.AppDirForRelease(rootAppDirectory, thisRelease), exeName));
+                    Path.Combine(Utility.AppDirForRelease(rootAppDirectory, thisRelease), exeName));
 
                 foreach (var f in (ShortcutLocation[]) Enum.GetValues(typeof(ShortcutLocation)))
                 {
@@ -342,11 +343,11 @@ namespace PoeShared.Squirrel.Core
                         continue;
                     }
 
-                    var file = linkTargetForVersionInfo(f, zf, fileVerInfo);
+                    var file = LinkTargetForVersionInfo(f, zf, fileVerInfo);
 
-                    this.Log().Info("Removing shortcut for {0} => {1}", exeName, file);
+                    Log.InfoFormat("Removing shortcut for {0} => {1}", exeName, file);
 
-                    this.ErrorIfThrows(
+                    Log.ErrorIfThrows(
                         () =>
                         {
                             if (File.Exists(file))
@@ -357,26 +358,26 @@ namespace PoeShared.Squirrel.Core
                         "Couldn't delete shortcut: " + file);
                 }
 
-                fixPinnedExecutables(zf.Version);
+                FixPinnedExecutables(zf.Version);
             }
 
-            private Task<string> installPackageToAppDir(UpdateInfo updateInfo, ReleaseEntry release)
+            private Task<string> InstallPackageToAppDir(UpdateInfo updateInfo, ReleaseEntry release)
             {
                 return Task.Run(
                     async () =>
                     {
-                        var target = getDirectoryForRelease(release.Version);
+                        var target = GetDirectoryForRelease(release.Version);
 
                         // NB: This might happen if we got killed partially through applying the release
                         if (target.Exists)
                         {
-                            this.Log().Warn("Found partially applied release folder, killing it: " + target.FullName);
-                            await Utility.Utility.DeleteDirectory(target.FullName);
+                            Log.WarnFormat("Found partially applied release folder, killing it: " + target.FullName);
+                            await Utility.DeleteDirectory(target.FullName);
                         }
 
                         target.Create();
 
-                        this.Log().Info("Writing files to app directory: {0}", target.FullName);
+                        Log.InfoFormat("Writing files to app directory: {0}", target.FullName);
                         await ReleasePackage.ExtractZipForInstall(
                             Path.Combine(updateInfo.PackageDirectory, release.Filename),
                             target.FullName,
@@ -386,7 +387,7 @@ namespace PoeShared.Squirrel.Core
                     });
             }
 
-            private async Task<ReleaseEntry> createFullPackagesFromDeltas(IEnumerable<ReleaseEntry> releasesToApply, ReleaseEntry currentVersion)
+            private async Task<ReleaseEntry> CreateFullPackagesFromDeltas(IEnumerable<ReleaseEntry> releasesToApply, ReleaseEntry currentVersion)
             {
                 Guard.ArgumentIsTrue(releasesToApply != null, "releasesToApply != null");
 
@@ -431,12 +432,12 @@ namespace PoeShared.Squirrel.Core
                 var entry = ReleaseEntry.GenerateFromFile(fi.OpenRead(), fi.Name);
 
                 // Recursively combine the rest of them
-                return await createFullPackagesFromDeltas(releasesToApply.Skip(1), entry);
+                return await CreateFullPackagesFromDeltas(releasesToApply.Skip(1), entry);
             }
 
-            private void executeSelfUpdate(SemanticVersion currentVersion)
+            private void ExecuteSelfUpdate(SemanticVersion currentVersion)
             {
-                var targetDir = getDirectoryForRelease(currentVersion);
+                var targetDir = GetDirectoryForRelease(currentVersion);
                 var newSquirrel = Path.Combine(targetDir.FullName, "Squirrel.exe");
                 if (!File.Exists(newSquirrel))
                 {
@@ -456,21 +457,21 @@ namespace PoeShared.Squirrel.Core
                 }
 
                 // If we're *not* Update.exe, this is easy, it's just a file copy
-                Utility.Utility.Retry(
+                Utility.Retry(
                     () =>
                         File.Copy(newSquirrel, Path.Combine(targetDir.Parent.FullName, "Update.exe"), true));
             }
 
-            private async Task invokePostInstall(SemanticVersion currentVersion, bool isInitialInstall, bool firstRunOnly, bool silentInstall)
+            private async Task InvokePostInstall(SemanticVersion currentVersion, bool isInitialInstall, bool firstRunOnly, bool silentInstall)
             {
-                var targetDir = getDirectoryForRelease(currentVersion);
+                var targetDir = GetDirectoryForRelease(currentVersion);
                 var args = isInitialInstall
                     ? $"--squirrel-install {currentVersion}"
                     : $"--squirrel-updated {currentVersion}";
 
                 var squirrelApps = SquirrelAwareExecutableDetector.GetAllSquirrelAwareApps(targetDir.FullName);
 
-                this.Log().Info("Squirrel Enabled Apps: [{0}]", string.Join(",", squirrelApps));
+                Log.InfoFormat("Squirrel Enabled Apps: [{0}]", string.Join(",", squirrelApps));
 
                 // For each app, run the install command in-order and wait
                 if (!firstRunOnly)
@@ -484,11 +485,11 @@ namespace PoeShared.Squirrel.Core
 
                                 try
                                 {
-                                    await Utility.Utility.InvokeProcessAsync(exe, args, cts.Token);
+                                    await Utility.InvokeProcessAsync(exe, args, cts.Token);
                                 }
                                 catch (Exception ex)
                                 {
-                                    this.Log().ErrorException("Couldn't run Squirrel hook, continuing: " + exe, ex);
+                                    Log.Error("Couldn't run Squirrel hook, continuing: " + exe, ex);
                                 }
                             }
                         },
@@ -499,7 +500,7 @@ namespace PoeShared.Squirrel.Core
                 // *don't* wait for them, since they're probably the main EXE
                 if (squirrelApps.Count == 0)
                 {
-                    this.Log().Warn("No apps are marked as Squirrel-aware! Going to run them all");
+                    Log.WarnFormat("No apps are marked as Squirrel-aware! Going to run them all");
 
                     squirrelApps = targetDir.EnumerateFiles()
                         .Where(x => x.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
@@ -531,11 +532,11 @@ namespace PoeShared.Squirrel.Core
                     .ForEach(info => Process.Start(info));
             }
 
-            private void fixPinnedExecutables(SemanticVersion newCurrentVersion, bool removeAll = false)
+            private void FixPinnedExecutables(SemanticVersion newCurrentVersion, bool removeAll = false)
             {
                 if (Environment.OSVersion.Version < new Version(6, 1))
                 {
-                    this.Log().Warn("fixPinnedExecutables: Found OS Version '{0}', exiting...", Environment.OSVersion.VersionString);
+                    Log.WarnFormat("fixPinnedExecutables: Found OS Version '{0}', exiting...", Environment.OSVersion.VersionString);
                     return;
                 }
 
@@ -548,7 +549,7 @@ namespace PoeShared.Squirrel.Core
 
                 if (!Directory.Exists(taskbarPath))
                 {
-                    this.Log().Info("fixPinnedExecutables: PinnedExecutables directory doesn't exitsts, skiping...");
+                    Log.InfoFormat("fixPinnedExecutables: PinnedExecutables directory doesn't exitsts, skiping...");
                     return;
                 }
 
@@ -557,13 +558,13 @@ namespace PoeShared.Squirrel.Core
                     {
                         try
                         {
-                            this.Log().Info("Examining Pin: " + file);
+                            Log.InfoFormat("Examining Pin: " + file);
                             return new ShellLink(file.FullName);
                         }
                         catch (Exception ex)
                         {
                             var message = $"File '{file.FullName}' could not be converted into a valid ShellLink";
-                            this.Log().WarnException(message, ex);
+                            Log.Warn(message, ex);
                             return null;
                         }
                     });
@@ -591,29 +592,29 @@ namespace PoeShared.Squirrel.Core
 
                         if (removeAll)
                         {
-                            Utility.Utility.DeleteFileHarder(shortcut.ShortCutFile);
+                            Utility.DeleteFileHarder(shortcut.ShortCutFile);
                         }
                         else
                         {
-                            updateLink(shortcut, newAppPath);
+                            UpdateLink(shortcut, newAppPath);
                         }
                     }
                     catch (Exception ex)
                     {
                         var message = $"fixPinnedExecutables: shortcut failed: {shortcut.Target}";
-                        this.Log().ErrorException(message, ex);
+                        Log.Error(message, ex);
                     }
                 }
             }
 
-            private void updateLink(ShellLink shortcut, string newAppPath)
+            private void UpdateLink(ShellLink shortcut, string newAppPath)
             {
-                this.Log().Info("Processing shortcut '{0}'", shortcut.ShortCutFile);
+                Log.InfoFormat("Processing shortcut '{0}'", shortcut.ShortCutFile);
 
                 var target = Environment.ExpandEnvironmentVariables(shortcut.Target);
                 var targetIsUpdateDotExe = target.EndsWith("update.exe", StringComparison.OrdinalIgnoreCase);
 
-                this.Log().Info("Old shortcut target: '{0}'", target);
+                Log.InfoFormat("Old shortcut target: '{0}'", target);
 
                 // NB: In 1.5.0 we accidentally fixed the target of pinned shortcuts but left the arguments,
                 // so if we find a shortcut with --processStart in the args, we're gonna stomp it even though
@@ -632,20 +633,20 @@ namespace PoeShared.Squirrel.Core
                     target = Path.Combine(rootAppDirectory, Path.GetFileName(shortcut.IconPath));
                 }
 
-                this.Log().Info("New shortcut target: '{0}'", target);
+                Log.InfoFormat("New shortcut target: '{0}'", target);
 
                 shortcut.WorkingDirectory = newAppPath;
                 shortcut.Target = target;
 
-                this.Log().Info("Old iconPath is: '{0}'", shortcut.IconPath);
+                Log.InfoFormat("Old iconPath is: '{0}'", shortcut.IconPath);
                 shortcut.IconPath = target;
                 shortcut.IconIndex = 0;
 
-                this.ErrorIfThrows(() => Utility.Utility.Retry(() => shortcut.Save()), "Couldn't write shortcut " + shortcut.ShortCutFile);
-                this.Log().Info("Finished shortcut successfully");
+                Log.ErrorIfThrows(() => Utility.Retry(() => shortcut.Save()), "Couldn't write shortcut " + shortcut.ShortCutFile);
+                Log.InfoFormat("Finished shortcut successfully");
             }
 
-            internal void unshimOurselves()
+            internal void UnshimOurselves()
             {
                 new[] {RegistryView.Registry32, RegistryView.Registry64}.ForEach(
                     view =>
@@ -669,15 +670,14 @@ namespace PoeShared.Squirrel.Core
 
                             toDelete.ForEach(
                                 x =>
-                                    this.Log()
-                                        .LogIfThrows(
+                                    Log.LogIfThrows(
                                             LogLevel.Warn,
                                             "Failed to delete key: " + x,
                                             () => regKey.DeleteValue(x)));
                         }
                         catch (Exception e)
                         {
-                            this.Log().WarnException("Couldn't rewrite shim RegKey, most likely no apps are shimmed", e);
+                            Log.Warn("Couldn't rewrite shim RegKey, most likely no apps are shimmed", e);
                         }
                         finally
                         {
@@ -695,7 +695,7 @@ namespace PoeShared.Squirrel.Core
             // directory are "dead" (i.e. already uninstalled, but not deleted), and
             // we blow them away. This is to make sure that we don't attempt to run
             // an uninstaller on an already-uninstalled version.
-            private async Task cleanDeadVersions(SemanticVersion originalVersion, SemanticVersion currentVersion, bool forceUninstall = false)
+            private async Task CleanDeadVersions(SemanticVersion originalVersion, SemanticVersion currentVersion, bool forceUninstall = false)
             {
                 if (currentVersion == null)
                 {
@@ -708,20 +708,20 @@ namespace PoeShared.Squirrel.Core
                     return;
                 }
 
-                this.Log().Info("cleanDeadVersions: for version {0}", currentVersion);
+                Log.InfoFormat("cleanDeadVersions: for version {0}", currentVersion);
 
                 string originalVersionFolder = null;
                 if (originalVersion != null)
                 {
-                    originalVersionFolder = getDirectoryForRelease(originalVersion).Name;
-                    this.Log().Info("cleanDeadVersions: exclude folder {0}", originalVersionFolder);
+                    originalVersionFolder = GetDirectoryForRelease(originalVersion).Name;
+                    Log.InfoFormat("cleanDeadVersions: exclude folder {0}", originalVersionFolder);
                 }
 
                 string currentVersionFolder = null;
                 if (currentVersion != null)
                 {
-                    currentVersionFolder = getDirectoryForRelease(currentVersion).Name;
-                    this.Log().Info("cleanDeadVersions: exclude folder {0}", currentVersionFolder);
+                    currentVersionFolder = GetDirectoryForRelease(currentVersion).Name;
+                    Log.InfoFormat("cleanDeadVersions: exclude folder {0}", currentVersionFolder);
                 }
 
                 // NB: If we try to access a directory that has already been 
@@ -731,7 +731,7 @@ namespace PoeShared.Squirrel.Core
                 var toCleanup = di.GetDirectories()
                     .Where(x => x.Name.ToLowerInvariant().Contains("app-"))
                     .Where(x => x.Name != currentVersionFolder && x.Name != originalVersionFolder)
-                    .Where(x => !isAppFolderDead(x.FullName));
+                    .Where(x => !IsAppFolderDead(x.FullName));
 
                 if (forceUninstall == false)
                 {
@@ -753,11 +753,11 @@ namespace PoeShared.Squirrel.Core
 
                                             try
                                             {
-                                                await Utility.Utility.InvokeProcessAsync(exe, args, cts.Token);
+                                                await Utility.InvokeProcessAsync(exe, args, cts.Token);
                                             }
                                             catch (Exception ex)
                                             {
-                                                this.Log().ErrorException("Coudln't run Squirrel hook, continuing: " + exe, ex);
+                                                Log.Error("Coudln't run Squirrel hook, continuing: " + exe, ex);
                                             }
                                         }
                                     },
@@ -783,7 +783,7 @@ namespace PoeShared.Squirrel.Core
                         {
                             if (runningProcesses.All(p => p.Item1 == null || !p.Item1.StartsWith(x.FullName, StringComparison.OrdinalIgnoreCase)))
                             {
-                                await Utility.Utility.DeleteDirectoryOrJustGiveUp(x.FullName);
+                                await Utility.DeleteDirectoryOrJustGiveUp(x.FullName);
                             }
 
                             if (Directory.Exists(x.FullName))
@@ -791,22 +791,22 @@ namespace PoeShared.Squirrel.Core
                                 // NB: If we cannot clean up a directory, we need to make 
                                 // sure that anyone finding it later won't attempt to run
                                 // Squirrel events on it. We'll mark it with a .dead file
-                                markAppFolderAsDead(x.FullName);
+                                MarkAppFolderAsDead(x.FullName);
                             }
                         }
                         catch (UnauthorizedAccessException ex)
                         {
-                            this.Log().WarnException("Couldn't delete directory: " + x.FullName, ex);
+                            Log.Warn("Couldn't delete directory: " + x.FullName, ex);
 
                             // NB: Same deal as above
-                            markAppFolderAsDead(x.FullName);
+                            MarkAppFolderAsDead(x.FullName);
                         }
                     });
 
                 // Clean up the packages directory too
-                var releasesFile = Utility.Utility.LocalReleaseFileForAppDir(rootAppDirectory);
+                var releasesFile = Utility.LocalReleaseFileForAppDir(rootAppDirectory);
                 var entries = ReleaseEntry.ParseReleaseFile(File.ReadAllText(releasesFile, Encoding.UTF8));
-                var pkgDir = Utility.Utility.PackageDirectoryForAppDir(rootAppDirectory);
+                var pkgDir = Utility.PackageDirectoryForAppDir(rootAppDirectory);
                 var releaseEntry = default(ReleaseEntry);
 
                 foreach (var entry in entries)
@@ -823,22 +823,22 @@ namespace PoeShared.Squirrel.Core
                 ReleaseEntry.WriteReleaseFile(new[] {releaseEntry}, releasesFile);
             }
 
-            private static void markAppFolderAsDead(string appFolderPath)
+            private static void MarkAppFolderAsDead(string appFolderPath)
             {
                 File.WriteAllText(Path.Combine(appFolderPath, ".dead"), "");
             }
 
-            private static bool isAppFolderDead(string appFolderPath)
+            private static bool IsAppFolderDead(string appFolderPath)
             {
                 return File.Exists(Path.Combine(appFolderPath, ".dead"));
             }
 
-            internal async Task<List<ReleaseEntry>> updateLocalReleasesFile()
+            internal async Task<List<ReleaseEntry>> UpdateLocalReleasesFile()
             {
-                return await Task.Run(() => ReleaseEntry.BuildReleasesFile(Utility.Utility.PackageDirectoryForAppDir(rootAppDirectory)));
+                return await Task.Run(() => ReleaseEntry.BuildReleasesFile(Utility.PackageDirectoryForAppDir(rootAppDirectory)));
             }
 
-            private IEnumerable<DirectoryInfo> getReleases()
+            private IEnumerable<DirectoryInfo> GetReleases()
             {
                 var rootDirectory = new DirectoryInfo(rootAppDirectory);
 
@@ -851,12 +851,12 @@ namespace PoeShared.Squirrel.Core
                     .Where(x => x.Name.StartsWith("app-", StringComparison.InvariantCultureIgnoreCase));
             }
 
-            private DirectoryInfo getDirectoryForRelease(SemanticVersion releaseVersion)
+            private DirectoryInfo GetDirectoryForRelease(SemanticVersion releaseVersion)
             {
                 return new DirectoryInfo(Path.Combine(rootAppDirectory, "app-" + releaseVersion));
             }
 
-            private string linkTargetForVersionInfo(ShortcutLocation location, IPackage package, FileVersionInfo versionInfo)
+            private string LinkTargetForVersionInfo(ShortcutLocation location, IPackage package, FileVersionInfo versionInfo)
             {
                 var possibleProductNames = new[]
                 {
@@ -875,10 +875,10 @@ namespace PoeShared.Squirrel.Core
                 var prodName = possibleCompanyNames.First(x => !string.IsNullOrWhiteSpace(x));
                 var pkgName = possibleProductNames.First(x => !string.IsNullOrWhiteSpace(x));
 
-                return getLinkTarget(location, pkgName, prodName);
+                return GetLinkTarget(location, pkgName, prodName);
             }
 
-            private string getLinkTarget(ShortcutLocation location, string title, string applicationName, bool createDirectoryIfNecessary = true)
+            private string GetLinkTarget(ShortcutLocation location, string title, string applicationName, bool createDirectoryIfNecessary = true)
             {
                 var dir = default(string);
 

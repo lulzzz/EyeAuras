@@ -13,9 +13,11 @@ namespace PoeShared.Squirrel.Updater
 
         [NotNull] CommandWrapper ApplyUpdate { get; }
 
-        string Error { get; set; }
+        bool IsInErrorStatus { get; }
 
-        string StatusText { get; set; }
+        string StatusText { get; }
+        
+        int ProgressPercent { get; }
 
         bool IsOpen { get; set; }
 

@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
-using PoeShared.Squirrel.Core;
 using PoeShared.Squirrel.Native;
 
-namespace PoeShared.Squirrel.Utility
+namespace PoeShared.Squirrel.Scaffolding
 {
     internal static unsafe class UnsafeUtility
     {

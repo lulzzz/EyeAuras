@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using NuGet;
-using PoeShared.Squirrel.Utility;
+using PoeShared.Squirrel.Scaffolding;
 using Splat;
 using Squirrel;
 using Squirrel.Shell;
@@ -18,7 +19,7 @@ namespace PoeShared.Squirrel.Core
 {
     public sealed partial class PoeUpdateManager : IUpdateManager
     {
-        private static bool exiting;
+        private static bool Exiting;
         private readonly string updateUrlOrPath;
         private readonly IFileDownloader urlDownloader;
 
@@ -34,7 +35,7 @@ namespace PoeShared.Squirrel.Core
             Guard.ArgumentIsTrue(!string.IsNullOrEmpty(applicationName), "!string.IsNullOrEmpty(applicationName)");
 
             updateUrlOrPath = urlOrPath;
-            ApplicationName = applicationName ?? getApplicationName();
+            ApplicationName = applicationName ?? GetApplicationName();
             this.urlDownloader = urlDownloader ?? new FileDownloader();
 
             RootAppDirectory = Path.Combine(rootDirectory ?? GetLocalAppDataDirectory(), ApplicationName);
@@ -50,9 +51,9 @@ namespace PoeShared.Squirrel.Core
         {
             var checkForUpdate = new CheckForUpdateImpl(RootAppDirectory);
 
-            await acquireUpdateLock();
+            await AcquireUpdateLock();
             return await checkForUpdate.CheckForUpdate(
-                Utility.Utility.LocalReleaseFileForAppDir(RootAppDirectory),
+                Utility.LocalReleaseFileForAppDir(RootAppDirectory),
                 updateUrlOrPath,
                 ignoreDeltaUpdates,
                 progress,
@@ -62,7 +63,7 @@ namespace PoeShared.Squirrel.Core
         public async Task DownloadReleases(IEnumerable<ReleaseEntry> releasesToDownload, Action<int> progress = null)
         {
             var downloadReleases = new DownloadReleasesImpl(RootAppDirectory);
-            await acquireUpdateLock();
+            await AcquireUpdateLock();
 
             await downloadReleases.DownloadReleases(updateUrlOrPath, releasesToDownload, progress, urlDownloader);
         }
@@ -70,7 +71,7 @@ namespace PoeShared.Squirrel.Core
         public async Task<string> ApplyReleases(UpdateInfo updateInfo, Action<int> progress = null)
         {
             var applyReleases = new ApplyReleasesImpl(RootAppDirectory);
-            await acquireUpdateLock();
+            await AcquireUpdateLock();
 
             return await applyReleases.ApplyReleases(updateInfo, false, false, progress);
         }
@@ -81,7 +82,7 @@ namespace PoeShared.Squirrel.Core
             await DownloadReleases(updateInfo.ReleasesToApply);
 
             var applyReleases = new ApplyReleasesImpl(RootAppDirectory);
-            await acquireUpdateLock();
+            await AcquireUpdateLock();
 
             await applyReleases.ApplyReleases(updateInfo, silentInstall, true, progress);
         }
@@ -89,7 +90,7 @@ namespace PoeShared.Squirrel.Core
         public async Task FullUninstall()
         {
             var applyReleases = new ApplyReleasesImpl(RootAppDirectory);
-            await acquireUpdateLock();
+            await AcquireUpdateLock();
 
             KillAllExecutablesBelongingToPackage();
             await applyReleases.FullUninstall();
@@ -180,9 +181,9 @@ namespace PoeShared.Squirrel.Core
                 ? $"-a \"{arguments}\""
                 : "";
 
-            exiting = true;
+            Exiting = true;
 
-            Process.Start(getUpdateExe(), $"--processStartAndWait {exeToStart} {argsArg}");
+            Process.Start(GetUpdateExe(), $"--processStartAndWait {exeToStart} {argsArg}");
 
             // NB: We have to give update.exe some time to grab our PID, but
             // we can't use WaitForInputIdle because we probably don't have
@@ -209,9 +210,9 @@ namespace PoeShared.Squirrel.Core
                 ? $"-a \"{arguments}\""
                 : "";
 
-            exiting = true;
+            Exiting = true;
 
-            var updateProcess = Process.Start(getUpdateExe(), $"--processStartAndWait {exeToStart} {argsArg}");
+            var updateProcess = Process.Start(GetUpdateExe(), $"--processStartAndWait {exeToStart} {argsArg}");
 
             await Task.Delay(500);
 
@@ -249,13 +250,13 @@ namespace PoeShared.Squirrel.Core
 
         ~PoeUpdateManager()
         {
-            if (updateLock != null && !exiting)
+            if (updateLock != null && !Exiting)
             {
                 throw new Exception("You must dispose UpdateManager!");
             }
         }
 
-        private Task<IDisposable> acquireUpdateLock()
+        private Task<IDisposable> AcquireUpdateLock()
         {
             if (updateLock != null)
             {
@@ -265,7 +266,7 @@ namespace PoeShared.Squirrel.Core
             return Task.Run(
                 () =>
                 {
-                    var key = Utility.Utility.CalculateStreamSha1(new MemoryStream(Encoding.UTF8.GetBytes(RootAppDirectory)));
+                    var key = Utility.CalculateStreamSha1(new MemoryStream(Encoding.UTF8.GetBytes(RootAppDirectory)));
 
                     IDisposable theLock;
                     try
@@ -291,13 +292,13 @@ namespace PoeShared.Squirrel.Core
                 });
         }
 
-        private static string getApplicationName()
+        private static string GetApplicationName()
         {
-            var fi = new FileInfo(getUpdateExe());
+            var fi = new FileInfo(GetUpdateExe());
             return fi.Directory.Name;
         }
 
-        private static string getUpdateExe()
+        private static string GetUpdateExe()
         {
             var assembly = Assembly.GetEntryAssembly();
 

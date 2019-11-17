@@ -33,6 +33,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Converters.xaml" />
                 <ResourceDictionary Source="MainWindow.tab.xaml" />
                 <ResourceDictionary Source="EyeAurasSettingsView.xaml" />
                 <ResourceDictionary Source="PrismModuleStatusView.xaml" />
@@ -320,8 +321,6 @@
                             Content="{Binding Settings}" />
                     </materialDesign:DialogHost.DialogContent>
                 </materialDesign:DialogHost>
-
-
             </Grid>
         </materialDesign:DrawerHost>
     </DockPanel>
@@ -350,8 +349,9 @@
             </StackPanel>
             
             <ContentControl Content="{Binding ApplicationUpdater.CheckForUpdatesCommand}"
-                            ToolTip="Check for updates"
                             ContentTemplate="{StaticResource CommandWrapperIcon}"
+                            ToolTip="Check for updates"
+                            eye:CommandWrapperHelper.Progress="{Binding ApplicationUpdater.ProgressPercent}"
                             eye:CommandWrapperHelper.Icon="&#xF0ED;" />
             <Button Content="&#xF085; Settings" FontFamily="{StaticResource FontAwesome}"
                     Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"

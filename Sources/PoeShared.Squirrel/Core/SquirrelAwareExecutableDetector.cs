@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using Mono.Cecil;
 using PoeShared.Squirrel.Native;
+using PoeShared.Squirrel.Scaffolding;
 
 namespace PoeShared.Squirrel.Core
 {
@@ -18,11 +19,11 @@ namespace PoeShared.Squirrel.Core
             return di.EnumerateFiles()
                 .Where(x => x.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                 .Select(x => x.FullName)
-                .Where(x => (GetPESquirrelAwareVersion(x) ?? -1) >= minimumVersion)
+                .Where(x => (GetPeSquirrelAwareVersion(x) ?? -1) >= minimumVersion)
                 .ToList();
         }
 
-        public static int? GetPESquirrelAwareVersion(string executable)
+        public static int? GetPeSquirrelAwareVersion(string executable)
         {
             if (!File.Exists(executable))
             {
@@ -31,7 +32,7 @@ namespace PoeShared.Squirrel.Core
 
             var fullname = Path.GetFullPath(executable);
 
-            return Utility.Utility.Retry(
+            return Utility.Retry(
                 () =>
                     GetAssemblySquirrelAwareVersion(fullname) ?? GetVersionBlockSquirrelAwareValue(fullname));
         }
@@ -68,8 +69,7 @@ namespace PoeShared.Squirrel.Core
                     return null;
                 }
 
-                int result;
-                if (!int.TryParse(attribute.ConstructorArguments[1].Value.ToString(), NumberStyles.Integer, CultureInfo.CurrentCulture, out result))
+                if (!int.TryParse(attribute.ConstructorArguments[1].Value.ToString(), NumberStyles.Integer, CultureInfo.CurrentCulture, out var result))
                 {
                     return null;
                 }
@@ -102,9 +102,7 @@ namespace PoeShared.Squirrel.Core
                 return null;
             }
 
-            IntPtr result;
-            int resultSize;
-            if (!NativeMethods.VerQueryValue(buf, "\\StringFileInfo\\040904B0\\SquirrelAwareVersion", out result, out resultSize))
+            if (!NativeMethods.VerQueryValue(buf, "\\StringFileInfo\\040904B0\\SquirrelAwareVersion", out var result, out var resultSize))
             {
                 return null;
             }

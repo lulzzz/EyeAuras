@@ -189,7 +189,8 @@
 
                         <Grid Grid.Column="0" x:Name="HeaderContainerGrid">
                             <ScrollViewer VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}" 
-                                          HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}">
+                                          HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                          Focusable="{TemplateBinding Focusable}" IsTabStop="{TemplateBinding IsTabStop}">
                                 <dragablz:DragablzItemsControl x:Name="PART_HeaderItemsControl"
                                                                PositionMonitor="{Binding DataContext.PositionMonitor, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type dragablz:TabablzControl}}, Mode=OneWay}"
                                                                ItemsSource="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Items}"

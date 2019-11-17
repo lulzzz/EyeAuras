@@ -56,9 +56,19 @@ namespace EyeAuras.UI.ExceptionViewer
 
             var window = new ExceptionDialogView
             {
-                Owner = Application.Current.MainWindow,
                 DataContext = this
             };
+
+            var appWindow = Application.Current.MainWindow;
+            if (appWindow != null && appWindow.IsLoaded && appWindow.IsVisible)
+            {
+                window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                window.Owner = appWindow;
+            }
+            else
+            {
+                window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
             
             Disposable.Create(
                     () =>

@@ -13,6 +13,10 @@ namespace PoeShared.Squirrel.Updater
         [CanBeNull] Version UpdatedVersion { get; }
 
         [CanBeNull] UpdateInfo LatestVersion { get; }
+        
+        int ProgressPercent { get; }
+        
+        bool IsBusy { get; }
 
         /// <summary>
         ///     Checks whether update exist and if so, downloads it

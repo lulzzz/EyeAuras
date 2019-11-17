@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
-using PoeShared.Squirrel.Utility;
+using PoeShared.Squirrel.Scaffolding;
 using Squirrel;
 
 namespace PoeShared.Squirrel.Core

@@ -16,8 +16,7 @@ namespace PoeShared.Squirrel.Native
 
             try
             {
-                int sizeInfoReturned;
-                var queryStatus = NtQueryInformationProcess(hProc, 0, ref pbi, pbi.Size, out sizeInfoReturned);
+                var queryStatus = NtQueryInformationProcess(hProc, 0, ref pbi, pbi.Size, out var sizeInfoReturned);
             }
             finally
             {

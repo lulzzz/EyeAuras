@@ -8,9 +8,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml;
+using log4net;
 using MarkdownSharp;
 using NuGet;
-using PoeShared.Squirrel.Utility;
 using SharpCompress.Archives.Zip;
 using SharpCompress.Readers;
 using Splat;
@@ -440,6 +440,8 @@ namespace PoeShared.Squirrel.Scaffolding
 
     public class ReleasePackage : IEnableLogger, IReleasePackage
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof(ReleasePackage));
+
         public ReleasePackage(string inputPackageFile, bool isReleasePackage = false)
         {
             InputPackageFile = inputPackageFile;
@@ -510,8 +512,8 @@ namespace PoeShared.Squirrel.Scaffolding
 
             // Recursively walk the dependency tree and extract all of the
             // dependent packages into the a temporary directory
-            this.Log().Info("Creating release package: {0} => {1}", InputPackageFile, outputFile);
-            var dependencies = findAllDependentPackages(
+            Log.InfoFormat("Creating release package: {0} => {1}", InputPackageFile, outputFile);
+            var dependencies = FindAllDependentPackages(
                     package,
                     new LocalPackageRepository(packagesRootDir),
                     frameworkName: targetFramework)
@@ -519,38 +521,38 @@ namespace PoeShared.Squirrel.Scaffolding
 
             string tempPath = null;
 
-            using (Utility.Utility.WithTempDirectory(out tempPath))
+            using (Utility.WithTempDirectory(out tempPath))
             {
                 var tempDir = new DirectoryInfo(tempPath);
 
-                extractZipWithEscaping(InputPackageFile, tempPath).Wait();
+                ExtractZipWithEscaping(InputPackageFile, tempPath).Wait();
 
-                this.Log().Info("Extracting dependent packages: [{0}]", string.Join(",", dependencies.Select(x => x.Id)));
-                extractDependentPackages(dependencies, tempDir, targetFramework);
+                Log.InfoFormat("Extracting dependent packages: [{0}]", string.Join(",", dependencies.Select(x => x.Id)));
+                ExtractDependentPackages(dependencies, tempDir, targetFramework);
 
                 var specPath = tempDir.GetFiles("*.nuspec").First().FullName;
 
-                this.Log().Info("Removing unnecessary data");
-                removeDependenciesFromPackageSpec(specPath);
-                removeDeveloperDocumentation(tempDir);
+                Log.InfoFormat("Removing unnecessary data");
+                RemoveDependenciesFromPackageSpec(specPath);
+                RemoveDeveloperDocumentation(tempDir);
 
                 if (releaseNotesProcessor != null)
                 {
-                    renderReleaseNotesMarkdown(specPath, releaseNotesProcessor);
+                    RenderReleaseNotesMarkdown(specPath, releaseNotesProcessor);
                 }
 
-                addDeltaFilesToContentTypes(tempDir.FullName);
+                AddDeltaFilesToContentTypes(tempDir.FullName);
 
                 contentsPostProcessHook?.Invoke(tempPath);
 
-                Utility.Utility.CreateZipFromDirectory(outputFile, tempPath).Wait();
+                Utility.CreateZipFromDirectory(outputFile, tempPath).Wait();
 
                 ReleasePackageFile = outputFile;
                 return ReleasePackageFile;
             }
         }
 
-        private static Task extractZipWithEscaping(string zipFilePath, string outFolder)
+        private static Task ExtractZipWithEscaping(string zipFilePath, string outFolder)
         {
             return Task.Run(
                 () =>
@@ -567,7 +569,7 @@ namespace PoeShared.Squirrel.Scaffolding
                             var fullTargetDir = Path.GetDirectoryName(fullTargetFile);
                             Directory.CreateDirectory(fullTargetDir);
 
-                            Utility.Utility.Retry(
+                            Utility.Retry(
                                 () =>
                                 {
                                     if (reader.Entry.IsDirectory)
@@ -626,7 +628,7 @@ namespace PoeShared.Squirrel.Scaffolding
 
                             try
                             {
-                                Utility.Utility.Retry(
+                                Utility.Retry(
                                     () =>
                                     {
                                         if (reader.Entry.IsDirectory)
@@ -647,19 +649,19 @@ namespace PoeShared.Squirrel.Scaffolding
                                     throw;
                                 }
 
-                                LogHost.Default.WarnException("Can't write execution stub, probably in use", e);
+                                Log.Warn("Can't write execution stub, probably in use", e);
                             }
                         }
                     }
                 });
         }
 
-        private void extractDependentPackages(IEnumerable<IPackage> dependencies, DirectoryInfo tempPath, FrameworkName framework)
+        private void ExtractDependentPackages(IEnumerable<IPackage> dependencies, DirectoryInfo tempPath, FrameworkName framework)
         {
             dependencies.ForEach(
                 pkg =>
                 {
-                    this.Log().Info("Scanning {0}", pkg.Id);
+                    Log.InfoFormat("Scanning {0}", pkg.Id);
 
                     pkg.GetLibFiles()
                         .ForEach(
@@ -669,7 +671,7 @@ namespace PoeShared.Squirrel.Scaffolding
 
                                 if (!VersionUtility.IsCompatible(framework, new[] {file.TargetFramework}))
                                 {
-                                    this.Log().Info("Ignoring {0} as the target framework is not compatible", outPath);
+                                    Log.InfoFormat("Ignoring {0} as the target framework is not compatible", outPath);
                                     return;
                                 }
 
@@ -677,14 +679,14 @@ namespace PoeShared.Squirrel.Scaffolding
 
                                 using (var of = File.Create(outPath.FullName))
                                 {
-                                    this.Log().Info("Writing {0} to {1}", file.Path, outPath);
+                                    Log.InfoFormat("Writing {0} to {1}", file.Path, outPath);
                                     file.GetStream().CopyTo(of);
                                 }
                             });
                 });
         }
 
-        private void removeDeveloperDocumentation(DirectoryInfo expandedRepoPath)
+        private void RemoveDeveloperDocumentation(DirectoryInfo expandedRepoPath)
         {
             expandedRepoPath.GetAllFilesRecursively()
                 .Where(x => x.Name.EndsWith(".dll", true, CultureInfo.InvariantCulture))
@@ -693,7 +695,7 @@ namespace PoeShared.Squirrel.Scaffolding
                 .ForEach(x => x.Delete());
         }
 
-        private void renderReleaseNotesMarkdown(string specPath, Func<string, string> releaseNotesProcessor)
+        private void RenderReleaseNotesMarkdown(string specPath, Func<string, string> releaseNotesProcessor)
         {
             var doc = new XmlDocument();
             doc.Load(specPath);
@@ -709,7 +711,7 @@ namespace PoeShared.Squirrel.Scaffolding
 
             if (releaseNotes == null)
             {
-                this.Log().Info("No release notes found in {0}", specPath);
+                Log.InfoFormat("No release notes found in {0}", specPath);
                 return;
             }
 
@@ -720,7 +722,7 @@ namespace PoeShared.Squirrel.Scaffolding
             doc.Save(specPath);
         }
 
-        private void removeDependenciesFromPackageSpec(string specPath)
+        private void RemoveDependenciesFromPackageSpec(string specPath)
         {
             var xdoc = new XmlDocument();
             xdoc.Load(specPath);
@@ -735,7 +737,7 @@ namespace PoeShared.Squirrel.Scaffolding
             xdoc.Save(specPath);
         }
 
-        internal IEnumerable<IPackage> findAllDependentPackages(
+        internal IEnumerable<IPackage> FindAllDependentPackages(
             IPackage package = null,
             IPackageRepository packageRepository = null,
             HashSet<string> packageCache = null,
@@ -751,12 +753,12 @@ namespace PoeShared.Squirrel.Scaffolding
             return deps.SelectMany(
                     dependency =>
                     {
-                        var ret = matchPackage(packageRepository, dependency.Id, dependency.VersionSpec);
+                        var ret = MatchPackage(packageRepository, dependency.Id, dependency.VersionSpec);
 
                         if (ret == null)
                         {
                             var message = string.Format("Couldn't find file for package in {1}: {0}", dependency.Id, packageRepository.Source);
-                            this.Log().Error(message);
+                            Log.ErrorFormat(message);
                             throw new Exception(message);
                         }
 
@@ -767,18 +769,18 @@ namespace PoeShared.Squirrel.Scaffolding
 
                         packageCache.Add(ret.GetFullName());
 
-                        return findAllDependentPackages(ret, packageRepository, packageCache, frameworkName).StartWith(ret).Distinct(y => y.GetFullName());
+                        return FindAllDependentPackages(ret, packageRepository, packageCache, frameworkName).StartWith(ret).Distinct(y => y.GetFullName());
                     })
                 .ToArray();
         }
 
-        private IPackage matchPackage(IPackageRepository packageRepository, string id, IVersionSpec version)
+        private IPackage MatchPackage(IPackageRepository packageRepository, string id, IVersionSpec version)
         {
             return packageRepository.FindPackagesById(id).FirstOrDefault(x => VersionComparer.Matches(version, x.Version));
         }
 
 
-        internal static void addDeltaFilesToContentTypes(string rootDirectory)
+        internal static void AddDeltaFilesToContentTypes(string rootDirectory)
         {
             var doc = new XmlDocument();
             var path = Path.Combine(rootDirectory, "[Content_Types].xml");
