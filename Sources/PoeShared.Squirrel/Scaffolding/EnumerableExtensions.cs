@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -11,12 +10,13 @@ using System.Threading.Tasks;
 using System.Xml;
 using MarkdownSharp;
 using NuGet;
+using PoeShared.Squirrel.Utility;
 using SharpCompress.Archives.Zip;
 using SharpCompress.Readers;
 using Splat;
 using Squirrel;
 
-namespace PoeShared.Squirrel.Core
+namespace PoeShared.Squirrel.Scaffolding
 {
     internal static class EnumerableExtensions
     {
@@ -460,7 +460,7 @@ namespace PoeShared.Squirrel.Core
             get
             {
                 var zp = new ZipPackage(InputPackageFile);
-                return string.Format("{0}-{1}-full.nupkg", zp.Id, zp.Version);
+                return $"{zp.Id}-{zp.Version}-full.nupkg";
             }
         }
 
@@ -484,9 +484,7 @@ namespace PoeShared.Squirrel.Core
             if (!ModeDetector.InUnitTestRunner() && !SemanticVersion.TryParseStrict(package.Version.ToString(), out dontcare))
             {
                 throw new Exception(
-                    string.Format(
-                        "Your package version is currently {0}, which is *not* SemVer-compatible, change this to be a SemVer version number",
-                        package.Version));
+                    $"Your package version is currently {package.Version}, which is *not* SemVer-compatible, change this to be a SemVer version number");
             }
 
             // we can tell from here what platform(s) the package targets
@@ -499,18 +497,13 @@ namespace PoeShared.Squirrel.Core
                     .Aggregate(new StringBuilder(), (sb, f) => sb.Append(f + "; "));
 
                 throw new InvalidOperationException(
-                    string.Format(
-                        "The input package file {0} targets multiple platforms - {1} - and cannot be transformed into a release package.",
-                        InputPackageFile,
-                        platforms));
+                    $"The input package file {InputPackageFile} targets multiple platforms - {platforms} - and cannot be transformed into a release package.");
             }
 
             if (!frameworks.Any())
             {
                 throw new InvalidOperationException(
-                    string.Format(
-                        "The input package file {0} targets no platform and cannot be transformed into a release package.",
-                        InputPackageFile));
+                    $"The input package file {InputPackageFile} targets no platform and cannot be transformed into a release package.");
             }
 
             var targetFramework = frameworks.Single();
@@ -526,7 +519,7 @@ namespace PoeShared.Squirrel.Core
 
             string tempPath = null;
 
-            using (Utility.WithTempDirectory(out tempPath))
+            using (Utility.Utility.WithTempDirectory(out tempPath))
             {
                 var tempDir = new DirectoryInfo(tempPath);
 
@@ -550,7 +543,7 @@ namespace PoeShared.Squirrel.Core
 
                 contentsPostProcessHook?.Invoke(tempPath);
 
-                Utility.CreateZipFromDirectory(outputFile, tempPath).Wait();
+                Utility.Utility.CreateZipFromDirectory(outputFile, tempPath).Wait();
 
                 ReleasePackageFile = outputFile;
                 return ReleasePackageFile;
@@ -574,7 +567,7 @@ namespace PoeShared.Squirrel.Core
                             var fullTargetDir = Path.GetDirectoryName(fullTargetFile);
                             Directory.CreateDirectory(fullTargetDir);
 
-                            Utility.Retry(
+                            Utility.Utility.Retry(
                                 () =>
                                 {
                                     if (reader.Entry.IsDirectory)
@@ -633,7 +626,7 @@ namespace PoeShared.Squirrel.Core
 
                             try
                             {
-                                Utility.Retry(
+                                Utility.Utility.Retry(
                                     () =>
                                     {
                                         if (reader.Entry.IsDirectory)

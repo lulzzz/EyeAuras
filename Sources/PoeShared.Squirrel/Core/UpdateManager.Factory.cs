@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using PoeShared.Squirrel.Utility;
 using Squirrel;
 
 namespace PoeShared.Squirrel.Core
@@ -51,7 +52,7 @@ namespace PoeShared.Squirrel.Core
                 // it comes suffixed
                 // so the API path of http://internal.github.server.local API location is
                 // http://interal.github.server.local/api/v3. 
-                baseAddress = new Uri(string.Format("{0}{1}{2}/api/v3/", repoUri.Scheme, Uri.SchemeDelimiter, repoUri.Host));
+                baseAddress = new Uri($"{repoUri.Scheme}{Uri.SchemeDelimiter}{repoUri.Host}/api/v3/");
             }
 
             // above ^^ notice the end slashes for the baseAddress, explained here: http://stackoverflow.com/a/23438417/162694

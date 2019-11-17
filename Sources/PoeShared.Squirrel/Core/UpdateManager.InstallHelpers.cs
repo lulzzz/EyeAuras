@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using NuGet;
+using PoeShared.Squirrel.Scaffolding;
+using PoeShared.Squirrel.Utility;
 using Splat;
 using Squirrel;
 
@@ -56,7 +58,7 @@ namespace PoeShared.Squirrel.Core
                 {
                     try
                     {
-                        using (var wc = Utility.CreateWebClient())
+                        using (var wc = Utility.Utility.CreateWebClient())
                         {
                             await wc.DownloadFileTaskAsync(zp.IconUrl, targetPng);
                             using (var fs = new FileStream(targetIco, FileMode.Create))
@@ -96,7 +98,7 @@ namespace PoeShared.Squirrel.Core
                     new {Key = "InstallDate", Value = DateTime.Now.ToString("yyyyMMdd")},
                     new {Key = "InstallLocation", Value = rootAppDirectory},
                     new {Key = "Publisher", Value = string.Join(",", zp.Authors)},
-                    new {Key = "QuietUninstallString", Value = string.Format("{0} {1}", uninstallCmd, quietSwitch)},
+                    new {Key = "QuietUninstallString", Value = $"{uninstallCmd} {quietSwitch}"},
                     new {Key = "UninstallString", Value = uninstallCmd},
                     new
                     {
@@ -181,7 +183,7 @@ namespace PoeShared.Squirrel.Core
             public Task<RegistryKey> CreateUninstallerRegistryEntry()
             {
                 var updateDotExe = Path.Combine(rootAppDirectory, "Update.exe");
-                return CreateUninstallerRegistryEntry(string.Format("\"{0}\" --uninstall", updateDotExe), "-s");
+                return CreateUninstallerRegistryEntry($"\"{updateDotExe}\" --uninstall", "-s");
             }
 
             public void RemoveUninstallerRegistryEntry()

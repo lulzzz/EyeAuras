@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Mono.Cecil;
+using PoeShared.Squirrel.Native;
 
 namespace PoeShared.Squirrel.Core
 {
@@ -30,7 +31,7 @@ namespace PoeShared.Squirrel.Core
 
             var fullname = Path.GetFullPath(executable);
 
-            return Utility.Retry(
+            return Utility.Utility.Retry(
                 () =>
                     GetAssemblySquirrelAwareVersion(fullname) ?? GetVersionBlockSquirrelAwareValue(fullname));
         }

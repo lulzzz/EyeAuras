@@ -6,17 +6,24 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using DeltaCompressionDotNet.MsDelta;
+using log4net;
+using PoeShared.Squirrel.Scaffolding;
+using PoeShared.Squirrel.Utility;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Zip;
 using SharpCompress.Compressors.Deflate;
 using SharpCompress.Readers;
 using Splat;
 using Squirrel;
+using ChecksumFailedException = PoeShared.Squirrel.Scaffolding.ChecksumFailedException;
+using ReleasePackage = PoeShared.Squirrel.Scaffolding.ReleasePackage;
 
 namespace PoeShared.Squirrel.Core
 {
     public class DeltaPackageBuilder : IEnableLogger, IDeltaPackageBuilder
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof(DeltaPackageBuilder));
+
         private readonly string localAppDirectory;
 
         public DeltaPackageBuilder(string localAppDataOverride = null)
@@ -31,10 +38,7 @@ namespace PoeShared.Squirrel.Core
 
             if (basePackage.Version > newPackage.Version)
             {
-                var message = string.Format(
-                    "You cannot create a delta package based on version {0} as it is a later version than {1}",
-                    basePackage.Version,
-                    newPackage.Version);
+                var message = $"You cannot create a delta package based on version {basePackage.Version} as it is a later version than {newPackage.Version}";
                 throw new InvalidOperationException(message);
             }
 
@@ -56,8 +60,8 @@ namespace PoeShared.Squirrel.Core
             string baseTempPath = null;
             string tempPath = null;
 
-            using (Utility.WithTempDirectory(out baseTempPath))
-            using (Utility.WithTempDirectory(out tempPath))
+            using (Utility.Utility.WithTempDirectory(out baseTempPath))
+            using (Utility.Utility.WithTempDirectory(out tempPath))
             {
                 var baseTempInfo = new DirectoryInfo(baseTempPath);
                 var tempInfo = new DirectoryInfo(tempPath);
@@ -69,8 +73,8 @@ namespace PoeShared.Squirrel.Core
                         newPackage.ReleasePackageFile,
                         tempPath);
 
-                Utility.ExtractZipToDirectory(basePackage.ReleasePackageFile, baseTempInfo.FullName).Wait();
-                Utility.ExtractZipToDirectory(newPackage.ReleasePackageFile, tempInfo.FullName).Wait();
+                Utility.Utility.ExtractZipToDirectory(basePackage.ReleasePackageFile, baseTempInfo.FullName).Wait();
+                Utility.Utility.ExtractZipToDirectory(newPackage.ReleasePackageFile, tempInfo.FullName).Wait();
 
                 // Collect a list of relative paths under 'lib' and map them
                 // to their full name. We'll use this later to determine in
@@ -88,7 +92,7 @@ namespace PoeShared.Squirrel.Core
                 }
 
                 ReleasePackage.addDeltaFilesToContentTypes(tempInfo.FullName);
-                Utility.CreateZipFromDirectory(outputFile, tempInfo.FullName).Wait();
+                Utility.Utility.CreateZipFromDirectory(outputFile, tempInfo.FullName).Wait();
             }
 
             return new ReleasePackage(outputFile);
@@ -102,8 +106,8 @@ namespace PoeShared.Squirrel.Core
             string workingPath;
             string deltaPath;
 
-            using (Utility.WithTempDirectory(out deltaPath, localAppDirectory))
-            using (Utility.WithTempDirectory(out workingPath, localAppDirectory))
+            using (Utility.Utility.WithTempDirectory(out deltaPath, localAppDirectory))
+            using (Utility.Utility.WithTempDirectory(out workingPath, localAppDirectory))
             {
                 var opts = new ExtractionOptions {ExtractFullPath = true, Overwrite = true, PreserveFileTime = true};
 
@@ -240,10 +244,10 @@ namespace PoeShared.Squirrel.Core
             }
             catch (Exception ex)
             {
-                this.Log().WarnException(string.Format("We really couldn't create a delta for {0}", targetFile.Name), ex);
+                this.Log().WarnException($"We really couldn't create a delta for {targetFile.Name}", ex);
 
-                Utility.DeleteFileHarder(targetFile.FullName + ".bsdiff", true);
-                Utility.DeleteFileHarder(targetFile.FullName + ".diff", true);
+                Utility.Utility.DeleteFileHarder(targetFile.FullName + ".bsdiff", true);
+                Utility.Utility.DeleteFileHarder(targetFile.FullName + ".diff", true);
                 return;
             }
 
@@ -261,7 +265,7 @@ namespace PoeShared.Squirrel.Core
             var finalTarget = Path.Combine(workingDirectory, Regex.Replace(relativeFilePath, @"\.(bs)?diff$", ""));
 
             var tempTargetFile = default(string);
-            Utility.WithTempFile(out tempTargetFile, localAppDirectory);
+            Utility.Utility.WithTempFile(out tempTargetFile, localAppDirectory);
 
             try
             {
@@ -318,7 +322,7 @@ namespace PoeShared.Squirrel.Core
             {
                 if (File.Exists(tempTargetFile))
                 {
-                    Utility.DeleteFileHarder(tempTargetFile, true);
+                    Utility.Utility.DeleteFileHarder(tempTargetFile, true);
                 }
             }
         }

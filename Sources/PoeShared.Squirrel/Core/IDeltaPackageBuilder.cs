@@ -1,3 +1,5 @@
+using PoeShared.Squirrel.Scaffolding;
+
 namespace PoeShared.Squirrel.Core
 {
     public interface IDeltaPackageBuilder

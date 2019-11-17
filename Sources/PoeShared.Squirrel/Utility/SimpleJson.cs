@@ -63,7 +63,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 
-namespace PoeShared.Squirrel.Core
+namespace PoeShared.Squirrel.Utility
 {
 // ReSharper disable LoopCanBeConvertedToQuery
 // ReSharper disable RedundantExplicitArrayCreation

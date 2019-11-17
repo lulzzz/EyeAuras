@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using PoeShared.Squirrel.Utility;
 using Splat;
 using Squirrel;
 
@@ -29,7 +30,7 @@ namespace PoeShared.Squirrel.Core
                 double current = 0;
                 var toIncrement = 100.0 / releasesToDownload.Count();
 
-                if (Utility.IsHttpUrl(updateUrlOrPath))
+                if (Utility.Utility.IsHttpUrl(updateUrlOrPath))
                 {
                     // From Internet
                     await releasesToDownload.ForEachAsync(
@@ -87,7 +88,7 @@ namespace PoeShared.Squirrel.Core
             private Task downloadRelease(string updateBaseUrl, ReleaseEntry releaseEntry, IFileDownloader urlDownloader, string targetFile,
                 Action<int> progress)
             {
-                var baseUri = Utility.EnsureTrailingSlash(new Uri(updateBaseUrl));
+                var baseUri = Utility.Utility.EnsureTrailingSlash(new Uri(updateBaseUrl));
 
                 var releaseEntryUrl = releaseEntry.BaseUrl + releaseEntry.Filename;
                 if (!string.IsNullOrEmpty(releaseEntry.Query))
@@ -128,7 +129,7 @@ namespace PoeShared.Squirrel.Core
 
                 using (var file = targetPackage.OpenRead())
                 {
-                    var hash = Utility.CalculateStreamSHA1(file);
+                    var hash = Utility.Utility.CalculateStreamSha1(file);
 
                     if (!hash.Equals(downloadedRelease.SHA1, StringComparison.OrdinalIgnoreCase))
                     {

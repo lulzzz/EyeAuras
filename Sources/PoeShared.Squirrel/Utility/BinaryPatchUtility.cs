@@ -5,7 +5,7 @@ using SharpCompress.Compressors;
 using SharpCompress.Compressors.BZip2;
 using Squirrel.Bsdiff;
 
-namespace PoeShared.Squirrel.Core
+namespace PoeShared.Squirrel.Utility
 {
     internal class BinaryPatchUtility
     {

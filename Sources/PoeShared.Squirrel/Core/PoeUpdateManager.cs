@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -10,13 +9,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using NuGet;
+using PoeShared.Squirrel.Utility;
 using Splat;
 using Squirrel;
 using Squirrel.Shell;
 
 namespace PoeShared.Squirrel.Core
 {
-    public sealed partial class PoeUpdateManager : IUpdateManager, IEnableLogger
+    public sealed partial class PoeUpdateManager : IUpdateManager
     {
         private static bool exiting;
         private readonly string updateUrlOrPath;
@@ -37,12 +37,6 @@ namespace PoeShared.Squirrel.Core
             ApplicationName = applicationName ?? getApplicationName();
             this.urlDownloader = urlDownloader ?? new FileDownloader();
 
-            if (rootDirectory != null)
-            {
-                RootAppDirectory = Path.Combine(rootDirectory, ApplicationName);
-                return;
-            }
-
             RootAppDirectory = Path.Combine(rootDirectory ?? GetLocalAppDataDirectory(), ApplicationName);
         }
 
@@ -58,7 +52,7 @@ namespace PoeShared.Squirrel.Core
 
             await acquireUpdateLock();
             return await checkForUpdate.CheckForUpdate(
-                Utility.LocalReleaseFileForAppDir(RootAppDirectory),
+                Utility.Utility.LocalReleaseFileForAppDir(RootAppDirectory),
                 updateUrlOrPath,
                 ignoreDeltaUpdates,
                 progress,
@@ -146,21 +140,13 @@ namespace PoeShared.Squirrel.Core
             var appDirName = executable.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .FirstOrDefault(x => x.StartsWith("app-", StringComparison.OrdinalIgnoreCase));
 
-            if (appDirName == null)
-            {
-                return null;
-            }
-
-            return appDirName.ToSemanticVersion();
+            return appDirName?.ToSemanticVersion();
         }
 
         public void Dispose()
         {
             var disp = Interlocked.Exchange(ref updateLock, null);
-            if (disp != null)
-            {
-                disp.Dispose();
-            }
+            disp?.Dispose();
         }
 
         public Dictionary<ShortcutLocation, ShellLink> GetShortcutsForExecutable(string exeName, ShortcutLocation locations, string programArguments = null)
@@ -191,12 +177,12 @@ namespace PoeShared.Squirrel.Core
 
             exeToStart = exeToStart ?? Path.GetFileName(Assembly.GetEntryAssembly().Location);
             var argsArg = arguments != null
-                ? string.Format("-a \"{0}\"", arguments)
+                ? $"-a \"{arguments}\""
                 : "";
 
             exiting = true;
 
-            Process.Start(getUpdateExe(), string.Format("--processStartAndWait {0} {1}", exeToStart, argsArg));
+            Process.Start(getUpdateExe(), $"--processStartAndWait {exeToStart} {argsArg}");
 
             // NB: We have to give update.exe some time to grab our PID, but
             // we can't use WaitForInputIdle because we probably don't have
@@ -220,12 +206,12 @@ namespace PoeShared.Squirrel.Core
 
             exeToStart = exeToStart ?? Path.GetFileName(Assembly.GetEntryAssembly().Location);
             var argsArg = arguments != null
-                ? string.Format("-a \"{0}\"", arguments)
+                ? $"-a \"{arguments}\""
                 : "";
 
             exiting = true;
 
-            var updateProcess = Process.Start(getUpdateExe(), string.Format("--processStartAndWait {0} {1}", exeToStart, argsArg));
+            var updateProcess = Process.Start(getUpdateExe(), $"--processStartAndWait {exeToStart} {argsArg}");
 
             await Task.Delay(500);
 
@@ -279,7 +265,7 @@ namespace PoeShared.Squirrel.Core
             return Task.Run(
                 () =>
                 {
-                    var key = Utility.CalculateStreamSHA1(new MemoryStream(Encoding.UTF8.GetBytes(RootAppDirectory)));
+                    var key = Utility.Utility.CalculateStreamSha1(new MemoryStream(Encoding.UTF8.GetBytes(RootAppDirectory)));
 
                     IDisposable theLock;
                     try

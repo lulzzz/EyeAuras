@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -18,11 +16,11 @@ using Splat;
 using Squirrel;
 using HttpUtility = System.Web.HttpUtility;
 
-namespace PoeShared.Squirrel.Core
+namespace PoeShared.Squirrel.Utility
 {
     internal static class Utility
     {
-        private static readonly Lazy<string> directoryChars = new Lazy<string>(
+        private static readonly Lazy<string> DirectoryChars = new Lazy<string>(
             () =>
             {
                 return "abcdefghijklmnopqrstuvwxyz" +
@@ -37,9 +35,9 @@ namespace PoeShared.Squirrel.Core
                                });
             });
 
-        private static readonly string[] peExtensions = {".exe", ".dll", ".node"};
+        private static readonly string[] PeExtensions = {".exe", ".dll", ".node"};
 
-        private static IFullLogger logger;
+        private static IFullLogger Logger;
 
         /// <summary>
         ///     The namespace for fully-qualified domain names (from RFC 4122, Appendix C).
@@ -136,17 +134,17 @@ namespace PoeShared.Squirrel.Core
             return Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories);
         }
 
-        public static string CalculateFileSHA1(string filePath)
+        public static string CalculateFileSha1(string filePath)
         {
             Guard.ArgumentIsTrue(filePath != null, "filePath != null");
 
             using (var stream = File.OpenRead(filePath))
             {
-                return CalculateStreamSHA1(stream);
+                return CalculateStreamSha1(stream);
             }
         }
 
-        public static string CalculateStreamSHA1(Stream file)
+        public static string CalculateStreamSha1(Stream file)
         {
             Guard.ArgumentIsTrue(file != null && file.CanRead, "file != null && file.CanRead");
 
@@ -302,14 +300,14 @@ namespace PoeShared.Squirrel.Core
                     }));
         }
 
-        internal static string tempNameForIndex(int index, string prefix)
+        internal static string TempNameForIndex(int index, string prefix)
         {
-            if (index < directoryChars.Value.Length)
+            if (index < DirectoryChars.Value.Length)
             {
-                return prefix + directoryChars.Value[index];
+                return prefix + DirectoryChars.Value[index];
             }
 
-            return prefix + directoryChars.Value[index % directoryChars.Value.Length] + tempNameForIndex(index / directoryChars.Value.Length, "");
+            return prefix + DirectoryChars.Value[index % DirectoryChars.Value.Length] + TempNameForIndex(index / DirectoryChars.Value.Length, "");
         }
 
         public static DirectoryInfo GetTempDirectory(string localAppDirectory)
@@ -331,7 +329,7 @@ namespace PoeShared.Squirrel.Core
             var di = GetTempDirectory(localAppDirectory);
             var tempDir = default(DirectoryInfo);
 
-            var names = Enumerable.Range(0, 1 << 20).Select(x => tempNameForIndex(x, "temp"));
+            var names = Enumerable.Range(0, 1 << 20).Select(x => TempNameForIndex(x, "temp"));
 
             foreach (var name in names)
             {
@@ -353,7 +351,7 @@ namespace PoeShared.Squirrel.Core
         public static IDisposable WithTempFile(out string path, string localAppDirectory = null)
         {
             var di = GetTempDirectory(localAppDirectory);
-            var names = Enumerable.Range(0, 1 << 20).Select(x => tempNameForIndex(x, "temp"));
+            var names = Enumerable.Range(0, 1 << 20).Select(x => TempNameForIndex(x, "temp"));
 
             path = "";
             foreach (var name in names)
@@ -390,7 +388,7 @@ namespace PoeShared.Squirrel.Core
             }
             catch (UnauthorizedAccessException ex)
             {
-                var message = string.Format("The files inside {0} could not be read", directoryPath);
+                var message = $"The files inside {directoryPath} could not be read";
                 Log().Warn(message, ex);
             }
 
@@ -401,7 +399,7 @@ namespace PoeShared.Squirrel.Core
             }
             catch (UnauthorizedAccessException ex)
             {
-                var message = string.Format("The directories inside {0} could not be read", directoryPath);
+                var message = $"The directories inside {directoryPath} could not be read";
                 Log().Warn(message, ex);
             }
 
@@ -426,7 +424,7 @@ namespace PoeShared.Squirrel.Core
             }
             catch (Exception ex)
             {
-                var message = string.Format("DeleteDirectory: could not delete - {0}", directoryPath);
+                var message = $"DeleteDirectory: could not delete - {directoryPath}";
                 Log().ErrorException(message, ex);
             }
         }
@@ -444,7 +442,7 @@ namespace PoeShared.Squirrel.Core
                    exe;
         }
 
-        private static string find7Zip()
+        private static string Find7Zip()
         {
             if (ModeDetector.InUnitTestRunner())
             {
@@ -464,13 +462,13 @@ namespace PoeShared.Squirrel.Core
 
         public static async Task ExtractZipToDirectory(string zipFilePath, string outFolder)
         {
-            var sevenZip = find7Zip();
+            var sevenZip = Find7Zip();
             var result = default(Tuple<int, string>);
 
             try
             {
                 var cmd = sevenZip;
-                var args = string.Format("x \"{0}\" -tzip -mmt on -aoa -y -o\"{1}\" *", zipFilePath, outFolder);
+                var args = $"x \"{zipFilePath}\" -tzip -mmt on -aoa -y -o\"{outFolder}\" *";
                 if (Environment.OSVersion.Platform != PlatformID.Win32NT)
                 {
                     cmd = "wine";
@@ -492,13 +490,13 @@ namespace PoeShared.Squirrel.Core
 
         public static async Task CreateZipFromDirectory(string zipFilePath, string inFolder)
         {
-            var sevenZip = find7Zip();
+            var sevenZip = Find7Zip();
             var result = default(Tuple<int, string>);
 
             try
             {
                 var cmd = sevenZip;
-                var args = string.Format("a \"{0}\" -tzip -aoa -y -mmt on *", zipFilePath);
+                var args = $"a \"{zipFilePath}\" -tzip -aoa -y -mmt on *";
                 if (Environment.OSVersion.Platform != PlatformID.Win32NT)
                 {
                     cmd = "wine";
@@ -559,7 +557,7 @@ namespace PoeShared.Squirrel.Core
             return localReleases.OrderByDescending(x => x.Version).FirstOrDefault(x => !x.IsDelta);
         }
 
-        private static TAcc scan<T, TAcc>(this IEnumerable<T> This, TAcc initialValue, Func<TAcc, T, TAcc> accFunc)
+        private static TAcc Scan<T, TAcc>(this IEnumerable<T> This, TAcc initialValue, Func<TAcc, T, TAcc> accFunc)
         {
             var acc = initialValue;
 
@@ -640,7 +638,7 @@ namespace PoeShared.Squirrel.Core
             }
             catch
             {
-                var message = string.Format("Uninstall failed to delete dir '{0}'", dir);
+                var message = $"Uninstall failed to delete dir '{dir}'";
             }
         }
 
@@ -680,10 +678,10 @@ namespace PoeShared.Squirrel.Core
             }
         }
 
-        public static bool FileIsLikelyPEImage(string name)
+        public static bool FileIsLikelyPeImage(string name)
         {
             var ext = Path.GetExtension(name);
-            return peExtensions.Any(x => ext.Equals(x, StringComparison.OrdinalIgnoreCase));
+            return PeExtensions.Any(x => ext.Equals(x, StringComparison.OrdinalIgnoreCase));
         }
 
         public static bool IsFileTopLevelInPackage(string fullName, string pkgPath)
@@ -812,8 +810,8 @@ namespace PoeShared.Squirrel.Core
 
         private static IFullLogger Log()
         {
-            return logger ??
-                   (logger = Locator.Current.GetService<ILogManager>().GetLogger(typeof(Utility)));
+            return Logger ??
+                   (Logger = Locator.Current.GetService<ILogManager>().GetLogger(typeof(Utility)));
         }
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
@@ -895,154 +893,6 @@ namespace PoeShared.Squirrel.Core
             MOVEFILE_WRITE_THROUGH = 0x00000008,
             MOVEFILE_CREATE_HARDLINK = 0x00000010,
             MOVEFILE_FAIL_IF_NOT_TRACKABLE = 0x00000020
-        }
-    }
-
-    internal static unsafe class UnsafeUtility
-    {
-        public static List<Tuple<string, int>> EnumerateProcesses()
-        {
-            var bytesReturned = 0;
-            var pids = new int[2048];
-
-            fixed (int* p = pids)
-            {
-                if (!NativeMethods.EnumProcesses((IntPtr) p, sizeof(int) * pids.Length, out bytesReturned))
-                {
-                    throw new Win32Exception("Failed to enumerate processes");
-                }
-
-                if (bytesReturned < 1)
-                {
-                    throw new Exception("Failed to enumerate processes");
-                }
-            }
-
-            return Enumerable.Range(0, bytesReturned / sizeof(int))
-                .Where(i => pids[i] > 0)
-                .Select(
-                    i =>
-                    {
-                        try
-                        {
-                            var hProcess = NativeMethods.OpenProcess(ProcessAccess.QueryLimitedInformation, false, pids[i]);
-                            if (hProcess == IntPtr.Zero)
-                            {
-                                throw new Win32Exception();
-                            }
-
-                            var sb = new StringBuilder(256);
-                            var capacity = sb.Capacity;
-                            if (!NativeMethods.QueryFullProcessImageName(hProcess, 0, sb, ref capacity))
-                            {
-                                throw new Win32Exception();
-                            }
-
-                            NativeMethods.CloseHandle(hProcess);
-                            return Tuple.Create(sb.ToString(), pids[i]);
-                        }
-                        catch (Exception)
-                        {
-                            return Tuple.Create(default(string), pids[i]);
-                        }
-                    })
-                .ToList();
-        }
-    }
-
-    internal sealed class SingleGlobalInstance : IDisposable, IEnableLogger
-    {
-        private IDisposable handle;
-
-        public SingleGlobalInstance(string key, TimeSpan timeOut)
-        {
-            if (ModeDetector.InUnitTestRunner())
-            {
-                return;
-            }
-
-            var path = Path.Combine(Path.GetTempPath(), ".squirrel-lock-" + key);
-
-            var st = new Stopwatch();
-            st.Start();
-
-            var fh = default(FileStream);
-            while (st.Elapsed < timeOut)
-            {
-                try
-                {
-                    fh = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete);
-                    fh.Write(new byte[] {0xba, 0xad, 0xf0, 0x0d}, 0, 4);
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    this.Log().WarnException("Failed to grab lockfile, will retry: " + path, ex);
-                    Thread.Sleep(250);
-                }
-            }
-
-            st.Stop();
-
-            if (fh == null)
-            {
-                throw new Exception("Couldn't acquire lock, is another instance running");
-            }
-
-            handle = Disposable.Create(
-                () =>
-                {
-                    fh.Dispose();
-                    File.Delete(path);
-                });
-        }
-
-        public void Dispose()
-        {
-            if (ModeDetector.InUnitTestRunner())
-            {
-                return;
-            }
-
-            var disp = Interlocked.Exchange(ref handle, null);
-            if (disp != null)
-            {
-                disp.Dispose();
-            }
-        }
-
-        ~SingleGlobalInstance()
-        {
-            if (handle == null)
-            {
-                return;
-            }
-
-            throw new AbandonedMutexException("Leaked a Mutex!");
-        }
-    }
-
-    internal static class Disposable
-    {
-        public static IDisposable Create(Action action)
-        {
-            return new AnonDisposable(action);
-        }
-
-        private class AnonDisposable : IDisposable
-        {
-            private static readonly Action dummyBlock = () => { };
-            private Action block;
-
-            public AnonDisposable(Action b)
-            {
-                block = b;
-            }
-
-            public void Dispose()
-            {
-                Interlocked.Exchange(ref block, dummyBlock)();
-            }
         }
     }
 }

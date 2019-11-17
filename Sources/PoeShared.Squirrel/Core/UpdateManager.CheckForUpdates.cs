@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using PoeShared.Squirrel.Scaffolding;
 using Splat;
 using Squirrel;
 
@@ -36,7 +37,7 @@ namespace PoeShared.Squirrel.Core
                 var shouldInitialize = false;
                 try
                 {
-                    localReleases = Utility.LoadLocalReleases(localReleaseFile);
+                    localReleases = Utility.Utility.LoadLocalReleases(localReleaseFile);
                 }
                 catch (Exception ex)
                 {
@@ -58,7 +59,7 @@ namespace PoeShared.Squirrel.Core
 
                 // Fetch the remote RELEASES file, whether it's a local dir or an
                 // HTTP URL
-                if (Utility.IsHttpUrl(updateUrlOrPath))
+                if (Utility.Utility.IsHttpUrl(updateUrlOrPath))
                 {
                     if (updateUrlOrPath.EndsWith("/"))
                     {
@@ -73,11 +74,11 @@ namespace PoeShared.Squirrel.Core
 
                     try
                     {
-                        var uri = Utility.AppendPathToUri(new Uri(updateUrlOrPath), "RELEASES");
+                        var uri = Utility.Utility.AppendPathToUri(new Uri(updateUrlOrPath), "RELEASES");
 
                         if (latestLocalRelease != null)
                         {
-                            uri = Utility.AddQueryParamsToUri(
+                            uri = Utility.Utility.AddQueryParamsToUri(
                                 uri,
                                 new Dictionary<string, string>
                                 {
@@ -115,9 +116,7 @@ namespace PoeShared.Squirrel.Core
 
                     if (!Directory.Exists(updateUrlOrPath))
                     {
-                        var message = string.Format(
-                            "The directory {0} does not exist, something is probably broken with your application",
-                            updateUrlOrPath);
+                        var message = $"The directory {updateUrlOrPath} does not exist, something is probably broken with your application";
 
                         throw new Exception(message);
                     }
@@ -125,9 +124,7 @@ namespace PoeShared.Squirrel.Core
                     var fi = new FileInfo(Path.Combine(updateUrlOrPath, "RELEASES"));
                     if (!fi.Exists)
                     {
-                        var message = string.Format(
-                            "The file {0} does not exist, something is probably broken with your application",
-                            fi.FullName);
+                        var message = $"The file {fi.FullName} does not exist, something is probably broken with your application";
 
                         this.Log().Warn(message);
 
@@ -168,7 +165,7 @@ namespace PoeShared.Squirrel.Core
                 var pkgDir = Path.Combine(rootAppDirectory, "packages");
                 if (Directory.Exists(pkgDir))
                 {
-                    await Utility.DeleteDirectory(pkgDir);
+                    await Utility.Utility.DeleteDirectory(pkgDir);
                 }
 
                 Directory.CreateDirectory(pkgDir);
@@ -176,7 +173,7 @@ namespace PoeShared.Squirrel.Core
 
             private UpdateInfo determineUpdateInfo(IEnumerable<ReleaseEntry> localReleases, IEnumerable<ReleaseEntry> remoteReleases, bool ignoreDeltaUpdates)
             {
-                var packageDirectory = Utility.PackageDirectoryForAppDir(rootAppDirectory);
+                var packageDirectory = Utility.Utility.PackageDirectoryForAppDir(rootAppDirectory);
                 localReleases = localReleases ?? Enumerable.Empty<ReleaseEntry>();
 
                 if (remoteReleases == null)
@@ -185,8 +182,8 @@ namespace PoeShared.Squirrel.Core
                     throw new Exception("Corrupt remote RELEASES file");
                 }
 
-                var latestFullRelease = Utility.FindCurrentVersion(remoteReleases);
-                var currentRelease = Utility.FindCurrentVersion(localReleases);
+                var latestFullRelease = Utility.Utility.FindCurrentVersion(remoteReleases);
+                var currentRelease = Utility.Utility.FindCurrentVersion(localReleases);
 
                 if (latestFullRelease == currentRelease)
                 {
@@ -210,7 +207,7 @@ namespace PoeShared.Squirrel.Core
                 if (localReleases.Max(x => x.Version) > remoteReleases.Max(x => x.Version))
                 {
                     this.Log().Warn("hwhat, local version is greater than remote version");
-                    return UpdateInfo.Create(Utility.FindCurrentVersion(localReleases), new[] {latestFullRelease}, packageDirectory);
+                    return UpdateInfo.Create(Utility.Utility.FindCurrentVersion(localReleases), new[] {latestFullRelease}, packageDirectory);
                 }
 
                 return UpdateInfo.Create(currentRelease, remoteReleases, packageDirectory);
@@ -240,7 +237,7 @@ namespace PoeShared.Squirrel.Core
                 var buf = new byte[4096];
                 prng.NextBytes(buf);
 
-                ret = Utility.CreateGuidFromHash(buf);
+                ret = Utility.Utility.CreateGuidFromHash(buf);
                 try
                 {
                     File.WriteAllText(stagedUserIdFile, ret.ToString(), Encoding.UTF8);
