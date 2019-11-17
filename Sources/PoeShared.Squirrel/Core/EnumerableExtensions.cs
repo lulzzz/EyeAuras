@@ -467,7 +467,7 @@ namespace PoeShared.Squirrel.Core
         public string CreateReleasePackage(string outputFile, string packagesRootDir = null, Func<string, string> releaseNotesProcessor = null,
             Action<string> contentsPostProcessHook = null)
         {
-            Contract.Requires(!string.IsNullOrEmpty(outputFile));
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(outputFile), "!string.IsNullOrEmpty(outputFile)");
             releaseNotesProcessor = releaseNotesProcessor ?? (x => new Markdown().Transform(x));
 
             if (ReleasePackageFile != null)

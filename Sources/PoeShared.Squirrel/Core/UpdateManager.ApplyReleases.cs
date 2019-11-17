@@ -388,7 +388,7 @@ namespace PoeShared.Squirrel.Core
 
             private async Task<ReleaseEntry> createFullPackagesFromDeltas(IEnumerable<ReleaseEntry> releasesToApply, ReleaseEntry currentVersion)
             {
-                Contract.Requires(releasesToApply != null);
+                Guard.ArgumentIsTrue(releasesToApply != null, "releasesToApply != null");
 
                 // If there are no remote releases at all, bail
                 if (!releasesToApply.Any())

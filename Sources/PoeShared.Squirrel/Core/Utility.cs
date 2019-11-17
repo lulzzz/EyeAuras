@@ -124,21 +124,21 @@ namespace PoeShared.Squirrel.Core
 
         public static IEnumerable<FileInfo> GetAllFilesRecursively(this DirectoryInfo rootPath)
         {
-            Contract.Requires(rootPath != null);
+            Guard.ArgumentIsTrue(rootPath != null, "rootPath != null");
 
             return rootPath.EnumerateFiles("*", SearchOption.AllDirectories);
         }
 
         public static IEnumerable<string> GetAllFilePathsRecursively(string rootPath)
         {
-            Contract.Requires(rootPath != null);
+            Guard.ArgumentIsTrue(rootPath != null, "rootPath != null");
 
             return Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories);
         }
 
         public static string CalculateFileSHA1(string filePath)
         {
-            Contract.Requires(filePath != null);
+            Guard.ArgumentIsTrue(filePath != null, "filePath != null");
 
             using (var stream = File.OpenRead(filePath))
             {
@@ -148,7 +148,7 @@ namespace PoeShared.Squirrel.Core
 
         public static string CalculateStreamSHA1(Stream file)
         {
-            Contract.Requires(file != null && file.CanRead);
+            Guard.ArgumentIsTrue(file != null && file.CanRead, "file != null && file.CanRead");
 
             using (var sha1 = SHA1.Create())
             {
@@ -174,8 +174,8 @@ namespace PoeShared.Squirrel.Core
 
         public static async Task CopyToAsync(string from, string to)
         {
-            Contract.Requires(!string.IsNullOrEmpty(from) && File.Exists(from));
-            Contract.Requires(!string.IsNullOrEmpty(to));
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(from) && File.Exists(from), "!string.IsNullOrEmpty(from) && File.Exists(from)");
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(to), "!string.IsNullOrEmpty(to)");
 
             if (!File.Exists(from))
             {
@@ -191,7 +191,7 @@ namespace PoeShared.Squirrel.Core
 
         public static void Retry(this Action block, int retries = 2)
         {
-            Contract.Requires(retries > 0);
+            Guard.ArgumentIsTrue(retries > 0, "retries > 0");
 
             Func<object> thunk = () =>
             {
@@ -204,7 +204,7 @@ namespace PoeShared.Squirrel.Core
 
         public static T Retry<T>(this Func<T> block, int retries = 2)
         {
-            Contract.Requires(retries > 0);
+            Guard.ArgumentIsTrue(retries > 0, "retries > 0");
 
             while (true)
             {
@@ -372,7 +372,7 @@ namespace PoeShared.Squirrel.Core
 
         public static async Task DeleteDirectory(string directoryPath)
         {
-            Contract.Requires(!string.IsNullOrEmpty(directoryPath));
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(directoryPath), "!string.IsNullOrEmpty(directoryPath)");
 
             Log().Debug("Starting to delete folder: {0}", directoryPath);
 

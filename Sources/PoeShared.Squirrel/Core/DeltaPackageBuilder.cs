@@ -26,8 +26,8 @@ namespace PoeShared.Squirrel.Core
 
         public ReleasePackage CreateDeltaPackage(ReleasePackage basePackage, ReleasePackage newPackage, string outputFile)
         {
-            Contract.Requires(basePackage != null);
-            Contract.Requires(!string.IsNullOrEmpty(outputFile) && !File.Exists(outputFile));
+            Guard.ArgumentIsTrue(basePackage != null, "basePackage != null");
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(outputFile) && !File.Exists(outputFile), "!string.IsNullOrEmpty(outputFile) && !File.Exists(outputFile)");
 
             if (basePackage.Version > newPackage.Version)
             {
@@ -96,8 +96,8 @@ namespace PoeShared.Squirrel.Core
 
         public ReleasePackage ApplyDeltaPackage(ReleasePackage basePackage, ReleasePackage deltaPackage, string outputFile)
         {
-            Contract.Requires(deltaPackage != null);
-            Contract.Requires(!string.IsNullOrEmpty(outputFile) && !File.Exists(outputFile));
+            Guard.ArgumentIsTrue(deltaPackage != null, "deltaPackage != null");
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(outputFile) && !File.Exists(outputFile), "!string.IsNullOrEmpty(outputFile) && !File.Exists(outputFile)");
 
             string workingPath;
             string deltaPath;

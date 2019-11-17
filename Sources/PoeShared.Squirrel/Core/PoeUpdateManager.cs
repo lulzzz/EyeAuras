@@ -29,8 +29,9 @@ namespace PoeShared.Squirrel.Core
             string rootDirectory = null,
             IFileDownloader urlDownloader = null)
         {
-            Contract.Requires(!string.IsNullOrEmpty(urlOrPath));
-            Contract.Requires(!string.IsNullOrEmpty(applicationName));
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(urlOrPath), nameof(urlOrPath));
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(urlOrPath), "!string.IsNullOrEmpty(urlOrPath)");
+            Guard.ArgumentIsTrue(!string.IsNullOrEmpty(applicationName), "!string.IsNullOrEmpty(applicationName)");
 
             updateUrlOrPath = urlOrPath;
             ApplicationName = applicationName ?? getApplicationName();
