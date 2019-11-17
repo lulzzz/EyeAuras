@@ -6,4 +6,4 @@ using System.Windows;
 
 [assembly: AssemblyVersion("0.0.0.1")]
 [assembly: AssemblyFileVersion("0.0.0.1")]
-[assembly: AssemblyMetadata("SquirrelAwareVersion", "0.0.0.0")]
+[assembly: AssemblyMetadata("SquirrelAwareVersion", "0")]
