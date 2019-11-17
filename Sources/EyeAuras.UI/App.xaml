@@ -13,7 +13,7 @@
 
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Primary/materialdesigncolor.bluegrey.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Accent/materialdesigncolor.lightblue.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Generic.shared.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Generic.shared.xaml" />
 
                 <ResourceDictionary Source="Themes/Styles.xaml" />
                 <ResourceDictionary Source="Themes/Converters.xaml" />

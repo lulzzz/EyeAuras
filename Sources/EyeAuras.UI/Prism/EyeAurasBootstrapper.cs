@@ -87,6 +87,14 @@ namespace EyeAuras.UI.Prism
                     ModuleName = poeSharedModule.Name,
                     ModuleType = poeSharedModule.AssemblyQualifiedName
                 });
+            
+            var poeSharedWpfModule = typeof(PoeSharedWpfModule);
+            ModuleCatalog.AddModule(
+                new ModuleInfo
+                {
+                    ModuleName = poeSharedWpfModule.Name,
+                    ModuleType = poeSharedWpfModule.AssemblyQualifiedName
+                });
 
             var mainModule = typeof(MainModule);
             ModuleCatalog.AddModule(

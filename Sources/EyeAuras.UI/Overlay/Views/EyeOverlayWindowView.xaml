@@ -8,7 +8,7 @@
                     xmlns:converters="http://schemas.kent.boogaart.com/converters">
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Generic.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Generic.xaml" />
         <ResourceDictionary Source="pack://application:,,,/EyeAuras;component/Themes/Converters.xaml" />
         <ResourceDictionary Source="pack://application:,,,/EyeAuras;component/Themes/Styles.xaml" />
     </ResourceDictionary.MergedDictionaries>

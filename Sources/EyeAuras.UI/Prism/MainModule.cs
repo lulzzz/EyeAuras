@@ -6,6 +6,7 @@ using log4net;
 using PoeShared;
 using PoeShared.Scaffolding;
 using PoeShared.Squirrel.Prism;
+using PoeShared.Wpf.Scaffolding;
 using Prism.Ioc;
 using Prism.Modularity;
 using Unity;

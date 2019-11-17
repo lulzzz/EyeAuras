@@ -9,6 +9,7 @@ using log4net;
 using PoeShared;
 using PoeShared.Modularity;
 using PoeShared.Scaffolding;
+using PoeShared.Wpf.Scaffolding;
 using Prism.Ioc;
 using Unity;
 

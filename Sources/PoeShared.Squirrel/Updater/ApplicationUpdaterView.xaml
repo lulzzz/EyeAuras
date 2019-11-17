@@ -7,8 +7,8 @@
 
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/recommended/accent/materialdesigncolor.lightblue.xaml" />
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Converters.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Colors.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Converters.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Colors.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <DataTemplate DataType="{x:Type updater1:ApplicationUpdaterViewModel}">

@@ -3,10 +3,10 @@
                     xmlns:default="clr-namespace:EyeAuras.DefaultAuras.Actions.PlaySound">
     
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Converters.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Colors.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Styles.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/CommandWrapperView.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Converters.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Colors.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Styles.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/CommandWrapperView.xaml" />
     </ResourceDictionary.MergedDictionaries>
     
     <DataTemplate DataType="{x:Type default:PlaySoundActionEditor}">

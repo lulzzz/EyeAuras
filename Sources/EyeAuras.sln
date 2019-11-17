@@ -25,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EyeAuras.Loader", "EyeAuras
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EyeAuras.Web", "EyeAuras.Web\EyeAuras.Web.csproj", "{6923F689-7278-467B-9776-3367919092B9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PoeShared.Wpf", "PoeShared.Wpf\PoeShared.Wpf.csproj", "{38C9EBE2-2AC9-465F-8A2A-49DFB1CB9383}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,10 @@ Global
 		{6923F689-7278-467B-9776-3367919092B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6923F689-7278-467B-9776-3367919092B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6923F689-7278-467B-9776-3367919092B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38C9EBE2-2AC9-465F-8A2A-49DFB1CB9383}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38C9EBE2-2AC9-465F-8A2A-49DFB1CB9383}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38C9EBE2-2AC9-465F-8A2A-49DFB1CB9383}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38C9EBE2-2AC9-465F-8A2A-49DFB1CB9383}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

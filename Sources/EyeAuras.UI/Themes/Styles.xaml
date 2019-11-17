@@ -10,8 +10,8 @@
                     xmlns:eye="http://coderush.net/poeeye/">
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Styles.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/SlimScrollbar.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Styles.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/SlimScrollbar.xaml" />
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesigntheme.togglebutton.xaml" />
     </ResourceDictionary.MergedDictionaries>
 

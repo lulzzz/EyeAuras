@@ -28,6 +28,7 @@
       <ProjectReference Include="..\EyeAuras.Shared\EyeAuras.Shared.csproj" />
       <ProjectReference Include="..\PoeShared.Core\PoeShared.csproj" />
       <ProjectReference Include="..\PoeShared.Squirrel\PoeShared.Squirrel.csproj" />
+      <ProjectReference Include="..\PoeShared.Wpf\PoeShared.Wpf.csproj" />
     </ItemGroup>
 
     <ItemGroup>

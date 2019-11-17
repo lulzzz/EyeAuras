@@ -1,11 +1,11 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:hotkeyIsActive="clr-namespace:EyeAuras.DefaultAuras.Triggers.HotkeyIsActive"
-                    xmlns:hotkeys="clr-namespace:PoeShared.UI.Hotkeys;assembly=PoeShared">
+                    xmlns:hotkeys="clr-namespace:PoeShared.UI.Hotkeys;assembly=PoeShared.Wpf">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesigntheme.button.xaml" />
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesigntheme.textbox.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/PoeShared;component/Themes/Generic.shared.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Generic.shared.xaml" />
 
     </ResourceDictionary.MergedDictionaries>
 

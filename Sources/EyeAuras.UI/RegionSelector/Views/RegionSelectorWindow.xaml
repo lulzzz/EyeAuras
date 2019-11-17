@@ -4,7 +4,7 @@
                           xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                           xmlns:overlay="clr-namespace:EyeAuras.UI.Overlay"
-                          xmlns:native="clr-namespace:PoeShared.Native;assembly=PoeShared"
+                          xmlns:native="clr-namespace:PoeShared.Native;assembly=PoeShared.Wpf"
                           xmlns:eye="http://coderush.net/poeeye/"
                           xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
                           xmlns:eyeAuras="clr-namespace:EyeAuras;assembly=EyeAuras"

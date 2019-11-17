@@ -220,6 +220,7 @@ ModelManifest.xml
 *.nuspec.bak
 Sources/PoeShared
 Sources/PoeShared.Core
+Sources/PoeShared.Wpf
 Sources/PoeShared.Tests
 Sources/PoeShared.OpenCV
 Sources/OnTopReplica
