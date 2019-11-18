@@ -9,17 +9,12 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Threading;
 using WindowsFormsAero.Dwm;
-using DynamicData.Kernel;
 using EyeAuras.OnTopReplica;
 using log4net;
 using PoeShared;
 using PoeShared.Scaffolding;
 using ReactiveUI;
-using Brushes = System.Windows.Media.Brushes;
-using Point = System.Windows.Point;
-using Size = System.Windows.Size;
 using WinSize = System.Drawing.Size;
 using WinPoint = System.Drawing.Point;
 using WinRectangle = System.Drawing.Rectangle;
@@ -95,69 +90,9 @@ namespace EyeAuras.UI.MainWindow
         {
             Dpi = VisualTreeHelper.GetDpi(this);
             Loaded += OnLoaded;
-
-            Observable.Merge(
-                    this.Observe(OwnerProperty).ToUnit(),
-                    this.Observe(IsVisibleProperty).ToUnit(),
-                    this.Observe(TargetWindowProperty).ToUnit())
-                .Subscribe(UpdateThumbnailHandle, Log.HandleUiException)
-                .AddTo(anchors);
-
             
-            var updateArgsSource =
-
-                Observable.Merge(
-                        this.Observe(RegionProperty).Select(x => Region.WhenAnyValue(y => y.Bounds)).Switch().ToUnit(),
-                        this.Observe(LocationProperty).ToUnit(),
-                        this.Observe(ThumbnailProperty).ToUnit(),
-                        this.Observe(ThumbnailOpacityProperty).ToUnit(),
-                        renderSizeSource.ToUnit(),
-                        this.Observe(ThumbnailSizeProperty).ToUnit())
-                    .StartWithDefault()
-                    .Where(x => CanUpdateThumbnail())
-                    .Select(PrepareUpdateArgs)
-                    .DistinctUntilChanged()
-                    .RetryWithDelay(RetryInterval, DispatcherScheduler.Current)
-                    .Publish();
-            updateArgsSource.Connect().AddTo(anchors);
-            
-            updateArgsSource
-                .Subscribe(UpdateThumbnail, Log.HandleUiException)
-                .AddTo(anchors);
-            
-            updateArgsSource
-                .Sample(UpdateLogSamplingInterval)
-                .Subscribe(args =>
-                {
-                    Log.Debug($"Updating Thumbnail (target: {args.TargetWindow}), args: {args}");
-                }, Log.HandleUiException)
-                .AddTo(anchors);
-
             selectionAdorner = new SelectionAdorner(this);
             selectionAdorner.Stroke = Brushes.Lime;
-
-            this.Observe(IsInSelectModeProperty)
-                .Select(x => IsInSelectMode)
-                .Select(
-                    () =>
-                    {
-                        var currentCursor = Cursor;
-                        Cursor = Cursors.Cross;
-                        return IsInSelectMode
-                            ? selectionAdorner.StartSelection()
-                                .Finally(
-                                    () =>
-                                    {
-                                        IsInSelectMode = false;
-                                        Cursor = currentCursor;
-                                    })
-                            : Observable.Return(Rect.Empty);
-                    })
-                .Switch()
-                .Where(GeometryExtensions.IsNotEmpty)
-                .Where(selection => selection.Width * selection.Height >= 10)
-                .Subscribe(UpdateRegion, Log.HandleUiException)
-                .AddTo(anchors);
         }
 
         public bool IsInSelectMode
@@ -218,7 +153,77 @@ namespace EyeAuras.UI.MainWindow
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            Log.Debug($"ThumbnailPanel loaded, TargetWindow: {TargetWindow}, parent: {Parent}");
+            if (Owner != null)
+            {
+                throw new InvalidOperationException("ThumbnailPanel must be initialized only once per lifecycle");
+            }
             Owner = this.FindVisualAncestor<Window>();
+            Guard.ArgumentNotNull(Owner, nameof(Owner));
+            
+            Observable.Merge(
+                    this.Observe(OwnerProperty).ToUnit(),
+                    this.Observe(IsVisibleProperty).ToUnit(),
+                    this.Observe(TargetWindowProperty).ToUnit())
+                .StartWithDefault()
+                .Do(_ => UpdateThumbnailHandle())
+                .RetryWithDelay(RetryInterval, DispatcherScheduler.Current)
+                .Subscribe(args =>
+                {
+                    Log.Debug($"Updating Thumbnail Handle (target: {TargetWindow})");
+                }, Log.HandleUiException)
+                .AddTo(anchors);
+            
+            var updateArgsSource =
+                Observable.Merge(
+                        this.Observe(RegionProperty).Select(x => Region.WhenAnyValue(y => y.Bounds)).Switch().ToUnit(),
+                        this.Observe(LocationProperty).ToUnit(),
+                        this.Observe(ThumbnailProperty).ToUnit(),
+                        this.Observe(ThumbnailOpacityProperty).ToUnit(),
+                        renderSizeSource.ToUnit(),
+                        this.Observe(ThumbnailSizeProperty).ToUnit())
+                    .StartWithDefault()
+                    .Where(x => CanUpdateThumbnail())
+                    .Select(PrepareUpdateArgs)
+                    .DistinctUntilChanged()
+                    .RetryWithDelay(RetryInterval, DispatcherScheduler.Current)
+                    .Publish();
+            updateArgsSource.Connect().AddTo(anchors);
+            
+            updateArgsSource
+                .Subscribe(UpdateThumbnail, Log.HandleUiException)
+                .AddTo(anchors);
+            
+            updateArgsSource
+                .Sample(UpdateLogSamplingInterval)
+                .Subscribe(args =>
+                {
+                    Log.Debug($"Updating Thumbnail (target: {args.TargetWindow}), args: {args}");
+                }, Log.HandleUiException)
+                .AddTo(anchors);
+
+            this.Observe(IsInSelectModeProperty)
+                .Select(x => IsInSelectMode)
+                .Select(
+                    () =>
+                    {
+                        var currentCursor = Cursor;
+                        Cursor = Cursors.Cross;
+                        return IsInSelectMode
+                            ? selectionAdorner.StartSelection()
+                                .Finally(
+                                    () =>
+                                    {
+                                        IsInSelectMode = false;
+                                        Cursor = currentCursor;
+                                    })
+                            : Observable.Return(Rect.Empty);
+                    })
+                .Switch()
+                .Where(GeometryExtensions.IsNotEmpty)
+                .Where(selection => selection.Width * selection.Height >= 10)
+                .Subscribe(UpdateRegion, Log.HandleUiException)
+                .AddTo(anchors);
 
             var adornerLayer = AdornerLayer.GetAdornerLayer(this);
             Guard.ArgumentNotNull(adornerLayer, nameof(adornerLayer));
@@ -233,39 +238,41 @@ namespace EyeAuras.UI.MainWindow
 
         private void UpdateThumbnailHandle()
         {
-            UnsetThumbnail();
-
-            if (TargetWindow == null || Owner == null || !IsVisible)
+            try
             {
-                return;
+                if (Thumbnail != null && !Thumbnail.IsInvalid)
+                {
+                    Log.Debug($"Disposing current Thumbnail: {Thumbnail}");
+                    Thumbnail.Close();
+                    Thumbnail.Dispose();
+                }
+                Thumbnail = null;
+
+                if (TargetWindow == null || Owner == null || !IsVisible)
+                {
+                    return;
+                }
+
+                Log.Debug(
+                    $"Reconfiguring Thumbnail, targetWindow: {TargetWindow} region: {Region}");
+
+                if (Owner == null)
+                {
+                    return;
+                }
+
+                var ownerFormHelper = new WindowInteropHelper(Owner);
+
+                var thumbnail = DwmManager.Register(ownerFormHelper.Handle, TargetWindow.Handle);
+                thumbnail.ShowOnlyClientArea = true;
+
+                Thumbnail = thumbnail;
             }
-
-            Log.Debug(
-                $"Reconfiguring Thumbnail, targetWindow: {TargetWindow} region: {Region}");
-
-            if (Owner == null)
+            catch (Exception e)
             {
-                return;
+                Log.Warn($"Failed to create Thumbnail Handle for window {TargetWindow}", e);
+                throw;
             }
-
-            var ownerFormHelper = new WindowInteropHelper(Owner);
-
-            var thumbnail = DwmManager.Register(ownerFormHelper.Handle, TargetWindow.Handle);
-            thumbnail.ShowOnlyClientArea = true;
-
-            Thumbnail = thumbnail;
-        }
-
-        private void UnsetThumbnail()
-        {
-            Log.Debug("Resetting Thumbnail");
-
-            if (Thumbnail != null && !Thumbnail.IsInvalid)
-            {
-                Thumbnail.Close();
-            }
-
-            Thumbnail = null;
         }
         
         private ThumbnailArgs PrepareUpdateArgs()
@@ -308,7 +315,7 @@ namespace EyeAuras.UI.MainWindow
                             : ThumbnailSize.Height);
                 }
                     
-                var args = new ThumbnailArgs()
+                var args = new ThumbnailArgs
                 {
                     Destination = GeometryExtensions.ToWinRectangle(destination),
                     Source = source,
@@ -318,7 +325,7 @@ namespace EyeAuras.UI.MainWindow
                     TargetWindow = TargetWindow,
                     ThumbnailSize = ThumbnailSize,
                     Thumbnail = Thumbnail,
-                    RenderSize = RenderSize,
+                    RenderSize = RenderSize
                 };
 
                 return args;
@@ -334,16 +341,11 @@ namespace EyeAuras.UI.MainWindow
         {
             try
             {
-                if (Thumbnail == null || Thumbnail.IsInvalid || Owner == null)
-                {
-                    return false;
-                }
-
-                return true;
+                return Thumbnail != null && !Thumbnail.IsInvalid && Owner != null;
             }
             catch (Exception e)
             {
-                Log.Warn($"Failed to check CanUpdateThumbnail", e);
+                Log.Warn("Failed to check CanUpdateThumbnail", e);
                 throw;
             }
         }
@@ -374,11 +376,6 @@ namespace EyeAuras.UI.MainWindow
                 return;
             }
             
-            var clientRegion = new Rect(
-                PointToScreen(new Point(selection.TopLeft.X, selection.TopLeft.Y)),
-                selection.Size.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY)
-            );
-
             selection.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY); // Wpf Px => Win Px
             var targetSize = TargetWindowSize; // Win Px
             var destinationSize = RenderSize.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY); // Win Px
