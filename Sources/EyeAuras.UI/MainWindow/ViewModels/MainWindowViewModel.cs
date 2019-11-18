@@ -15,7 +15,6 @@ using System.Windows.Forms;
 using Dragablz;
 using DynamicData;
 using EyeAuras.DefaultAuras.Triggers.HotkeyIsActive;
-using EyeAuras.Shared;
 using EyeAuras.Shared.Services;
 using EyeAuras.UI.Core.Models;
 using EyeAuras.UI.Core.Utilities;
@@ -48,7 +47,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
         private static readonly string ExplorerExecutablePath = Environment.ExpandEnvironmentVariables(@"%WINDIR%\explorer.exe");
         private static readonly TimeSpan ConfigSaveSamplingTimeout = TimeSpan.FromSeconds(5);
 
-        private readonly IFactory<IOverlayAuraModel, IComplexAuraTrigger> auraModelFactory;
+        private readonly IFactory<IOverlayAuraModel> auraModelFactory;
         private readonly IFactory<IOverlayAuraViewModel, IOverlayAuraModel> auraViewModelFactory;
         private readonly IClipboardManager clipboardManager;
         private readonly IConfigProvider<EyeAurasConfig> configProvider;
@@ -66,8 +65,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
         private readonly IFactory<HotkeyIsActiveTrigger> hotkeyTriggerFactory;
         private readonly TabablzPositionMonitor<IOverlayAuraViewModel> positionMonitor = new TabablzPositionMonitor<IOverlayAuraViewModel>();
         private readonly CircularBuffer<OverlayAuraProperties> recentlyClosedQueries = new CircularBuffer<OverlayAuraProperties>(UndoStackDepth);
-        private readonly RegionSelectorService regionSelectorService;
-        private readonly IComplexAuraTrigger systemTrigger = new ComplexAuraTrigger();
+        private readonly IRegionSelectorService regionSelectorService;
         private readonly ISourceList<IOverlayAuraViewModel> tabsListSource = new SourceList<IOverlayAuraViewModel>();
         private double height;
         private double left;
@@ -81,7 +79,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         public MainWindowViewModel(
             [NotNull] IFactory<IOverlayAuraViewModel, IOverlayAuraModel> auraViewModelFactory,
-            [NotNull] IFactory<IOverlayAuraModel, IComplexAuraTrigger> auraModelFactory,
+            [NotNull] IFactory<IOverlayAuraModel> auraModelFactory,
             [NotNull] IApplicationUpdaterViewModel appUpdater,
             [NotNull] IClipboardManager clipboardManager,
             [NotNull] IConfigSerializer configSerializer,
@@ -93,7 +91,8 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             [NotNull] IConfigProvider rootConfigProvider,
             [NotNull] IPrismModuleStatusViewModel moduleStatus,
             [NotNull] IMainWindowBlocksProvider mainWindowBlocksProvider,
-            [NotNull] RegionSelectorService regionSelectorService,
+            [NotNull] IRegionSelectorService regionSelectorService,
+            [NotNull] ISharedContext sharedContext,
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
         {
             ModuleStatus = moduleStatus.AddTo(Anchors);
@@ -104,7 +103,6 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             ApplicationUpdater = appUpdater.AddTo(Anchors);
             MessageBox = messageBox.AddTo(Anchors);
             Settings = settingsViewModel.AddTo(Anchors);
-            regionSelectorService.AddTo(Anchors);
             StatusBarItems = mainWindowBlocksProvider.StatusBarItems;
 
             this.auraViewModelFactory = auraViewModelFactory;
@@ -118,7 +116,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
             CreateNewTabCommand = CommandWrapper.Create(() => AddNewCommandExecuted(OverlayAuraProperties.Default));
             CloseTabCommand = CommandWrapper
-                .Create<IOverlayAuraViewModel>(RemoveAuraCommandExecuted, RemoveAuraCommandCanExecute)
+                .Create<IOverlayAuraViewModel>(CloseTabCommandExecuted, CloseTabCommandCanExecute)
                 .RaiseCanExecuteChangedWhen(this.WhenAnyProperty(x => x.SelectedTab));
 
             DuplicateTabCommand = CommandWrapper
@@ -189,7 +187,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                     Log.HandleUiException)
                 .AddTo(Anchors);
 
-            GlobalHotkeyTrigger = hotkeyTriggerFactory.Create().AddTo(systemTrigger.Triggers);
+            GlobalHotkeyTrigger = hotkeyTriggerFactory.Create().AddTo(sharedContext.SystemTrigger.Triggers);
             GlobalHotkeyTrigger.IsActive = true;
             GlobalHotkeyTrigger.SuppressKey = true;
             Observable.Merge(
@@ -390,8 +388,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
         {
             Log.Debug($"Requesting screen Region from {regionSelectorService}...");
             WindowState = WindowState.Minimized;
-            var result = await regionSelectorService
-                .Select();
+            var result = await regionSelectorService.SelectRegion();
 
             if (result?.IsValid ?? false)
             {
@@ -471,6 +468,8 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private void PasteTabCommandExecuted()
         {
+            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(PasteTabCommand)} took {elapsed.TotalMilliseconds:F0}ms"));
+
             var content = "";
             try
             {
@@ -504,13 +503,14 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             CreateAndAddTab(cfg);
         }
 
-        private bool RemoveAuraCommandCanExecute(IOverlayAuraViewModel tab)
+        private bool CloseTabCommandCanExecute(IOverlayAuraViewModel tab)
         {
             return tab != null;
         }
 
-        private void RemoveAuraCommandExecuted(IOverlayAuraViewModel tab)
+        private void CloseTabCommandExecuted(IOverlayAuraViewModel tab)
         {
+            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(CloseTabCommand)} took {elapsed.TotalMilliseconds:F0}ms"));
             Guard.ArgumentNotNull(tab, nameof(tab));
 
             Log.Debug($"Removing tab {tab}...");
@@ -535,7 +535,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private void SaveConfig()
         {
-            using var sw = new OperationTimer(elapsed => Log.Debug($"{nameof(SaveConfig)} took {elapsed.TotalMilliseconds:F0}ms"));
+            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(SaveConfig)} took {elapsed.TotalMilliseconds:F0}ms"));
             Log.Debug($"Saving config (provider: {configProvider})...");
 
             var config = PrepareConfig();
@@ -544,7 +544,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private EyeAurasConfig PrepareConfig()
         {
-            using var sw = new OperationTimer(elapsed => Log.Debug($"{nameof(PrepareConfig)} took {elapsed.TotalMilliseconds:F0}ms"));
+            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(PrepareConfig)} took {elapsed.TotalMilliseconds:F0}ms"));
 
             var positionedItems = positionMonitor.Items.ToArray();
             Log.Debug($"Preparing config, tabs count: {positionedItems.Length}");
@@ -564,7 +564,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private void LoadConfig()
         {
-            using var sw = new OperationTimer(elapsed => Log.Debug($"{nameof(LoadConfig)} took {elapsed.TotalMilliseconds:F0}ms"));
+            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(LoadConfig)} took {elapsed.TotalMilliseconds:F0}ms"));
 
             Log.Debug($"Loading config (provider: {configProvider})...");
 
@@ -619,13 +619,13 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private IOverlayAuraViewModel CreateAndAddTab(OverlayAuraProperties tabProperties)
         {
-            using var sw = new OperationTimer(elapsed => Log.Debug($"CreateNewTab operation took {elapsed.TotalMilliseconds:F0}ms"));
+            using var unused = new OperationTimer(elapsed => Log.Debug($"CreateNewTab operation took {elapsed.TotalMilliseconds:F0}ms"));
 
             Log.Debug($"Adding new tab using config {tabProperties.DumpToTextRaw()}...");
 
-            var auraModel = auraModelFactory.Create(systemTrigger);
+            var auraModel = auraModelFactory.Create();
             var auraViewModel = auraViewModelFactory.Create(auraModel);
-            var auraCloseController = new RemoveItemController<IOverlayAuraViewModel>(auraViewModel, tabsListSource);
+            var auraCloseController = new CloseController<IOverlayAuraViewModel>(auraViewModel, () => CloseTabCommandExecuted(auraViewModel));
             tabsListSource.Add(auraViewModel);
 
             auraModel.SetCloseController(auraCloseController);

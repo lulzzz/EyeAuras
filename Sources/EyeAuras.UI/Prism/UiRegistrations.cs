@@ -7,6 +7,7 @@ using EyeAuras.UI.MainWindow.Models;
 using EyeAuras.UI.MainWindow.ViewModels;
 using EyeAuras.UI.Overlay.ViewModels;
 using EyeAuras.UI.Prism.Modularity;
+using EyeAuras.UI.RegionSelector.Services;
 using EyeAuras.UI.RegionSelector.ViewModels;
 using PoeShared.Modularity;
 using PoeShared.Scaffolding;
@@ -22,10 +23,11 @@ namespace EyeAuras.UI.Prism
             Container
                 .RegisterSingleton<AuraRepository>(typeof(IAuraRepository), typeof(IAuraRegistrator))
                 .RegisterSingleton<MainWindowBlocksService>(typeof(IMainWindowBlocksProvider), typeof(IMainWindowBlocksRepository))
-                .RegisterSingleton<IAuraRegistrator, AuraRepository>()
                 .RegisterSingleton<IWindowListProvider, WindowListProvider>()
+                .RegisterSingleton<ISharedContext, MainWindowSharedContext>()
+                .RegisterSingleton<IRegionSelectorService, RegionSelectorService>()
                 .RegisterSingleton<IPrismModuleStatusViewModel, PrismModuleStatusViewModel>()
-                .RegisterSingleton<IMainWindowViewModel, MainWindowViewModel>();
+                .RegisterSingleton<MainWindowViewModel>(typeof(IMainWindowViewModel));
 
             Container
                 .RegisterType<IWindowSelectorViewModel, WindowSelectorViewModel>()

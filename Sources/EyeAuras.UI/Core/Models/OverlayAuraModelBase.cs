@@ -9,6 +9,7 @@ using System.Threading;
 using DynamicData.Binding;
 using EyeAuras.Shared;
 using EyeAuras.Shared.Services;
+using EyeAuras.UI.MainWindow.Models;
 using EyeAuras.UI.Overlay.ViewModels;
 using JetBrains.Annotations;
 using log4net;
@@ -37,7 +38,7 @@ namespace EyeAuras.UI.Core.Models
         private WindowMatchParams targetWindow;
 
         public OverlayAuraModelBase(
-            [NotNull] IComplexAuraTrigger systemTrigger,
+            [NotNull] ISharedContext sharedContext,
             [NotNull] IAuraRepository repository,
             [NotNull] IFactory<IEyeOverlayViewModel, IOverlayWindowController, IAuraModelController> overlayViewModelFactory,
             [NotNull] IFactory<IOverlayWindowController, IWindowTracker> overlayWindowControllerFactory,
@@ -70,6 +71,7 @@ namespace EyeAuras.UI.Core.Models
             Observable.Merge(
                     Overlay.WhenValueChanged(x => x.AttachedWindow, false).ToUnit(),
                     this.WhenValueChanged(x => x.IsActive, false).ToUnit())
+                .StartWithDefault()
                 .Select(
                     () => new
                     {
@@ -81,32 +83,35 @@ namespace EyeAuras.UI.Core.Models
 
             OnEnterActions = new ObservableCollection<IAuraAction>();
 
-            HiddenTriggers = new ReadOnlyObservableCollection<IAuraTrigger>(systemTrigger.Triggers);
-
             var auraTriggers = new ComplexAuraTrigger();
             Triggers = auraTriggers.Triggers;
-
-            Observable.Merge(
+            
+            var isActiveSource = Observable.Merge(
                     this.WhenValueChanged(x => x.IsEnabled, false).ToUnit(),
-                    systemTrigger.WhenAnyValue(x => x.IsActive).ToUnit(),
-                    auraTriggers.WhenAnyValue(x => x.IsActive).ToUnit())
+                    auraTriggers.WhenValueChanged(x => x.IsActive, false).ToUnit())
                 .StartWithDefault()
                 .Select(
                     () => new
                     {
                         IsEnabled,
                         TriggersAreActive = auraTriggers.IsActive,
-                        SystemTriggerIsActive = systemTrigger.IsActive
                     })
                 .DistinctUntilChanged()
-                .Subscribe(x => IsActive = x.IsEnabled && x.TriggersAreActive && x.SystemTriggerIsActive, Log.HandleException)
+                .Select(x => x.IsEnabled && x.TriggersAreActive)
+                .Publish();
+
+            Observable.CombineLatest(isActiveSource,  sharedContext.SystemTrigger.WhenValueChanged(x => x.IsActive))
+                .DistinctUntilChanged()
+                .Subscribe(x => IsActive = x.All(isActive => isActive), Log.HandleException)
                 .AddTo(Anchors);
 
-            this.WhenAnyValue(x => x.IsActive)
+            isActiveSource
                 .WithPrevious((prev, curr) => new {prev, curr})
                 .Where(x => x.prev == false && x.curr)
                 .Subscribe(ExecuteOnEnterActions, Log.HandleException)
                 .AddTo(Anchors);
+
+            isActiveSource.Connect().AddTo(Anchors);
 
             this.repository.KnownEntities
                 .ToObservableChangeSet()
@@ -147,8 +152,6 @@ namespace EyeAuras.UI.Core.Models
             Log.Debug($"[{Name}] Trigger state changed, executing OnEnter Actions");
             OnEnterActions.ForEach(action => action.Execute());
         }
-
-        public ReadOnlyObservableCollection<IAuraTrigger> HiddenTriggers { get; }
 
         public bool IsActive
         {

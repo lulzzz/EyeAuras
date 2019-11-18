@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -8,7 +9,9 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using WindowsFormsAero.Dwm;
+using DynamicData.Kernel;
 using EyeAuras.OnTopReplica;
 using log4net;
 using PoeShared;
@@ -28,6 +31,7 @@ namespace EyeAuras.UI.MainWindow
         private static readonly ILog Log = LogManager.GetLogger(typeof(ThumbnailPanel));
         
         private static readonly TimeSpan UpdateLogSamplingInterval = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(1);
 
         public static readonly DependencyProperty TargetWindowProperty = DependencyProperty.Register(
             "TargetWindow",
@@ -99,6 +103,7 @@ namespace EyeAuras.UI.MainWindow
                 .Subscribe(UpdateThumbnailHandle, Log.HandleUiException)
                 .AddTo(anchors);
 
+            
             var updateArgsSource =
 
                 Observable.Merge(
@@ -108,9 +113,11 @@ namespace EyeAuras.UI.MainWindow
                         this.Observe(ThumbnailOpacityProperty).ToUnit(),
                         renderSizeSource.ToUnit(),
                         this.Observe(ThumbnailSizeProperty).ToUnit())
+                    .StartWithDefault()
                     .Where(x => CanUpdateThumbnail())
                     .Select(PrepareUpdateArgs)
                     .DistinctUntilChanged()
+                    .RetryWithDelay(RetryInterval, DispatcherScheduler.Current)
                     .Publish();
             updateArgsSource.Connect().AddTo(anchors);
             
@@ -149,7 +156,7 @@ namespace EyeAuras.UI.MainWindow
                 .Switch()
                 .Where(GeometryExtensions.IsNotEmpty)
                 .Where(selection => selection.Width * selection.Height >= 10)
-                .Subscribe(UpdateRegion)
+                .Subscribe(UpdateRegion, Log.HandleUiException)
                 .AddTo(anchors);
         }
 
@@ -263,66 +270,82 @@ namespace EyeAuras.UI.MainWindow
         
         private ThumbnailArgs PrepareUpdateArgs()
         {
-            Guard.ArgumentIsTrue(CanUpdateThumbnail(), "CanUpdateThumbnail");
-            
-            TargetWindowSize = Thumbnail.GetSourceSize();
-            ThumbnailSize = Region == null || Region.Bounds.IsEmpty || Region.RegionWidth <= 0 || Region.RegionHeight <= 0 || !GeometryExtensions.IsNotEmpty(Region.Bounds)
-                ? TargetWindowSize
-                : Region.ComputeRegionSize(TargetWindowSize);
-
-            var canvasSize = RenderSize;
-
-            var ownerLocation = TranslatePoint(new Point(0, 0), Owner);
-            Location = GeometryExtensions.ToWinPoint(ownerLocation);
-            var destination = new Rect(
-                Math.Floor(Location.X * Dpi.DpiScaleX),
-                Math.Floor(Location.Y * Dpi.DpiScaleY),
-                Math.Ceiling(canvasSize.Width * Dpi.DpiScaleX),
-                Math.Ceiling(canvasSize.Height * Dpi.DpiScaleY));
-
-            WinRectangle source;
-            var regionBounds = Region?.Bounds ?? WinRectangle.Empty;
-            if (regionBounds.IsEmpty)
+            try
             {
-                source = new WinRectangle(0, 0, ThumbnailSize.Width, ThumbnailSize.Height);
+                Guard.ArgumentIsTrue(CanUpdateThumbnail(), "CanUpdateThumbnail");
+
+                TargetWindowSize = Thumbnail.GetSourceSize();
+                ThumbnailSize = Region == null || Region.Bounds.IsEmpty || Region.RegionWidth <= 0 || Region.RegionHeight <= 0 || !GeometryExtensions.IsNotEmpty(Region.Bounds)
+                    ? TargetWindowSize
+                    : Region.ComputeRegionSize(TargetWindowSize);
+
+                var canvasSize = RenderSize;
+
+                var ownerLocation = TranslatePoint(new Point(0, 0), Owner);
+                Location = GeometryExtensions.ToWinPoint(ownerLocation);
+                var destination = new Rect(
+                    Math.Floor(Location.X * Dpi.DpiScaleX),
+                    Math.Floor(Location.Y * Dpi.DpiScaleY),
+                    Math.Ceiling(canvasSize.Width * Dpi.DpiScaleX),
+                    Math.Ceiling(canvasSize.Height * Dpi.DpiScaleY));
+
+                WinRectangle source;
+                var regionBounds = Region?.Bounds ?? WinRectangle.Empty;
+                if (regionBounds.IsEmpty)
+                {
+                    source = new WinRectangle(0, 0, ThumbnailSize.Width, ThumbnailSize.Height);
+                }
+                else
+                {
+                    source = new WinRectangle(
+                        regionBounds.X,
+                        regionBounds.Y,
+                        regionBounds.Width > 0 && regionBounds.Height > 0
+                            ? regionBounds.Width
+                            : ThumbnailSize.Width,
+                        regionBounds.Width > 0 && regionBounds.Height > 0
+                            ? regionBounds.Height
+                            : ThumbnailSize.Height);
+                }
+                    
+                var args = new ThumbnailArgs()
+                {
+                    Destination = GeometryExtensions.ToWinRectangle(destination),
+                    Source = source,
+                    Opacity = ToByte(ThumbnailOpacity),
+                    TargetWindowSize = TargetWindowSize,
+                    DestinationBounds = regionBounds,
+                    TargetWindow = TargetWindow,
+                    ThumbnailSize = ThumbnailSize,
+                    Thumbnail = Thumbnail,
+                    RenderSize = RenderSize,
+                };
+
+                return args;
             }
-            else
+            catch (Exception e)
             {
-                source = new WinRectangle(
-                    regionBounds.X,
-                    regionBounds.Y,
-                    regionBounds.Width > 0 && regionBounds.Height > 0
-                        ? regionBounds.Width
-                        : ThumbnailSize.Width,
-                    regionBounds.Width > 0 && regionBounds.Height > 0
-                        ? regionBounds.Height
-                        : ThumbnailSize.Height);
+                Log.Warn($"Failed to build ThumbnailArgs, state: { new { Region, Thumbnail, TargetWindow, ThumbnailSize, TargetWindowSize } }", e);
+                throw;
             }
-                
-            var args = new ThumbnailArgs()
-            {
-                Destination = GeometryExtensions.ToWinRectangle(destination),
-                Source = source,
-                Opacity = ToByte(ThumbnailOpacity),
-                TargetWindowSize = TargetWindowSize,
-                DestinationBounds = regionBounds,
-                TargetWindow = TargetWindow,
-                ThumbnailSize = ThumbnailSize,
-                Thumbnail = Thumbnail,
-                RenderSize = RenderSize,
-            };
-
-            return args;
         }
         
         private bool CanUpdateThumbnail()
         {
-            if (Thumbnail == null || Thumbnail.IsInvalid || Owner == null)
+            try
             {
-                return false;
-            }
+                if (Thumbnail == null || Thumbnail.IsInvalid || Owner == null)
+                {
+                    return false;
+                }
 
-            return true;
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Warn($"Failed to check CanUpdateThumbnail", e);
+                throw;
+            }
         }
         
         private static void UpdateThumbnail(ThumbnailArgs args)
@@ -352,7 +375,7 @@ namespace EyeAuras.UI.MainWindow
             }
             
             var clientRegion = new Rect(
-                this.PointToScreen(new Point(selection.TopLeft.X, selection.TopLeft.Y)),
+                PointToScreen(new Point(selection.TopLeft.X, selection.TopLeft.Y)),
                 selection.Size.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY)
             );
 

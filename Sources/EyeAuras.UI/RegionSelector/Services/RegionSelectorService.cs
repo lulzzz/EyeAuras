@@ -8,7 +8,9 @@ using System.Reactive.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using EyeAuras.DefaultAuras.Triggers.Default;
 using EyeAuras.OnTopReplica.WindowSeekers;
+using EyeAuras.UI.MainWindow.Models;
 using EyeAuras.UI.RegionSelector.ViewModels;
 using EyeAuras.UI.RegionSelector.Views;
 using log4net;
@@ -19,35 +21,46 @@ using PoeShared.Scaffolding;
 
 namespace EyeAuras.UI.RegionSelector.Services
 {
-    internal sealed class RegionSelectorService : DisposableReactiveObject
+    internal sealed class RegionSelectorService : DisposableReactiveObject, IRegionSelectorService
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(RegionSelectorService));
 
+        private readonly ISharedContext sharedContext;
         private readonly IFactory<RegionSelectorWindow> regionSelectorWindowFactory;
 
-        private readonly SerialDisposable activeWindowAnchors = new SerialDisposable();
-
-        public RegionSelectorService(IFactory<RegionSelectorWindow> regionSelectorWindowFactory)
+        public RegionSelectorService(
+            ISharedContext sharedContext,
+            IFactory<RegionSelectorWindow> regionSelectorWindowFactory)
         {
+            this.sharedContext = sharedContext;
             this.regionSelectorWindowFactory = regionSelectorWindowFactory;
-            activeWindowAnchors.AddTo(Anchors);
         }
 
-        public IObservable<RegionSelectorResult> Select()
+        public IObservable<RegionSelectorResult> SelectRegion()
         {
-            var anchors = new CompositeDisposable().AssignTo(activeWindowAnchors);
+            return Observable.Create<RegionSelectorResult>(
+                observer =>
+                {
+                    var windowAnchors = new CompositeDisposable();
 
-            var window = regionSelectorWindowFactory.Create().AddTo(anchors);
+                    var temporarilyDisableAuras = new DefaultTrigger() {IsActive = false};
+                    Disposable.Create(() => sharedContext.SystemTrigger.Triggers.Remove(temporarilyDisableAuras)).AddTo(windowAnchors);
+                    temporarilyDisableAuras.AddTo(sharedContext.SystemTrigger.Triggers);
 
-            Log.Debug($"Created new selector window: {window}");
+                    var window = regionSelectorWindowFactory.Create().AddTo(windowAnchors);
+                    Disposable.Create(() => Log.Debug("Disposed selector window: {window}")).AddTo(windowAnchors);
+                    Log.Debug($"Created new selector window: {window}");
 
-            var result = Observable.FromEventPattern<EventHandler, EventArgs>(h => window.Closed += h, h => window.Closed -= h)
-                .Select(x => window.Result)
-                .Take(1);
+                    Observable.FromEventPattern<EventHandler, EventArgs>(h => window.Closed += h, h => window.Closed -= h)
+                        .Select(x => window.Result)
+                        .Take(1)
+                        .Subscribe(observer)
+                        .AddTo(windowAnchors);
             
-            window.Show();
-
-            return result;
+                    window.Show();
+            
+                    return windowAnchors;
+                });
         }
     }
 }
