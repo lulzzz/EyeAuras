@@ -350,9 +350,12 @@
             
             <ContentControl Content="{Binding ApplicationUpdater.CheckForUpdatesCommand}"
                             ContentTemplate="{StaticResource CommandWrapperIcon}"
-                            ToolTip="Check for updates"
                             eye:CommandWrapperHelper.Progress="{Binding ApplicationUpdater.ProgressPercent}"
-                            eye:CommandWrapperHelper.Icon="&#xF0ED;" />
+                            eye:CommandWrapperHelper.Icon="&#xF0ED;">
+                <ContentControl.ToolTip>
+                    <TextBlock Text="{Binding ApplicationUpdater.UpdateSource.Description, StringFormat='Check for updates @ {0}'}"/>
+                </ContentControl.ToolTip>
+            </ContentControl>
             <Button Content="&#xF085; Settings" FontFamily="{StaticResource FontAwesome}"
                     Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
                     CommandTarget="{Binding ElementName=SettingsHost}" />

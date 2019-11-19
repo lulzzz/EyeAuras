@@ -49,6 +49,7 @@ namespace PoeShared.Squirrel.Updater
             this.RaiseWhenSourceValue(x => x.LatestVersion, updaterModel, x => x.LatestVersion, uiScheduler).AddTo(Anchors);
             this.RaiseWhenSourceValue(x => x.ProgressPercent, updaterModel, x => x.ProgressPercent, uiScheduler).AddTo(Anchors);
             this.RaiseWhenSourceValue(x => x.IsBusy, updaterModel, x => x.IsBusy, uiScheduler).AddTo(Anchors);
+            this.RaiseWhenSourceValue(x => x.UpdateSource, updaterModel, x => x.UpdateSource, uiScheduler).AddTo(Anchors);
 
             //FIXME UI THREAD ?
             RestartCommand = CommandWrapper
@@ -110,6 +111,8 @@ namespace PoeShared.Squirrel.Updater
 
         [CanBeNull] public Version LatestVersion => updaterModel.LatestVersion?.FutureReleaseEntry?.Version?.Version;
         
+        public UpdateSourceInfo UpdateSource => updaterModel.UpdateSource;
+        
         public int ProgressPercent => updaterModel.ProgressPercent;
         
         public bool IsBusy => updaterModel.IsBusy;
@@ -148,7 +151,7 @@ namespace PoeShared.Squirrel.Updater
             {
                 Log.HandleException(ex);
                 IsOpen = true;
-                SetError(ex.Message);
+                SetError($"Failed to check for updates, UpdateSource: {UpdateSource} - {ex.Message}");
             }
         }
 
@@ -181,7 +184,7 @@ namespace PoeShared.Squirrel.Updater
             {
                 Log.HandleException(ex);
                 IsOpen = true;
-                SetError(ex.Message);
+                SetError($"Failed to apply update {LatestVersion}, UpdateSource: {UpdateSource} - {ex.Message}");
             }
         }
 
@@ -213,7 +216,7 @@ namespace PoeShared.Squirrel.Updater
                 IsOpen = true;
 
                 Log.HandleUiException(ex);
-                SetError(ex.Message);
+                SetError($"Failed to restart application - {ex.Message}");
             }
         }
     }

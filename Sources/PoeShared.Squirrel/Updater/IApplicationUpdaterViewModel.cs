@@ -21,6 +21,8 @@ namespace PoeShared.Squirrel.Updater
 
         bool IsOpen { get; set; }
 
+        UpdateSourceInfo UpdateSource { get; }
+        
         Version UpdatedVersion { get; }
 
         Version LatestVersion { get; }

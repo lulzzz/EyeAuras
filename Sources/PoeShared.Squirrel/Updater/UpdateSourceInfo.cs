@@ -3,7 +3,7 @@ using PoeShared.Converters;
 
 namespace PoeShared.Squirrel.Updater
 {
-    internal struct UpdateSourceInfo
+    public struct UpdateSourceInfo
     {
         public string Uri { get; set; }
 
