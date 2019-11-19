@@ -12,6 +12,7 @@
         <ApplicationManifest>EyeAuras.exe.manifest</ApplicationManifest>
         <Configurations>Debug</Configurations>
         <Platforms>AnyCPU</Platforms>
+        <StartupObject>EyeAuras.UI.App</StartupObject>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -22,6 +23,8 @@
 
     <ItemGroup>
       <ProjectReference Include="..\EyeAuras.DefaultAuras\EyeAuras.DefaultAuras.csproj" />
+      <ProjectReference Include="..\EyeAuras.Loader\EyeAuras.Loader.csproj" />
+      <ProjectReference Include="..\EyeAuras.OpenCVAuras\EyeAuras.OpenCVAuras.csproj" />
       <ProjectReference Include="..\EyeAuras.OnTopReplica\EyeAuras.OnTopReplica.csproj" />
       <ProjectReference Include="..\EyeAuras.Shared\EyeAuras.Shared.csproj" />
       <ProjectReference Include="..\PoeShared.Core\PoeShared.csproj" />

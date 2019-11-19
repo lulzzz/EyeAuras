@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "EyeAuras.UI": {
+      "commandName": "Project",
+      "commandLineArgs": "-d"
+    }
+  }
+}

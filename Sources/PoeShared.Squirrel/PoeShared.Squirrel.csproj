@@ -36,8 +36,4 @@
       <ProjectReference Include="..\PoeShared.Wpf\PoeShared.Wpf.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Reference Include="System.Web" />
-    </ItemGroup>
-
 </Project>
