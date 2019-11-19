@@ -188,7 +188,7 @@ namespace EyeAuras.UI.MainWindow
                             this.Observe(RegionProperty).Select(x => Region.WhenAnyValue(y => y.Bounds)).Switch().DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => RegionBounds changed {x.prev} => {x.curr}"),
                             this.Observe(ThumbnailOpacityProperty).Select(x => ThumbnailOpacity).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => ThumbnailOpacity changed {x.prev} => {x.curr}"),
                             this.Observe(ThumbnailSizeProperty).Select(x => ThumbnailSize).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => ThumbnailSize changed {x.prev} => {x.curr}"),
-                            renderSizeSource.Select(x => x.ToWinSize()).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => RenderSize changed {x.prev} => {x.curr}"))
+                            renderSizeSource.Skip(1).Select(x => x.ToWinSize()).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => RenderSize changed {x.prev} => {x.curr}"))
                         .StartWith($"Initial {nameof(UpdateThumbnail)} tick")
                         .Select(
                             reason =>
