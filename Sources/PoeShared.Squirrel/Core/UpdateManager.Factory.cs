@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -67,8 +68,13 @@ namespace PoeShared.Squirrel.Core
                 var latestRelease = releases
                     .Where(x => prerelease || !x.Prerelease)
                     .OrderByDescending(x => x.PublishedAt)
-                    .First();
+                    .FirstOrDefault();
 
+                if (latestRelease == null)
+                {
+                    throw new ApplicationException($"could not find a valid Release, releases count: {releases.Count}");
+                }
+                
                 var latestReleaseUrl = latestRelease.HtmlUrl.Replace("/tag/", "/download/");
 
                 return new PoeUpdateManager(latestReleaseUrl, applicationName, rootDirectory, urlDownloader);

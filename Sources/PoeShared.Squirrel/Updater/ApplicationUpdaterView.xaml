@@ -100,7 +100,7 @@
                         Foreground="{StaticResource NegativeBrush}"
                         Text="{Binding StatusText}" />
 
-                    <TextBlock Visibility="{Binding StatusText, Converter={StaticResource NullToCollapsedConverter}}"
+                    <TextBlock Visibility="{Binding IsInErrorStatus, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}"
                                Foreground="WhiteSmoke"
                                FontWeight="Bold"
                                HorizontalAlignment="Center"
