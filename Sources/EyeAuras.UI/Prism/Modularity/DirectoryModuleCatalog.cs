@@ -67,8 +67,8 @@ namespace EyeAuras.UI.Prism.Modularity
                     .Where(x => x.Exists)
                     .ToArray()
                 let moduleContext = ModuleDef.CreateModuleContext()
-                let module = ModuleDefMD.Load(dllFile.FullName, moduleContext)
-                where !loadedModules.Contains(dllFile)
+                let module = LoadModuleSafe(dllFile, moduleContext)
+                where module != null && !loadedModules.Contains(dllFile)
                 select new {module, dllFile}).ToArray();
 
             var discoveredModules = (
@@ -107,5 +107,23 @@ namespace EyeAuras.UI.Prism.Modularity
                 manager.LoadModule(module.ModuleName);
             }
         }
+
+        private static ModuleDefMD LoadModuleSafe(FileSystemInfo dllFile, ModuleContext moduleContext)
+        {
+            try
+            {
+                return ModuleDefMD.Load(dllFile.FullName, moduleContext);
+            }
+            catch (BadImageFormatException e)
+            {
+                Log.Warn($"Invalid .NET DLL format or Native DLL, file: {dllFile} - {e.Message}");
+                return null;
+            }
+            catch (Exception e)
+            {
+                Log.Warn($"Exception occured when tried to parse DLL metadata, file: {dllFile}", e);
+                return null;
+            }
+        } 
     }
 }
