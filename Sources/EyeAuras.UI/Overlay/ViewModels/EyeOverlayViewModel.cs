@@ -55,7 +55,6 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private readonly ObservableAsPropertyHelper<double> aspectRatio;
 
         private bool maintainAspectRatio = true;
-        private bool isContextMenuOpen;
         private WindowHandle attachedWindow;
         private WinSize attachedWindowSize;
         private DpiScale dpi;
