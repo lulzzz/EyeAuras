@@ -3,9 +3,13 @@
 	url = https://github.com/iXab3r/PoeEye.git
 	branch = master
 [submodule "Submodules/DeploymentTools"]
+	active = false
 	path = Submodules/DeploymentTools
 	url = https://github.com/iXab3r/DeploymentTools.git
 	branch = master
 [submodule "Submodules/EyeAuras.Plus"]
+	active = false
 	path = Submodules/EyeAuras.Plus
 	url = https://github.com/iXab3r/EyeAuras.Plus.git
+	branch = master
+
