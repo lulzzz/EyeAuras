@@ -7,9 +7,11 @@
 	path = Submodules/DeploymentTools
 	url = https://github.com/iXab3r/DeploymentTools.git
 	branch = master
+	update = none
 [submodule "Submodules/EyeAuras.Plus"]
 	active = false
 	path = Submodules/EyeAuras.Plus
 	url = https://github.com/iXab3r/EyeAuras.Plus.git
 	branch = master
+	update = none
 
