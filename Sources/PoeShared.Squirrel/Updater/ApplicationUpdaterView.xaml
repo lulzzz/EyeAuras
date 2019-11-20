@@ -44,9 +44,8 @@
                             FontSize="32" />
             <DockPanel>
 
-                <Grid Margin="10,0" DockPanel.Dock="Bottom" >
+                <Grid Margin="10,0" DockPanel.Dock="Bottom" Height="30">
                     <ContentControl
-                        Height="30"
                         Content="{Binding RestartCommand}"
                         Focusable="False"
                         IsTabStop="False"
@@ -66,7 +65,6 @@
                     </ContentControl>
 
                     <ContentControl
-                        Height="30"
                         Content="{Binding ApplyUpdate}"
                         Focusable="False"
                         IsTabStop="False"
@@ -85,7 +83,7 @@
                         </ContentControl.Visibility>
                     </ContentControl>
 
-                    <ProgressBar Margin="5, 10" VerticalAlignment="Center" Height="30"
+                    <ProgressBar Margin="5, 10" VerticalAlignment="Center" 
                                  Value="{Binding ProgressPercent, Mode=OneWay}"
                                  Visibility="{Binding IsBusy, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}" />
                 </Grid>
