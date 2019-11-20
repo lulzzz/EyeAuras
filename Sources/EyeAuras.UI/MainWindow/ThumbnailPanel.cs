@@ -75,7 +75,7 @@ namespace EyeAuras.UI.MainWindow
             new PropertyMetadata(default(bool)));
 
         private readonly CompositeDisposable anchors = new CompositeDisposable();
-        private readonly ReplaySubject<Size> renderSizeSource = new ReplaySubject<Size>(1);
+        private readonly BehaviorSubject<Size> renderSizeSource = new BehaviorSubject<Size>(Size.Empty);
         private readonly SelectionAdorner selectionAdorner;
 
         public ThumbnailPanel()
@@ -188,13 +188,13 @@ namespace EyeAuras.UI.MainWindow
                             this.Observe(RegionProperty).Select(x => Region.WhenAnyValue(y => y.Bounds)).Switch().DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => RegionBounds changed {x.prev} => {x.curr}"),
                             this.Observe(ThumbnailOpacityProperty).Select(x => ThumbnailOpacity).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => ThumbnailOpacity changed {x.prev} => {x.curr}"),
                             this.Observe(ThumbnailSizeProperty).Select(x => ThumbnailSize).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => ThumbnailSize changed {x.prev} => {x.curr}"),
-                            renderSizeSource.Skip(1).Select(x => x.ToWinSize()).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => RenderSize changed {x.prev} => {x.curr}"))
+                            renderSizeSource.Where(x => !x.IsEmpty).Select(x => x.ToWinSize()).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => RenderSize changed {x.prev} => {x.curr}"))
                         .StartWith($"Initial {nameof(UpdateThumbnail)} tick")
                         .Select(
                             reason =>
                             {
                                 var args = CanUpdateThumbnail(thumbnail)
-                                    ? PrepareUpdateArgs(thumbnail, Region, RenderSize, this, Owner, ThumbnailOpacity)
+                                    ? PrepareUpdateArgs(thumbnail, Region, renderSizeSource.Value, this, Owner, ThumbnailOpacity)
                                     : default;
                                 return new {args, reason};
                             })
@@ -358,7 +358,7 @@ namespace EyeAuras.UI.MainWindow
                 {
                     return;
                 }
-                
+
                 args.Thumbnail.Update(
                     destination: args.DestinationRegion, 
                     source: args.SourceRegion, 
