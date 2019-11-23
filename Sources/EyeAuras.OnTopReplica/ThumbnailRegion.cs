@@ -70,37 +70,7 @@ namespace EyeAuras.OnTopReplica
             this.RaiseIfChanged(nameof(RegionHeight), previousState.RegionHeight, RegionHeight);
             this.RaiseIfChanged(nameof(RegionWidth), previousState.RegionWidth, RegionWidth);
         }
-
-        /// <summary>
-        ///     Computes the effective region representing the bounds inside a source thumbnail of a certain size.
-        /// </summary>
-        /// <param name="sourceSize">Size of the full thumbnail source.</param>
-        /// <returns>Bounds inside the thumbnail.</returns>
-        private Rectangle ComputeRegion(Size sourceSize)
-        {
-            try
-            {
-                var result = Bounds;
-                var sourceBounds = new Rectangle(result.X, result.Y, sourceSize.Width, sourceSize.Height);
-                result.Intersect(sourceBounds);
-                return result;
-            }
-            catch (Exception e)
-            {
-                throw new ApplicationException($"Failed to compute Region size, sourceSize: {sourceSize}, current state: {new { Bounds }}", e);
-            }
-        }
-
-        /// <summary>
-        ///     Computes a value representing the size of the region inside a source thumbnail of a certain size.
-        /// </summary>
-        /// <param name="sourceSize">Size of the full thumbnail source.</param>
-        /// <returns>Size of the bounds inside the thumbnail.</returns>
-        public Size ComputeRegionSize(Size sourceSize)
-        {
-            return ComputeRegion(sourceSize).Size;
-        }
-
+        
         public override string ToString()
         {
             return $"Region({Bounds})";

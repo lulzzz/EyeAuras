@@ -38,11 +38,11 @@ namespace EyeAuras.UI.MainWindow
             typeof(ThumbnailPanel),
             new FrameworkPropertyMetadata(default(WindowHandle)));
 
-        public static readonly DependencyProperty RegionProperty = DependencyProperty.Register(
-            "Region",
-            typeof(ThumbnailRegion),
+        public static readonly DependencyProperty SourceRegionProperty = DependencyProperty.Register(
+            "SourceRegion",
+            typeof(WinRectangle),
             typeof(ThumbnailPanel),
-            new FrameworkPropertyMetadata(default(ThumbnailRegion)));
+            new FrameworkPropertyMetadata(default(WinRectangle)));
 
         public static readonly DependencyProperty OwnerProperty = DependencyProperty.Register(
             "Owner",
@@ -117,10 +117,10 @@ namespace EyeAuras.UI.MainWindow
             private set => SetValue(OwnerProperty, value);
         }
 
-        public ThumbnailRegion Region
+        public WinRectangle SourceRegion
         {
-            get => (ThumbnailRegion) GetValue(RegionProperty);
-            set => SetValue(RegionProperty, value);
+            get => (WinRectangle) GetValue(SourceRegionProperty);
+            set => SetValue(SourceRegionProperty, value);
         }
 
         public WindowHandle TargetWindow
@@ -180,31 +180,47 @@ namespace EyeAuras.UI.MainWindow
             
             
             var throttledLogger = new Subject<string>();
-            throttledLogger.Sample(UpdateLogSamplingInterval).Subscribe(message => Log.Debug(message)).AddTo(anchors);
+            throttledLogger.Subscribe(message => Log.Debug(message)).AddTo(anchors);
 
             thumbnailSource
                 .Select(
                     thumbnail => Observable.Merge(
-                            this.Observe(RegionProperty).Select(x => Region.WhenAnyValue(y => y.Bounds)).Switch().DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => RegionBounds changed {x.prev} => {x.curr}"),
-                            this.Observe(ThumbnailOpacityProperty).Select(x => ThumbnailOpacity).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => ThumbnailOpacity changed {x.prev} => {x.curr}"),
-                            this.Observe(ThumbnailSizeProperty).Select(x => ThumbnailSize).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => ThumbnailSize changed {x.prev} => {x.curr}"),
-                            renderSizeSource.Where(x => !x.IsEmpty).Select(x => x.ToWinSize()).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $" => RenderSize changed {x.prev} => {x.curr}"))
+                            this.Observe(SourceRegionProperty).Select(x => SourceRegion).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $"RegionBounds changed {x.prev} => {x.curr}"),
+                            this.Observe(ThumbnailOpacityProperty).Select(x => ThumbnailOpacity).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $"ThumbnailOpacity changed {x.prev} => {x.curr}"),
+                            //this.Observe(ThumbnailSizeProperty).Select(x => ThumbnailSize).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $"ThumbnailSize changed {x.prev} => {x.curr}"),
+                            renderSizeSource.Where(x => !x.IsEmpty).Select(x => x.ToWinSize()).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $"RenderSize changed {x.prev} => {x.curr}"))
                         .StartWith($"Initial {nameof(UpdateThumbnail)} tick")
                         .Select(
                             reason =>
                             {
-                                var args = CanUpdateThumbnail(thumbnail)
-                                    ? PrepareUpdateArgs(thumbnail, Region, renderSizeSource.Value, this, Owner, ThumbnailOpacity)
-                                    : default;
+                                ThumbnailUpdateArgs args;
+                                if (CanUpdateThumbnail(thumbnail))
+                                {
+                                    var sourceArgs = PreparSourceRegion(thumbnail, SourceRegion);
+                                    TargetWindowSize = sourceArgs.sourceSize;
+                                    ThumbnailSize = sourceArgs.sourceRegionOriginalSize;
+
+                                    args = PrepareUpdateArgs(
+                                            thumbnail,
+                                            RenderSize,
+                                            this,
+                                            Owner,
+                                            ThumbnailOpacity,
+                                            sourceArgs.sourceRegion,
+                                            sourceArgs.sourceRegionOriginalSize,
+                                            sourceArgs.sourceSize);
+                                }
+                                else
+                                {
+                                    args = default;
+                                }
+                                
+                                
                                 return new {args, reason};
                             })
-                        .DistinctUntilChanged()
+                        .DistinctUntilChanged(x=> x.args)
                         .Select(x => { 
-                            throttledLogger.OnNext($"Updating Thumbnail, reason: {x.reason}, args: {(x.args.Thumbnail == null ? "empty" : x.args.ToString())}");
-
-                            TargetWindowSize = x.args.SourceSize;
-                            ThumbnailSize = x.args.SourceRegionSize;
-
+                            throttledLogger.OnNext($"Updating Thumbnail, reason: {x.reason}, state: {new { TargetWindowSize, ThumbnailSize }} args: {(x.args.Thumbnail == null ? "empty" : x.args.ToString())}");
                             UpdateThumbnail(x.args);
                             return x.args;
                         })
@@ -272,67 +288,84 @@ namespace EyeAuras.UI.MainWindow
             }
         }
         
-        private static ThumbnailUpdateArgs PrepareUpdateArgs(
+        private static (WinRectangle sourceRegion, WinSize sourceRegionOriginalSize, WinSize sourceSize) PreparSourceRegion(
             Thumbnail thumbnail,
-            ThumbnailRegion sourceRegion,
-            Size canvasSize,
-            UIElement canvas,
-            Window owner,
-            double opacity)
+            WinRectangle sourceBounds)
         {
             try
             {
                 Guard.ArgumentIsTrue(CanUpdateThumbnail(thumbnail), "CanUpdateThumbnail");
 
                 var sourceWindowSize = thumbnail.GetSourceSize();
-                var thumbnailSize = sourceRegion == null || sourceRegion.Bounds.IsEmpty || sourceRegion.RegionWidth <= 0 || sourceRegion.RegionHeight <= 0 || !GeometryExtensions.IsNotEmpty(sourceRegion.Bounds)
+                var thumbnailSize = !sourceBounds.IsNotEmpty()
                     ? sourceWindowSize
-                    : sourceRegion.ComputeRegionSize(sourceWindowSize);
-
-                var dpi = VisualTreeHelper.GetDpi(canvas);
-
-                var ownerLocation = canvas.TranslatePoint(new Point(0, 0), owner);
-                var location = GeometryExtensions.ToWinPoint(ownerLocation);
-                var destination = new Rect(
-                    Math.Floor(location.X * dpi.DpiScaleX),
-                    Math.Floor(location.Y * dpi.DpiScaleY),
-                    Math.Ceiling(canvasSize.Width * dpi.DpiScaleX),
-                    Math.Ceiling(canvasSize.Height * dpi.DpiScaleY));
+                    : sourceBounds.FitToSize(sourceWindowSize);
 
                 WinRectangle source;
-                var regionBounds = sourceRegion?.Bounds ?? WinRectangle.Empty;
-                if (regionBounds.IsEmpty)
+                if (sourceBounds.IsEmpty)
                 {
                     source = new WinRectangle(0, 0, thumbnailSize.Width, thumbnailSize.Height);
                 }
                 else
                 {
                     source = new WinRectangle(
-                        regionBounds.X,
-                        regionBounds.Y,
-                        regionBounds.Width > 0 && regionBounds.Height > 0
-                            ? regionBounds.Width
+                        sourceBounds.X,
+                        sourceBounds.Y,
+                        sourceBounds.Width > 0 && sourceBounds.Height > 0
+                            ? sourceBounds.Width
                             : thumbnailSize.Width,
-                        regionBounds.Width > 0 && regionBounds.Height > 0
-                            ? regionBounds.Height
+                        sourceBounds.Width > 0 && sourceBounds.Height > 0
+                            ? sourceBounds.Height
                             : thumbnailSize.Height);
                 }
-                    
+
+                return (source, thumbnailSize, sourceWindowSize);
+            }
+            catch (Exception e)
+            {
+                Log.Warn($"Failed to build ThumbnailUpdateArgs, args: { new { thumbnail, sourceRegion = sourceBounds } }", e);
+                throw;
+            }
+        }
+        
+        private static ThumbnailUpdateArgs PrepareUpdateArgs(
+            Thumbnail thumbnail,
+            Size canvasSize,
+            UIElement canvas,
+            Window owner,
+            double opacity,
+            WinRectangle sourceRegion,
+            WinSize sourceRegionOriginalSize,
+            WinSize sourceSize)
+        {
+            try
+            {
+                Guard.ArgumentIsTrue(CanUpdateThumbnail(thumbnail), "CanUpdateThumbnail");
+
+                var dpi = VisualTreeHelper.GetDpi(canvas);
+                var ownerLocation = canvas.TranslatePoint(new Point(0, 0), owner);
+                var location = ownerLocation.ToWinPoint();
+                var destination = new Rect(
+                    Math.Floor(location.X * dpi.DpiScaleX),
+                    Math.Floor(location.Y * dpi.DpiScaleY),
+                    Math.Ceiling(canvasSize.Width * dpi.DpiScaleX),
+                    Math.Ceiling(canvasSize.Height * dpi.DpiScaleY)).ToWinRectangle();
+                
                 var result = new ThumbnailUpdateArgs
                 {
-                    DestinationRegion = GeometryExtensions.ToWinRectangle(destination),
-                    SourceRegion = source,
-                    SourceRegionSize = thumbnailSize,
+                    DestinationRegion = destination,
+                    SourceRegion = sourceRegion,
+                    SourceRegionOriginalSize = sourceRegionOriginalSize,
                     Thumbnail = thumbnail,
                     Opacity = ToByte(opacity),
-                    SourceSize = sourceWindowSize,
+                    SourceSize = sourceSize,
                 };
 
                 return result;
             }
             catch (Exception e)
             {
-                Log.Warn($"Failed to build ThumbnailUpdateArgs, args: { new { thumbnail, sourceRegion, opacity } }", e);
+                Log.Warn($"Failed to build ThumbnailUpdateArgs, args: { new { thumbnail, sourceRegion, sourceSize, sourceRegionOriginalSize, opacity } }", e);
                 throw;
             }
         }
@@ -377,14 +410,14 @@ namespace EyeAuras.UI.MainWindow
         {
             if (selection.IsEmpty)
             {
-                Region.SetValue(Region.Bounds);
+                SourceRegion = WinRectangle.Empty;
                 return;
             }
             
             selection.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY); // Wpf Px => Win Px
             var targetSize = TargetWindowSize; // Win Px
             var destinationSize = RenderSize.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY); // Win Px
-            var currentTargetRegion = Region.Bounds; // Win Px
+            var currentTargetRegion = SourceRegion; // Win Px
 
             var selectionPercent = new Rect
             {
@@ -422,7 +455,7 @@ namespace EyeAuras.UI.MainWindow
                 Height = Math.Max(1, currentRegionPercent.Height * selectionPercent.Height * targetSize.Height)
             };
 
-            Region.SetValue(destinationRegion.ToWinRectangle());
+            SourceRegion = destinationRegion.ToWinRectangle();
         }
 
         private struct ThumbnailArgs
@@ -440,7 +473,7 @@ namespace EyeAuras.UI.MainWindow
         private struct ThumbnailUpdateArgs
         {
             public Thumbnail Thumbnail { get; set; }
-            public WinSize SourceRegionSize { get; set; }
+            public WinSize SourceRegionOriginalSize { get; set; }
             public WinSize SourceSize { get; set; }
             public WinRectangle SourceRegion { get; set; }
             public WinRectangle DestinationRegion { get; set; }
@@ -448,7 +481,7 @@ namespace EyeAuras.UI.MainWindow
 
             public override string ToString()
             {
-                return $"{nameof(Thumbnail)}(IsInvalid): {Thumbnail}({Thumbnail?.IsInvalid}), {nameof(SourceRegionSize)}: {SourceRegionSize}, {nameof(SourceRegion)}: {SourceRegion}, {nameof(DestinationRegion)}: {DestinationRegion},  {nameof(Opacity)}: {Opacity}";
+                return $"{nameof(Thumbnail)}(IsInvalid): {Thumbnail}({Thumbnail?.IsInvalid}), {nameof(SourceRegionOriginalSize)}: {SourceRegionOriginalSize}, {nameof(SourceRegion)}: {SourceRegion}, {nameof(DestinationRegion)}: {DestinationRegion},  {nameof(Opacity)}: {Opacity}";
             }
         }
 

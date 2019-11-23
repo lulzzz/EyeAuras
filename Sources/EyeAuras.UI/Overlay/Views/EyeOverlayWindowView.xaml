@@ -125,8 +125,8 @@
                     Background="{StaticResource MaxTransparencyBrush}"
                     IsInSelectMode="{Binding IsInSelectMode, Mode=TwoWay}"
                     ThumbnailOpacity="{Binding ActiveThumbnailOpacity, Mode=OneWay}"
+                    SourceRegion="{Binding SourceBounds, Mode=TwoWay}"
                     TargetWindow="{Binding AttachedWindow, Mode=OneWay}"
-                    Region="{Binding Region, Mode=OneWay}"
                     IsHitTestVisible="{Binding IsInSelectMode, Mode=OneWay}"
                     ThumbnailSize="{Binding ThumbnailSize, Mode=OneWayToSource}"
                     TargetWindowSize="{Binding AttachedWindowSize, Mode=OneWayToSource}" />
@@ -163,7 +163,7 @@
                 <TextBlock Text="{Binding AspectRatio, StringFormat='Aspect ratio: {0}'}" />
                 <TextBlock Text="{Binding TargetAspectRatio, StringFormat='Target Aspect ratio: {0}'}" />
                 <TextBlock Text="{Binding AttachedWindowSize, StringFormat='Thumbnail window size: {0}'}" />
-                <TextBlock Text="{Binding Region, StringFormat='Thumbnail region: {0}'}" />
+                <TextBlock Text="{Binding SourceBounds, StringFormat='Thumbnail region: {0}'}" />
                 <TextBlock Text="{Binding ThumbnailSize, StringFormat='Thumbnail size: {0}'}" />
                 <TextBlock Text="{Binding OverlayWindow.ActualHeight, StringFormat='Actual height: {0}'}" />
                 <TextBlock Text="{Binding OverlayWindow.ActualWidth, StringFormat='Actual width: {0}'}" />

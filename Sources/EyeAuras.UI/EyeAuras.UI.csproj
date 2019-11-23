@@ -23,14 +23,18 @@
 
     <ItemGroup>
       <ProjectReference Include="..\EyeAuras.DefaultAuras\EyeAuras.DefaultAuras.csproj" />
-      <ProjectReference Include="..\EyeAuras.Loader\EyeAuras.Loader.csproj" />
-      <ProjectReference Include="..\EyeAuras.OpenCVAuras\EyeAuras.OpenCVAuras.csproj" />
       <ProjectReference Include="..\EyeAuras.OnTopReplica\EyeAuras.OnTopReplica.csproj" />
       <ProjectReference Include="..\EyeAuras.Shared\EyeAuras.Shared.csproj" />
       <ProjectReference Include="..\PoeShared.Core\PoeShared.csproj" />
       <ProjectReference Include="..\PoeShared.Squirrel\PoeShared.Squirrel.csproj" />
       <ProjectReference Include="..\PoeShared.Wpf\PoeShared.Wpf.csproj" />
     </ItemGroup>
+
+
+  <ItemGroup  Condition="'$(Configuration)' == 'Debug.Plus'" >
+    <ProjectReference Include="..\EyeAuras.Loader\EyeAuras.Loader.csproj" />
+    <ProjectReference Include="..\EyeAuras.OpenCVAuras\EyeAuras.OpenCVAuras.csproj" />
+  </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Blue.MVVM.Converter" Version="1.5.0" />

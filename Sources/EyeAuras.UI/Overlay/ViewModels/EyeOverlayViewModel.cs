@@ -126,6 +126,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
             this.RaiseWhenSourceValue(x => x.ActiveThumbnailOpacity, thumbnailOpacity, x => x.Value).AddTo(Anchors);
             this.RaiseWhenSourceValue(x => x.ThumbnailOpacity, this, x => x.ActiveThumbnailOpacity).AddTo(Anchors);
+            this.RaiseWhenSourceValue(x => x.SourceBounds, Region, x => x.Bounds).AddTo(Anchors);
 
             isInEditMode = Observable.Merge(
                     this.WhenAnyProperty(x => x.IsInSelectMode, x => x.IsLocked))
@@ -273,6 +274,12 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         public ThumbnailRegion Region { get; } = new ThumbnailRegion(Rectangle.Empty);
 
+        public WinRectangle SourceBounds
+        {
+            get => Region.Bounds;
+            set => Region.SetValue(value);
+        }
+
         public ICommand ResetRegionCommand => resetRegionCommand;
 
         private void SetClickThroughModeExecuted(bool? value)
@@ -405,7 +412,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
                 .Subscribe(HandleInitialWindowAttachment)
                 .AddTo(Anchors);
 
-            Observable.Merge(this.WhenAnyValue(x => x.ThumbnailSize).ToUnit(), this.WhenAnyValue(x => x.MaintainAspectRatio).ToUnit())
+            this.WhenAnyValue(x => x.ThumbnailSize).ToUnit().Merge(this.WhenAnyValue(x => x.MaintainAspectRatio).ToUnit())
                 .Where(x => thumbnailSize.IsNotEmpty())
                 .Select(x => thumbnailSize)
                 .Subscribe(HandleSourceSizeChange)
@@ -430,7 +437,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private void HandleSourceSizeChange(WinSize sourceSize)
         {
-            if (!GeometryExtensions.IsNotEmpty(sourceSize))
+            if (!sourceSize.IsNotEmpty())
             {
                 throw new ApplicationException($"SourceSize must be non-empty at this point, got {sourceSize} (maintainAspectRatio: {MaintainAspectRatio})");
             }
