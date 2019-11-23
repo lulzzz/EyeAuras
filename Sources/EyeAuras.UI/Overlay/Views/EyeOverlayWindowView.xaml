@@ -126,10 +126,10 @@
                     IsInSelectMode="{Binding IsInSelectMode, Mode=TwoWay}"
                     ThumbnailOpacity="{Binding ActiveThumbnailOpacity, Mode=OneWay}"
                     SourceRegion="{Binding SourceBounds, Mode=TwoWay}"
-                    TargetWindow="{Binding AttachedWindow, Mode=OneWay}"
+                    SourceWindow="{Binding AttachedWindow, Mode=OneWay}"
                     IsHitTestVisible="{Binding IsInSelectMode, Mode=OneWay}"
-                    ThumbnailSize="{Binding ThumbnailSize, Mode=OneWayToSource}"
-                    TargetWindowSize="{Binding AttachedWindowSize, Mode=OneWayToSource}" />
+                    SourceRegionSize="{Binding ThumbnailSize, Mode=OneWayToSource}"
+                    SourceWindowSize="{Binding SourceWindowSize, Mode=OneWayToSource}" />
             </Border>
             
             <Border BorderThickness="{Binding BorderThickness, Converter={StaticResource ThicknessConverter}, ConverterParameter=''}"
@@ -162,7 +162,7 @@
                 <TextBlock Text="{Binding Bounds.Size, StringFormat='Overlay size(DPI): {0}'}" />
                 <TextBlock Text="{Binding AspectRatio, StringFormat='Aspect ratio: {0}'}" />
                 <TextBlock Text="{Binding TargetAspectRatio, StringFormat='Target Aspect ratio: {0}'}" />
-                <TextBlock Text="{Binding AttachedWindowSize, StringFormat='Thumbnail window size: {0}'}" />
+                <TextBlock Text="{Binding SourceWindowSize, StringFormat='Thumbnail window size: {0}'}" />
                 <TextBlock Text="{Binding SourceBounds, StringFormat='Thumbnail region: {0}'}" />
                 <TextBlock Text="{Binding ThumbnailSize, StringFormat='Thumbnail size: {0}'}" />
                 <TextBlock Text="{Binding OverlayWindow.ActualHeight, StringFormat='Actual height: {0}'}" />

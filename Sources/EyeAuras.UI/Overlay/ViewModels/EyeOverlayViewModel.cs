@@ -56,7 +56,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private bool maintainAspectRatio = true;
         private WindowHandle attachedWindow;
-        private WinSize attachedWindowSize;
+        private WinSize sourceWindowSize;
         private DpiScale dpi;
         private bool isClickThrough;
         private bool isInSelectMode;
@@ -171,13 +171,13 @@ namespace EyeAuras.UI.Overlay.ViewModels
         public Color BorderColor
         {
             get => borderColor;
-            set => this.RaiseAndSetIfChanged(ref borderColor, value);
+            set => RaiseAndSetIfChanged(ref borderColor, value);
         }
 
         public double BorderThickness
         {
             get => borderThickness;
-            set => this.RaiseAndSetIfChanged(ref borderThickness, value);
+            set => RaiseAndSetIfChanged(ref borderThickness, value);
         }
         
         public ReadOnlyObservableCollection<WindowHandle> WindowList => windowListProvider.WindowList;
@@ -208,10 +208,10 @@ namespace EyeAuras.UI.Overlay.ViewModels
             set => RaiseAndSetIfChanged(ref thumbnailSize, value);
         }
 
-        public WinSize AttachedWindowSize
+        public WinSize SourceWindowSize
         {
-            get => attachedWindowSize;
-            set => RaiseAndSetIfChanged(ref attachedWindowSize, value);
+            get => sourceWindowSize;
+            set => RaiseAndSetIfChanged(ref sourceWindowSize, value);
         }
 
         public double AspectRatio => aspectRatio.Value;

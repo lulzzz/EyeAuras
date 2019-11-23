@@ -32,8 +32,8 @@ namespace EyeAuras.UI.MainWindow
         private static readonly TimeSpan UpdateLogSamplingInterval = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(1);
 
-        public static readonly DependencyProperty TargetWindowProperty = DependencyProperty.Register(
-            "TargetWindow",
+        public static readonly DependencyProperty SourceWindowProperty = DependencyProperty.Register(
+            "SourceWindow",
             typeof(WindowHandle),
             typeof(ThumbnailPanel),
             new FrameworkPropertyMetadata(default(WindowHandle)));
@@ -50,8 +50,8 @@ namespace EyeAuras.UI.MainWindow
             typeof(ThumbnailPanel),
             new PropertyMetadata(default(Window)));
 
-        public static readonly DependencyProperty ThumbnailSizeProperty = DependencyProperty.Register(
-            "ThumbnailSize",
+        public static readonly DependencyProperty SourceRegionSizeProperty = DependencyProperty.Register(
+            "SourceRegionSize",
             typeof(WinSize),
             typeof(ThumbnailPanel),
             new PropertyMetadata(default(WinSize)));
@@ -62,8 +62,8 @@ namespace EyeAuras.UI.MainWindow
             typeof(ThumbnailPanel),
             new PropertyMetadata((double) 1));
 
-        public static readonly DependencyProperty TargetWindowSizeProperty = DependencyProperty.Register(
-            "TargetWindowSize",
+        public static readonly DependencyProperty SourceWindowSizeProperty = DependencyProperty.Register(
+            "SourceWindowSize",
             typeof(WinSize),
             typeof(ThumbnailPanel),
             new PropertyMetadata(default(WinSize)));
@@ -93,10 +93,10 @@ namespace EyeAuras.UI.MainWindow
             set => SetValue(IsInSelectModeProperty, value);
         }
 
-        public WinSize TargetWindowSize
+        public WinSize SourceWindowSize
         {
-            get => (WinSize) GetValue(TargetWindowSizeProperty);
-            set => SetValue(TargetWindowSizeProperty, value);
+            get => (WinSize) GetValue(SourceWindowSizeProperty);
+            set => SetValue(SourceWindowSizeProperty, value);
         }
 
         public double ThumbnailOpacity
@@ -105,10 +105,10 @@ namespace EyeAuras.UI.MainWindow
             set => SetValue(ThumbnailOpacityProperty, value);
         }
 
-        public WinSize ThumbnailSize
+        public WinSize SourceRegionSize
         {
-            get => (WinSize) GetValue(ThumbnailSizeProperty);
-            set => SetValue(ThumbnailSizeProperty, value);
+            get => (WinSize) GetValue(SourceRegionSizeProperty);
+            set => SetValue(SourceRegionSizeProperty, value);
         }
 
         public Window Owner
@@ -123,17 +123,17 @@ namespace EyeAuras.UI.MainWindow
             set => SetValue(SourceRegionProperty, value);
         }
 
-        public WindowHandle TargetWindow
+        public WindowHandle SourceWindow
         {
-            get => (WindowHandle) GetValue(TargetWindowProperty);
-            set => SetValue(TargetWindowProperty, value);
+            get => (WindowHandle) GetValue(SourceWindowProperty);
+            set => SetValue(SourceWindowProperty, value);
         }
 
         public DpiScale Dpi { get; }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            Log.Debug($"ThumbnailPanel loaded, TargetWindow: {TargetWindow}, parent: {Parent}");
+            Log.Debug($"ThumbnailPanel loaded, TargetWindow: {SourceWindow}, parent: {Parent}");
             if (Owner != null)
             {
                 throw new InvalidOperationException("ThumbnailPanel must be initialized only once per lifecycle");
@@ -145,7 +145,7 @@ namespace EyeAuras.UI.MainWindow
                 Observable.Merge(
                         this.Observe(OwnerProperty).Select(x => "Owner changed"),
                         this.Observe(IsVisibleProperty).Select(x => "IsVisible changed"),
-                        this.Observe(TargetWindowProperty).Select(x => "TargetWindow changed"))
+                        this.Observe(SourceWindowProperty).Select(x => "TargetWindow changed"))
                     .StartWith($"Initial {nameof(CreateThumbnail)} tick")
                     .Select(
                         reason =>
@@ -157,7 +157,7 @@ namespace EyeAuras.UI.MainWindow
                                     {
                                         Owner = Owner,
                                         IsVisible = IsVisible,
-                                        SourceWindow = TargetWindow
+                                        SourceWindow = SourceWindow
                                     };
                                     Log.Debug($"Recreating thumbnail, reason: {reason}, args: {args}");
                                     
@@ -197,8 +197,8 @@ namespace EyeAuras.UI.MainWindow
                                 if (CanUpdateThumbnail(thumbnail))
                                 {
                                     var sourceArgs = PreparSourceRegion(thumbnail, SourceRegion);
-                                    TargetWindowSize = sourceArgs.sourceSize;
-                                    ThumbnailSize = sourceArgs.sourceRegionOriginalSize;
+                                    SourceWindowSize = sourceArgs.sourceSize;
+                                    SourceRegionSize = sourceArgs.sourceRegionOriginalSize;
 
                                     args = PrepareUpdateArgs(
                                             thumbnail,
@@ -220,7 +220,7 @@ namespace EyeAuras.UI.MainWindow
                             })
                         .DistinctUntilChanged(x=> x.args)
                         .Select(x => { 
-                            throttledLogger.OnNext($"Updating Thumbnail, reason: {x.reason}, state: {new { TargetWindowSize, ThumbnailSize }} args: {(x.args.Thumbnail == null ? "empty" : x.args.ToString())}");
+                            throttledLogger.OnNext($"Updating Thumbnail, reason: {x.reason}, state: {new { TargetWindowSize = SourceWindowSize, ThumbnailSize = SourceRegionSize }} args: {(x.args.Thumbnail == null ? "empty" : x.args.ToString())}");
                             UpdateThumbnail(x.args);
                             return x.args;
                         })
@@ -415,7 +415,7 @@ namespace EyeAuras.UI.MainWindow
             }
             
             selection.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY); // Wpf Px => Win Px
-            var targetSize = TargetWindowSize; // Win Px
+            var targetSize = SourceWindowSize; // Win Px
             var destinationSize = RenderSize.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY); // Win Px
             var currentTargetRegion = SourceRegion; // Win Px
 
