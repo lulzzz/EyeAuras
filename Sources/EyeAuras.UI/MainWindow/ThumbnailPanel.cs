@@ -68,29 +68,13 @@ namespace EyeAuras.UI.MainWindow
             typeof(ThumbnailPanel),
             new PropertyMetadata(default(WinSize)));
 
-        public static readonly DependencyProperty IsInSelectModeProperty = DependencyProperty.Register(
-            "IsInSelectMode",
-            typeof(bool),
-            typeof(ThumbnailPanel),
-            new PropertyMetadata(default(bool)));
-
         private readonly CompositeDisposable anchors = new CompositeDisposable();
         private readonly BehaviorSubject<Size> renderSizeSource = new BehaviorSubject<Size>(Size.Empty);
-        private readonly SelectionAdorner selectionAdorner;
 
         public ThumbnailPanel()
         {
             Dpi = VisualTreeHelper.GetDpi(this);
             Loaded += OnLoaded;
-            
-            selectionAdorner = new SelectionAdorner(this);
-            selectionAdorner.Stroke = Brushes.Lime;
-        }
-
-        public bool IsInSelectMode
-        {
-            get => (bool) GetValue(IsInSelectModeProperty);
-            set => SetValue(IsInSelectModeProperty, value);
         }
 
         public WinSize SourceWindowSize
@@ -229,33 +213,6 @@ namespace EyeAuras.UI.MainWindow
                 .RetryWithDelay(RetryInterval, DispatcherScheduler.Current)
                 .SubscribeToErrors(Log.HandleUiException)
                 .AddTo(anchors);
-                
-            this.Observe(IsInSelectModeProperty)
-                .Select(x => IsInSelectMode)
-                .Select(
-                    () =>
-                    {
-                        var currentCursor = Cursor;
-                        Cursor = Cursors.Cross;
-                        return IsInSelectMode
-                            ? selectionAdorner.StartSelection()
-                                .Finally(
-                                    () =>
-                                    {
-                                        IsInSelectMode = false;
-                                        Cursor = currentCursor;
-                                    })
-                            : Observable.Return(Rect.Empty);
-                    })
-                .Switch()
-                .Where(GeometryExtensions.IsNotEmpty)
-                .Where(selection => selection.Width * selection.Height >= 10)
-                .Subscribe(UpdateRegion, Log.HandleUiException)
-                .AddTo(anchors);
-
-            var adornerLayer = AdornerLayer.GetAdornerLayer(this);
-            Guard.ArgumentNotNull(adornerLayer, nameof(adornerLayer));
-            adornerLayer.Add(selectionAdorner);
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)

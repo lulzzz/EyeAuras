@@ -1,0 +1,47 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:scaffolding="clr-namespace:PoeShared.Scaffolding;assembly=PoeShared"
+                    xmlns:mainWindow="clr-namespace:EyeAuras.UI.MainWindow"
+                    xmlns:viewModels="clr-namespace:EyeAuras.UI.MainWindow.ViewModels"
+                    xmlns:viewModels1="clr-namespace:EyeAuras.UI.RegionSelector.ViewModels">
+    <DataTemplate DataType="{x:Type viewModels1:SelectionAdornerViewModel}">
+        <Grid>
+            <Grid x:Name="SelectionAdorner" Cursor="{x:Static Cursors.Cross}"
+                  IsHitTestVisible="{Binding IsVisible}"
+                  Visibility="{Binding IsVisible, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                  Background="Transparent">
+                <ItemsControl 
+                    ItemsSource="{Binding CanvasElements}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                
+                <Canvas>
+                    <Grid Canvas.Left="{Binding MousePosition.X}" Canvas.Top="{Binding MousePosition.Y}">
+                        <Border Margin="10,10,0,0" >
+                            <TextBlock FontSize="20" Margin="2.5"
+                                       Foreground="{Binding Stroke}"
+                                       FontWeight="Bold"
+                                       TextTrimming="CharacterEllipsis">
+                                <TextBlock.Inlines>
+                                    <Run Text="{Binding MousePosition.X, StringFormat='X:{0:F0}', Mode=OneWay}"/>
+                                    <Run Text="{Binding MousePosition.Y, StringFormat='Y:{0:F0}', Mode=OneWay}"/>
+                                </TextBlock.Inlines>
+                            </TextBlock>
+                        </Border>
+                    </Grid>
+                </Canvas>
+            </Grid>
+            <scaffolding:DataPiping.DataPipes>
+                <scaffolding:DataPipeCollection>
+                    <scaffolding:DataPipe 
+                        Source="{Binding ElementName=SelectionAdorner}" 
+                        Target="{Binding Owner, Mode=OneWayToSource}"/>
+                </scaffolding:DataPipeCollection>
+            </scaffolding:DataPiping.DataPipes>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

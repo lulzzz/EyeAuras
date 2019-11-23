@@ -1,4 +1,4 @@
-using System.Drawing;
+using System;
 using EyeAuras.UI.RegionSelector.Services;
 using JetBrains.Annotations;
 using PoeShared.Scaffolding;
@@ -7,10 +7,11 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
 {
     public interface IRegionSelectorViewModel : IDisposableReactiveObject
     {
-        Rectangle Selection { get; set; }
+        RegionSelectorResult SelectionCandidate { [CanBeNull] get; }
         
-        RegionSelectorResult MouseRegion { [CanBeNull] get; }
-        
-        Point MouseLocation { get; }
+        ISelectionAdornerViewModel SelectionAdorner { [NotNull] get; }
+
+        [NotNull]
+        IObservable<RegionSelectorResult> SelectWindow();
     }
 }

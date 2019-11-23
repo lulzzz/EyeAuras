@@ -3,14 +3,10 @@
                           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                           xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                           xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                          xmlns:overlay="clr-namespace:EyeAuras.UI.Overlay"
                           xmlns:native="clr-namespace:PoeShared.Native;assembly=PoeShared.Wpf"
-                          xmlns:eye="http://coderush.net/poeeye/"
-                          xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-                          xmlns:eyeAuras="clr-namespace:EyeAuras;assembly=EyeAuras"
-                          xmlns:viewModels="clr-namespace:EyeAuras.UI.Overlay.ViewModels"
                           xmlns:viewModels1="clr-namespace:EyeAuras.UI.RegionSelector.ViewModels"
                           xmlns:blue="http://www.nuget.org/Blue.MVVM"
+                          xmlns:ui="clr-namespace:PoeShared.UI;assembly=PoeShared.Wpf"
                           mc:Ignorable="d"
                           Title="RegionSelector" 
                           ResizeMode="NoResize"
@@ -30,30 +26,40 @@
         <blue:MultiplyDoubleConverter x:Key="MultiplyDoubleDivideByThreeConverter" Factor="0.33" />
     </Window.Resources>
     
-    <Grid x:Name="RegionSelectorRoot">
-        <Border 
+    <ui:AdornedControl IsAdornerVisible="True">
+        <ui:AdornedControl.AdornerContent>
+            <Grid>
+                <ContentControl Content="{Binding SelectionAdorner}"/>
+            </Grid>
+        </ui:AdornedControl.AdornerContent>
+                    
+        <Grid x:Name="RegionSelectorRoot">
+            <Border 
                 Background="{StaticResource OverlayWindowTitleBackgroundBrushKey}"
                 Opacity="0.5"
                 BorderBrush="{StaticResource OverlayWindowBorderBrushKey}"
                 BorderThickness="1">
-        </Border>
-        <Canvas>
-            <Rectangle x:Name="RegionCandidate" Stroke="Red" StrokeThickness="1"/>
-        </Canvas>
-        <TextBlock VerticalAlignment="Center"
-                   FontSize="20"
-                   Foreground="Aqua"
-                   TextTrimming="CharacterEllipsis"
-                   MaxWidth="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=ActualWidth, Converter={StaticResource MultiplyDoubleDivideByThreeConverter}}"
-                   HorizontalAlignment="Center">
-            <TextBlock.Inlines>
-                <Run Text="{Binding MouseRegion.Window.Title, Mode=OneWay}" /><LineBreak/>
-                Window bounds: <Run Text="{Binding MouseRegion.Window.WindowBounds, Mode=OneWay}"/><LineBreak/>
-                Selection bounds: <Run Text="{Binding MouseRegion.Selection, Mode=OneWay}"/>
+            </Border>
+            <Canvas>
+                <Rectangle x:Name="RegionCandidate" Stroke="Red" StrokeThickness="1"/>
+            </Canvas>
+            <TextBlock VerticalAlignment="Center"
+                       FontSize="20"
+                       Foreground="Aqua"
+                       TextTrimming="CharacterEllipsis"
+                       MaxWidth="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Window}}, Path=ActualWidth, Converter={StaticResource MultiplyDoubleDivideByThreeConverter}}"
+                       HorizontalAlignment="Center">
+                <TextBlock.Inlines>
+                    <Run Text="{Binding SelectionCandidate.Window.Title, Mode=OneWay}" /><LineBreak/>
+                    Window bounds: <Run Text="{Binding SelectionCandidate.Window.WindowBounds, Mode=OneWay}"/><LineBreak/>
+                    Selection bounds: <Run Text="{Binding SelectionCandidate.Selection, Mode=OneWay}"/>
                 
-            </TextBlock.Inlines>
-        </TextBlock>
-    </Grid>
+                </TextBlock.Inlines>
+            </TextBlock>
+        </Grid>
+    </ui:AdornedControl>
+    
+    
 
 
 </native:TransparentWindow>

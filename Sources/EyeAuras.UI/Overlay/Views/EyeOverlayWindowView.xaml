@@ -5,7 +5,9 @@
                     xmlns:viewModels="clr-namespace:EyeAuras.UI.Overlay.ViewModels"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
                     xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
-                    xmlns:converters="http://schemas.kent.boogaart.com/converters">
+                    xmlns:converters="http://schemas.kent.boogaart.com/converters"
+                    xmlns:ui="clr-namespace:PoeShared.UI;assembly=PoeShared.Wpf"
+                    xmlns:scaffolding="clr-namespace:PoeShared.Scaffolding;assembly=PoeShared">
 
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Generic.xaml" />
@@ -120,16 +122,23 @@
             </Grid.ContextMenu>
 
             <Border BorderThickness="{Binding BorderThickness, Converter={StaticResource ThicknessConverter}, ConverterParameter=''}">
-                <mainWindow:ThumbnailPanel
-                    x:Name="ThumbnailPanelElement"
-                    Background="{StaticResource MaxTransparencyBrush}"
-                    IsInSelectMode="{Binding IsInSelectMode, Mode=TwoWay}"
-                    ThumbnailOpacity="{Binding ActiveThumbnailOpacity, Mode=OneWay}"
-                    SourceRegion="{Binding SourceBounds, Mode=TwoWay}"
-                    SourceWindow="{Binding AttachedWindow, Mode=OneWay}"
-                    IsHitTestVisible="{Binding IsInSelectMode, Mode=OneWay}"
-                    SourceRegionSize="{Binding ThumbnailSize, Mode=OneWayToSource}"
-                    SourceWindowSize="{Binding SourceWindowSize, Mode=OneWayToSource}" />
+                <ui:AdornedControl IsAdornerVisible="True">
+                    <ui:AdornedControl.AdornerContent>
+                        <Grid>
+                            <ContentControl Content="{Binding SelectionAdorner}"/>
+                        </Grid>
+                    </ui:AdornedControl.AdornerContent>
+                    
+                    <mainWindow:ThumbnailPanel
+                        x:Name="ThumbnailPanelElement"
+                        Background="{StaticResource MaxTransparencyBrush}"
+                        ThumbnailOpacity="{Binding ActiveThumbnailOpacity, Mode=OneWay}"
+                        SourceRegion="{Binding SourceBounds, Mode=TwoWay}"
+                        SourceWindow="{Binding AttachedWindow, Mode=OneWay}"
+                        IsHitTestVisible="{Binding IsInSelectMode, Mode=OneWay}"
+                        SourceRegionSize="{Binding ThumbnailSize, Mode=OneWayToSource}"
+                        SourceWindowSize="{Binding SourceWindowSize, Mode=OneWayToSource}" />
+                </ui:AdornedControl>
             </Border>
             
             <Border BorderThickness="{Binding BorderThickness, Converter={StaticResource ThicknessConverter}, ConverterParameter=''}"

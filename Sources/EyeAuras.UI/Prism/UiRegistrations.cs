@@ -30,6 +30,7 @@ namespace EyeAuras.UI.Prism
                 .RegisterSingleton<MainWindowViewModel>(typeof(IMainWindowViewModel));
 
             Container
+                .RegisterType<ISelectionAdornerViewModel, SelectionAdornerViewModel>()
                 .RegisterType<IWindowSelectorViewModel, WindowSelectorViewModel>()
                 .RegisterType<IMessageBoxViewModel, MessageBoxViewModel>()
                 .RegisterType<IOverlayAuraModel, OverlayAuraModelBase>()

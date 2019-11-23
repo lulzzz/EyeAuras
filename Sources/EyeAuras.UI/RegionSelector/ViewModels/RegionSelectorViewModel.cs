@@ -22,50 +22,34 @@ using Point = System.Drawing.Point;
 
 namespace EyeAuras.UI.RegionSelector.ViewModels
 {
-    public sealed class RegionSelectorViewModel : DisposableReactiveObject, IRegionSelectorViewModel
+    internal sealed class RegionSelectorViewModel : DisposableReactiveObject, IRegionSelectorViewModel
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(RegionSelectorViewModel));
         private static readonly TimeSpan ThrottlingPeriod = TimeSpan.FromMilliseconds(100);
         private static readonly int CurrentProcessId = Process.GetCurrentProcess().Id;
 
-        private Rectangle selection;
-        private Point mouseLocation;
-        private RegionSelectorResult mouseRegion;
+        private RegionSelectorResult selectionCandidate;
         private readonly IWindowSeeker windowSeeker;
 
         public RegionSelectorViewModel(
-            [NotNull] IKeyboardEventsSource eventListener,
-            [NotNull] ICloseController<RegionSelectorResult> closeController,
+            [NotNull] ISelectionAdornerViewModel selectionAdorner,
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
         {
+            SelectionAdorner = selectionAdorner.AddTo(Anchors);
             windowSeeker = new TaskWindowSeeker()
             {
                 SkipNotVisibleWindows = true
             };
-            eventListener.InitializeMouseHook().AddTo(Anchors);
-            eventListener.WhenMouseMove
-                .Select(x => x.Location)
-                .StartWith(System.Windows.Forms.Cursor.Position)
-                .ObserveOn(uiScheduler)
-                .Subscribe(x => MouseLocation = x)
-                .AddTo(Anchors);
 
-            this.WhenAnyValue(x => x.MouseLocation)
+            SelectionAdorner.WhenAnyValue(x => x.MousePosition)
+                .Where(x => SelectionAdorner.Owner != null)
+                .Select(x => GeometryExtensions.ToScreen(x, SelectionAdorner.Owner))
                 .Sample(ThrottlingPeriod)
                 .Select(x => new Rectangle(x.X, x.Y, 1, 1))
                 .Select(ToRegionResult)
                 .ObserveOn(uiScheduler)
-                .Subscribe(x => MouseRegion = x)
-                .AddTo(Anchors);
-            
-            this.WhenAnyValue(x => x.Selection)
-                .Skip(1)
-                .Subscribe(
-                    screenRegion =>
-                    {
-                        var result = ToRegionResult(screenRegion);
-                        closeController.Close(result);
-                    })
+                .Do(x => Log.Debug($"Selection candidate: {x}"))
+                .Subscribe(x => SelectionCandidate = x)
                 .AddTo(Anchors);
             
             Observable.Timer(DateTimeOffset.Now, TimeSpan.FromSeconds(1))
@@ -73,22 +57,19 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                 .AddTo(Anchors);
         }
 
-        public Rectangle Selection
+        public ISelectionAdornerViewModel SelectionAdorner { get; }
+        public IObservable<RegionSelectorResult> SelectWindow()
         {
-            get => selection;
-            set => this.RaiseAndSetIfChanged(ref selection, value);
+            return SelectionAdorner.StartSelection()
+                .Select(x => GeometryExtensions.ToScreen(x, SelectionAdorner.Owner))
+                .Select(ToRegionResult)
+                .Do(x => Log.Debug($"Selection Result: {x}"));
         }
 
-        public RegionSelectorResult MouseRegion
+        public RegionSelectorResult SelectionCandidate
         {
-            get => mouseRegion;
-            set => this.RaiseAndSetIfChanged(ref mouseRegion, value);
-        }
-
-        public Point MouseLocation
-        {
-            get => mouseLocation;
-            set => this.RaiseAndSetIfChanged(ref mouseLocation, value);
+            get => selectionCandidate;
+            private set => this.RaiseAndSetIfChanged(ref selectionCandidate, value);
         }
 
         private RegionSelectorResult ToRegionResult(Rectangle screenRegion)

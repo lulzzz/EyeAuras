@@ -11,7 +11,10 @@ using System.Windows.Media;
 using EyeAuras.OnTopReplica;
 using EyeAuras.Shared.Services;
 using EyeAuras.UI.Core.Models;
+using EyeAuras.UI.MainWindow;
+using EyeAuras.UI.MainWindow.ViewModels;
 using EyeAuras.UI.Overlay.Views;
+using EyeAuras.UI.RegionSelector.ViewModels;
 using JetBrains.Annotations;
 using log4net;
 using PoeShared;
@@ -70,8 +73,10 @@ namespace EyeAuras.UI.Overlay.ViewModels
             [NotNull] IOverlayWindowController overlayWindowController,
             [NotNull] IAuraModelController auraModelController,
             [NotNull] IWindowListProvider windowListProvider,
+            [NotNull] ISelectionAdornerViewModel selectionAdorner,
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
         {
+            SelectionAdorner = selectionAdorner.AddTo(Anchors);
             this.mainWindowTracker = mainWindowTracker;
             this.overlayWindowController = overlayWindowController;
             this.auraModelController = auraModelController;
@@ -161,7 +166,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
         }
 
         public bool IsInEditMode => isInEditMode.Value;
-
+        
         public bool IsInSelectMode
         {
             get => isInSelectMode;
@@ -179,6 +184,8 @@ namespace EyeAuras.UI.Overlay.ViewModels
             get => borderThickness;
             set => RaiseAndSetIfChanged(ref borderThickness, value);
         }
+
+        public ISelectionAdornerViewModel SelectionAdorner { get; }
         
         public ReadOnlyObservableCollection<WindowHandle> WindowList => windowListProvider.WindowList;
         
@@ -289,6 +296,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private void CloseConfigEditorCommandExecuted()
         {
+            Log.Debug("Closing ConfigEditor");
             activeSelectRegionAnchors.Disposable = null;
         }
 
@@ -304,15 +312,21 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private void SelectRegionCommandExecuted()
         {
-            var selectRegionAnchors = OpenConfigEditor();
             Log.Debug($"Region selection mode turned on, Region: {Region}");
+
+            var selectRegionAnchors = OpenConfigEditor();
+            Disposable.Create(() =>
+            {
+                Log.Debug("Disabling Region selection");
+                IsInSelectMode = false;
+                CloseConfigEditorCommandExecuted();
+            }).AddTo(selectRegionAnchors);
+            
             IsInSelectMode = true;
-
-            Disposable.Create(() => IsInSelectMode = false).AddTo(selectRegionAnchors);
-
-            this.WhenAnyValue(x => x.IsInSelectMode)
-                .Where(x => !x)
-                .Subscribe(CloseConfigEditorCommandExecuted)
+            SelectionAdorner.StartSelection()
+                .Take(1)
+                .Finally(() => selectRegionAnchors.Dispose())
+                .Subscribe(UpdateRegion)
                 .AddTo(selectRegionAnchors);
         }
 
@@ -458,6 +472,58 @@ namespace EyeAuras.UI.Overlay.ViewModels
         public override string ToString()
         {
             return $"[{OverlayName}]";
+        }
+        
+        private void UpdateRegion(Rect selection)
+        {
+            if (selection.IsEmpty)
+            {
+                Region.SetValue(WinRectangle.Empty);
+                return;
+            }
+            selection.Scale(dpi.DpiScaleX, dpi.DpiScaleY); // Wpf Px => Win Px
+            
+            var targetSize = SourceWindowSize; // Win Px
+            var destinationSize = new Size(ActualWidth, ActualHeight).Scale(dpi.DpiScaleX, dpi.DpiScaleY).ToWinSize(); // Win Px
+            var currentTargetRegion = Region.Bounds; // Win Px
+
+            var selectionPercent = new Rect
+            {
+                X = selection.X / destinationSize.Width,
+                Y = selection.Y / destinationSize.Height,
+                Height = selection.Height / destinationSize.Height,
+                Width = selection.Width / destinationSize.Width
+            };
+
+            Rect currentRegionPercent;
+            if (currentTargetRegion.IsNotEmpty())
+            {
+                currentRegionPercent = new Rect
+                {
+                    X = (double)currentTargetRegion.X / targetSize.Width,
+                    Y = (double)currentTargetRegion.Y / targetSize.Height,
+                    Height = (double)currentTargetRegion.Height / targetSize.Height,
+                    Width = (double)currentTargetRegion.Width / targetSize.Width
+                };
+            }
+            else
+            {
+                currentRegionPercent = new Rect
+                {
+                    Width = 1,
+                    Height = 1
+                };
+            }
+
+            var destinationRegion = new Rect
+            {
+                X = (currentRegionPercent.X + selectionPercent.X * currentRegionPercent.Width) * targetSize.Width,
+                Y = (currentRegionPercent.Y + selectionPercent.Y * currentRegionPercent.Height) * targetSize.Height,
+                Width = Math.Max(1, currentRegionPercent.Width * selectionPercent.Width * targetSize.Width),
+                Height = Math.Max(1, currentRegionPercent.Height * selectionPercent.Height * targetSize.Height)
+            };
+
+            Region.SetValue(destinationRegion.ToWinRectangle());
         }
     }
 }

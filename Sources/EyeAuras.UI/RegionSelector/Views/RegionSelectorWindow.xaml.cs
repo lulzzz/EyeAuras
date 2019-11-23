@@ -35,13 +35,11 @@ namespace EyeAuras.UI.RegionSelector.Views
         private static readonly ILog Log = LogManager.GetLogger(typeof(RegionSelectorWindow));
 
         private readonly CompositeDisposable anchors = new CompositeDisposable();
-        private readonly SelectionAdorner selectionAdorner;
 
         public RegionSelectorWindow(
             [NotNull] IFactory<IRegionSelectorViewModel, ICloseController<RegionSelectorResult>> viewModelFactory)
         {
             InitializeComponent();
-            selectionAdorner = new SelectionAdorner(RegionSelectorRoot) {Stroke = Brushes.Lime};
 
             Disposable.Create(() => Log.Debug("RegionSelectorWindow disposed")).AddTo(anchors);
             Closed += OnClosed;
@@ -105,22 +103,17 @@ namespace EyeAuras.UI.RegionSelector.Views
                 .Subscribe(reason => CloseController.Close(new RegionSelectorResult() { Reason = reason }))
                 .AddTo(anchors);
 
-            var adornerLayer = AdornerLayer.GetAdornerLayer(RegionSelectorRoot);
-            Guard.ArgumentNotNull(adornerLayer, nameof(adornerLayer));
-            adornerLayer.Add(selectionAdorner);
-            
-            selectionAdorner.StartSelection()
+            viewModel.SelectWindow()
                 .Subscribe(
-                    region =>
+                    result =>
                     {
-                        var screenRegion = GeometryExtensions.ToScreen(region, selectionAdorner);
-                        viewModel.Selection = screenRegion;
+                        CloseController.Close(result);
                     },
                     Log.HandleException,
                     () => { closeWindowSink.OnNext("region selection cancelled"); })
                 .AddTo(anchors);
 
-            viewModel.WhenAnyValue(x => x.MouseRegion)
+            viewModel.WhenAnyValue(x => x.SelectionCandidate)
                 .Subscribe(
                     regionResult =>
                     {
