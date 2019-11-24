@@ -105,6 +105,7 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                             keyboardEventsSource.WhenKeyUp.Where(x => x.KeyData == Keys.Escape).Select(x => $"{x.KeyData} pressed"),
                             keyboardEventsSource.WhenMouseUp.Where(x => x.Button != mouseSelectionButton).Select(x => $"mouse {x.Button} pressed"))
                         .Do(reason => Log.Info($"Closing SelectionAdorner, reason: {reason}"))
+                        .ObserveOn(uiScheduler)
                         .Subscribe(subscriber.OnCompleted)
                         .AddTo(selectionAnchors);
                     
@@ -130,12 +131,6 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                             {
                                 var result = Selection;
                                 Selection = Rect.Empty;
-
-                                if (result.Width * result.Height < 20)
-                                {
-                                    result = new Rect(mousePosition.X, mousePosition.Y, 0, 0);
-                                }
-
                                 return Observable.Return(result);
                             })
                         .Switch()

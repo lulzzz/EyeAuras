@@ -14,7 +14,7 @@ namespace EyeAuras.OnTopReplica.WindowSeekers
     {
         private readonly ConcurrentDictionary<IntPtr, WindowHandle> windows = new ConcurrentDictionary<IntPtr, WindowHandle>();
 
-        public override IEnumerable<WindowHandle> Windows => windows.Values;
+        public override ICollection<WindowHandle> Windows => windows.Values;
 
         public override void Refresh()
         {

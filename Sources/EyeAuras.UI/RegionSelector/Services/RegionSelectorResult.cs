@@ -18,7 +18,7 @@ namespace EyeAuras.UI.RegionSelector.Services
 
         public override string ToString()
         {
-            return $"{nameof(Window)}: {Window}, {nameof(Selection)}: {Selection}, {nameof(Reason)}: {Reason}";
+            return new { Window, AbsoluteSelection, Selection, Reason }.ToString();
         }
     }
 }

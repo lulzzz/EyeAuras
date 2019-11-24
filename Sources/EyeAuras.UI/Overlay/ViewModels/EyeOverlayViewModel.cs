@@ -39,7 +39,6 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private static readonly double DefaultThumbnailOpacity = 1;
         private static readonly double EditModeThumbnailOpacity = 0.7;
 
-        private readonly SerialDisposable activeSelectRegionAnchors = new SerialDisposable();
         private readonly CommandWrapper closeConfigEditorCommand;
 
         private readonly CommandWrapper fitOverlayCommand;
@@ -56,6 +55,8 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private readonly IWindowListProvider windowListProvider;
         private readonly ObservableAsPropertyHelper<bool> isInEditMode;
         private readonly ObservableAsPropertyHelper<double> aspectRatio;
+
+        private OverlayConfigEditor configEditor;
 
         private bool maintainAspectRatio = true;
         private WindowHandle attachedWindow;
@@ -150,6 +151,8 @@ namespace EyeAuras.UI.Overlay.ViewModels
                     : double.PositiveInfinity)
                 .ToPropertyHelper(this, x => x.AspectRatio, uiScheduler)
                 .AddTo(Anchors);
+            
+            configEditor = CreateConfigEditor(this);
         }
 
         private bool CloseCommandCanExecute()
@@ -297,7 +300,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private void CloseConfigEditorCommandExecuted()
         {
             Log.Debug("Closing ConfigEditor");
-            activeSelectRegionAnchors.Disposable = null;
+            configEditor.Hide();
         }
 
         private bool ResetRegionCommandCanExecute()
@@ -320,12 +323,12 @@ namespace EyeAuras.UI.Overlay.ViewModels
             {
                 Log.Debug("Disabling Region selection");
                 IsInSelectMode = false;
-                CloseConfigEditorCommandExecuted();
             }).AddTo(selectRegionAnchors);
             
             IsInSelectMode = true;
             SelectionAdorner.StartSelection()
                 .Take(1)
+                .Where(x => x.Width * x.Height >= 20)
                 .Finally(() => selectRegionAnchors.Dispose())
                 .Subscribe(UpdateRegion)
                 .AddTo(selectRegionAnchors);
@@ -352,47 +355,63 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private CompositeDisposable OpenConfigEditor()
         {
-            using var unused = new OperationTimer(elapsed => Log.Debug($"ConfigEditor initialization took {elapsed.TotalMilliseconds:F0}ms"));
-
             var anchors = new CompositeDisposable();
-            activeSelectRegionAnchors.Disposable = anchors;
 
-            var window = new OverlayConfigEditor
-            {
-                DataContext = this
-            };
+            configEditor.Left = OverlayWindow.Left + OverlayWindow.ActualWidth + 10;
+            configEditor.Top = OverlayWindow.Top;
+            
             Disposable.Create(
                     () =>
                     {
-                        Log.Debug("Closing ConfigEditor");
-                        window.Close();
+                        Log.Debug("Hiding ConfigEditor window");
+                        CloseConfigEditorCommandExecuted();
                     })
                 .AddTo(anchors);
-
-            window.Left = OverlayWindow.Left + OverlayWindow.ActualWidth + 10;
-            window.Top = OverlayWindow.Top;
-
-            overlayWindowController.WhenAnyValue(x => x.IsVisible)
+            
+            overlayWindowController
+                .WhenAnyValue(x => x.IsVisible)
                 .Subscribe(
                     x =>
                     {
                         if (x)
                         {
-                            window.Show();
+                            configEditor.Show();
                         }
                         else
                         {
-                            window.Hide();
+                            configEditor.Hide();
                         }
                     })
-                .AddTo(anchors);
+                .AddTo(Anchors);
 
+            return anchors;
+        }
+
+        private OverlayConfigEditor CreateConfigEditor(object dataContext)
+        {
+            using var unused = new OperationTimer(elapsed => Log.Debug($"ConfigEditor initialization took {elapsed.TotalMilliseconds:F0}ms"));
+
+            var window = new OverlayConfigEditor
+            {
+                DataContext = dataContext,
+                ShowActivated = false,
+                Visibility = Visibility.Collapsed
+            };
+            
+            Disposable.Create(
+                    () =>
+                    {
+                        Log.Debug("Closing ConfigEditor window");
+                        window.Close();
+                    })
+                .AddTo(Anchors);
+            
             Observable
                 .FromEventPattern<EventHandler, EventArgs>(h => window.Closed += h, h => window.Closed -= h)
                 .Subscribe(CloseConfigEditorCommandExecuted)
-                .AddTo(anchors);
-
-            return anchors;
+                .AddTo(Anchors);
+            
+            return window;
         }
 
         private void ResetRegionCommandExecuted()

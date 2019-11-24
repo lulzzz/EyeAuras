@@ -10,8 +10,10 @@ using PoeShared.Native;
 using PoeShared.Scaffolding;
 using ReactiveUI;
 using System;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Windows.Input;
 using EyeAuras.OnTopReplica.WindowSeekers;
 using JetBrains.Annotations;
@@ -19,32 +21,40 @@ using log4net;
 using PoeShared.Prism;
 using Unity;
 using Point = System.Drawing.Point;
+using Size = System.Windows.Size;
 
 namespace EyeAuras.UI.RegionSelector.ViewModels
 {
     internal sealed class RegionSelectorViewModel : DisposableReactiveObject, IRegionSelectorViewModel
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(RegionSelectorViewModel));
-        private static readonly TimeSpan ThrottlingPeriod = TimeSpan.FromMilliseconds(100);
+        private static readonly TimeSpan ThrottlingPeriod = TimeSpan.FromMilliseconds(250);
         private static readonly int CurrentProcessId = Process.GetCurrentProcess().Id;
+        private static readonly double MinSelectionArea = 20;
 
         private RegionSelectorResult selectionCandidate;
         private readonly IWindowSeeker windowSeeker;
 
         public RegionSelectorViewModel(
             [NotNull] ISelectionAdornerViewModel selectionAdorner,
-            [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
+            [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler,
+            [NotNull] [Dependency(WellKnownSchedulers.Background)] IScheduler bgScheduler)
         {
             SelectionAdorner = selectionAdorner.AddTo(Anchors);
-            windowSeeker = new TaskWindowSeeker()
+            windowSeeker = new TaskWindowSeeker
             {
                 SkipNotVisibleWindows = true
             };
 
-            SelectionAdorner.WhenAnyValue(x => x.MousePosition)
-                .Where(x => SelectionAdorner.Owner != null)
-                .Select(x => GeometryExtensions.ToScreen(x, SelectionAdorner.Owner))
-                .Sample(ThrottlingPeriod)
+            var refreshRequest = new Subject<Unit>();
+
+            SelectionAdorner.WhenAnyValue(x => x.MousePosition, x => x.Owner).ToUnit()
+                .Merge(refreshRequest)
+                .Select(x => new { SelectionAdorner.MousePosition, SelectionAdorner.Owner })
+                .Where(x => x.Owner != null)
+                .ObserveOn(uiScheduler)
+                .Select(x => x.MousePosition.ToScreen(x.Owner))
+                .Sample(ThrottlingPeriod, bgScheduler)
                 .Select(x => new Rectangle(x.X, x.Y, 1, 1))
                 .Select(ToRegionResult)
                 .ObserveOn(uiScheduler)
@@ -52,8 +62,12 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                 .Subscribe(x => SelectionCandidate = x)
                 .AddTo(Anchors);
             
-            Observable.Timer(DateTimeOffset.Now, TimeSpan.FromSeconds(1))
+            refreshRequest
                 .Subscribe(() => windowSeeker.Refresh())
+                .AddTo(Anchors);
+
+            Observable.Timer(DateTimeOffset.Now, TimeSpan.FromSeconds(1), bgScheduler).ToUnit()
+                .Subscribe(refreshRequest)
                 .AddTo(Anchors);
         }
 
@@ -61,6 +75,8 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
         public IObservable<RegionSelectorResult> SelectWindow()
         {
             return SelectionAdorner.StartSelection()
+                .Do(x => Log.Debug($"Selected region: {x}"))
+                .Select(x => x.Width * x.Height >= MinSelectionArea ? x : new Rect(x.X, x.Y, 0 , 0))
                 .Select(x => GeometryExtensions.ToScreen(x, SelectionAdorner.Owner))
                 .Select(ToRegionResult)
                 .Do(x => Log.Debug($"Selection Result: {x}"));
@@ -85,7 +101,7 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
             {
                 var absoluteSelection = selection;
                 absoluteSelection.Offset(window.ClientBounds.Left, window.ClientBounds.Top);
-                return new RegionSelectorResult()
+                return new RegionSelectorResult
                 {
                     AbsoluteSelection = absoluteSelection,
                     Selection = selection,
@@ -97,8 +113,9 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
             return new RegionSelectorResult { Reason = $"Could not find matching window in region {screenRegion}" };
         }
         
-        private static (WindowHandle window, Rectangle selection) FindMatchingWindow(Rectangle selection, IEnumerable<WindowHandle> windows)
+        private static (WindowHandle window, Rectangle selection) FindMatchingWindow(Rectangle selection, ICollection<WindowHandle> windows)
         {
+            Log.Info($"Analyzing windows in selection: {selection}, windows: {windows.Count}");
             var topLeft = new Point(selection.Left, selection.Top);
             var intersections = windows
                 .Where(x => x.ProcessId != CurrentProcessId)
