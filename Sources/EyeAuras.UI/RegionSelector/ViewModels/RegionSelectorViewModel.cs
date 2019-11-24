@@ -115,7 +115,6 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
         
         private static (WindowHandle window, Rectangle selection) FindMatchingWindow(Rectangle selection, ICollection<WindowHandle> windows)
         {
-            Log.Info($"Analyzing windows in selection: {selection}, windows: {windows.Count}");
             var topLeft = new Point(selection.Left, selection.Top);
             var intersections = windows
                 .Where(x => x.ProcessId != CurrentProcessId)
