@@ -37,7 +37,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private static readonly ILog Log = LogManager.GetLogger(typeof(EyeOverlayViewModel));
         private static readonly int CurrentProcessId = Process.GetCurrentProcess().Id;
         private static readonly double DefaultThumbnailOpacity = 1;
-        private static readonly double EditModeThumbnailOpacity = 0.8;
+        private static readonly double EditModeThumbnailOpacity = 0.7;
 
         private readonly SerialDisposable activeSelectRegionAnchors = new SerialDisposable();
         private readonly CommandWrapper closeConfigEditorCommand;
