@@ -18,7 +18,7 @@
 * UI customization - you can clone and resize/move ANY part of ANY window => you can finally move some action bars to the center of the screen. Or bring HP bar closer to your eye line. Or make some important indicators (e.g. debuffs) much bigger and more visible.
 
 ## Features
-- Clone any of your windows and keep it always-on-top while working with other windows
+- Clone any of your windows via global Hotkey or a set of Matching rules and keep it always-on-top while working with other windows
 - Select a subregion of the cloned window
 - Click-through mode - make any of your overlays absolutely transparent to mouse clicks !
 - Add Triggers(e.g. WindowIsActive) which can automatically show/hide overlay when a certain condition is met
