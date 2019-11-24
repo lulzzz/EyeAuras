@@ -79,6 +79,14 @@ namespace EyeAuras.UI.RegionSelector.Views
         {
             var windowHandle = new WindowInteropHelper(this).Handle;
             Log.Debug($"[{windowHandle.ToHexadecimal()}] Window loaded");
+            
+            var screen = System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Control.MousePosition);
+            var workingArea = screen.WorkingArea;
+            Left = workingArea.Left;
+            Top = workingArea.Top;
+            Width = workingArea.Width;
+            Height = workingArea.Height;
+            WindowState = WindowState.Maximized;
 
             if (!UnsafeNative.SetForegroundWindow(windowHandle))
             {
@@ -133,7 +141,7 @@ namespace EyeAuras.UI.RegionSelector.Views
                     })
                 .AddTo(anchors);
         }
-
+        
         private void OnClosed(object sender, EventArgs e)
         {
             Dispose();

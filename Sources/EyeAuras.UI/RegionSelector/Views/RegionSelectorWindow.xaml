@@ -12,7 +12,7 @@
                           ResizeMode="NoResize"
                           SizeToContent="Manual"
                           WindowStyle="None"
-                          WindowStartupLocation="CenterOwner"
+                          WindowStartupLocation="Manual"
                           Topmost="True"
                           Background="{x:Null}"
                           BorderBrush="{x:Null}"
@@ -20,7 +20,7 @@
                           DataContext="{Binding}"
                           FontFamily="{StaticResource FontPlayRegular}"
                           ShowActivated="True"
-                          WindowState="Maximized" 
+                          WindowState="Normal" 
                           d:DataContext="{d:DesignInstance viewModels1:RegionSelectorViewModel}">
     <Window.Resources>
         <blue:MultiplyDoubleConverter x:Key="MultiplyDoubleDivideByThreeConverter" Factor="0.33" />

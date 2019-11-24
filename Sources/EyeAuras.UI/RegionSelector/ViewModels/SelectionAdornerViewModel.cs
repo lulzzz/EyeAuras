@@ -17,6 +17,7 @@ using PoeShared.Native;
 using PoeShared.Prism;
 using PoeShared.Scaffolding;
 using Unity;
+using Control = System.Windows.Forms.Control;
 using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 using WinSize = System.Drawing.Size;
 using WinPoint = System.Drawing.Point;
@@ -98,6 +99,7 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                     Disposable.Create(() => Log.Debug($"Disposing SelectionAnchors")).AddTo(selectionAnchors);
                     Disposable.Create(() => IsVisible = false).AddTo(selectionAnchors);
                     Selection = Rect.Empty;
+                    MousePosition = owner.PointFromScreen(Control.MousePosition.ToWpfPoint());
                     keyboardEventsSource.InitializeMouseHook().AddTo(selectionAnchors);
 
                     Observable.Merge(
