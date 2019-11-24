@@ -31,7 +31,8 @@ namespace EyeAuras.UI.Core.ViewModels
         private WindowMatchParams targetWindow;
         private string windowTitle;
         private bool windowTitleIsRegex;
-        
+        private IntPtr windowHandle;
+
         public WindowSelectorViewModel(
             [NotNull] IWindowListProvider windowListProvider,
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
@@ -62,6 +63,7 @@ namespace EyeAuras.UI.Core.ViewModels
                         var newTargetWindow = new WindowMatchParams
                         {
                             Title = x.Title,
+                            Handle = x.Handle
                         };
                         Log.Debug($"Selected non-matching Overlay source, changing TargetWindow, {TargetWindow} => {newTargetWindow}");
                         TargetWindow = newTargetWindow;
@@ -70,7 +72,7 @@ namespace EyeAuras.UI.Core.ViewModels
 
             this.WhenAnyValue(x => x.MatchingWindowList)
                 .Where(items => !items.Contains(ActiveWindow))
-                .Select(items => items.FirstOrDefault(x => x.Handle == ActiveWindow?.Handle) ?? items.FirstOrDefault())
+                .Select(items => items.FirstOrDefault(x => x.Handle == ActiveWindow?.Handle || x.Handle == WindowHandle) ?? items.FirstOrDefault())
                 .Where(x => !Equals(ActiveWindow, x))
                 .Subscribe(
                     x =>
@@ -92,15 +94,17 @@ namespace EyeAuras.UI.Core.ViewModels
                     {
                         WindowTitle = x.Title;
                         WindowTitleIsRegex = x.IsRegex;
+                        WindowHandle = x.Handle;
                     })
                 .AddTo(Anchors);
 
-            this.WhenAnyValue(x => x.WindowTitle, x => x.WindowTitleIsRegex)
+            this.WhenAnyValue(x => x.WindowTitle, x => x.WindowTitleIsRegex, x => x.WindowHandle)
                 .Select(
                     x => new WindowMatchParams
                     {
                         Title = WindowTitle,
-                        IsRegex = WindowTitleIsRegex
+                        IsRegex = WindowTitleIsRegex,
+                        Handle = WindowHandle
                     })
                 .DistinctUntilChanged()
                 .Throttle(ThrottlingPeriod)
@@ -121,6 +125,12 @@ namespace EyeAuras.UI.Core.ViewModels
         {
             get => windowTitleIsRegex;
             set => RaiseAndSetIfChanged(ref windowTitleIsRegex, value);
+        }
+
+        public IntPtr WindowHandle
+        {
+            get => windowHandle;
+            set => this.RaiseAndSetIfChanged(ref windowHandle, value);
         }
 
         public ReadOnlyObservableCollection<WindowHandle> WindowList { get; }
@@ -154,7 +164,9 @@ namespace EyeAuras.UI.Core.ViewModels
 
         private WindowHandle[] BuildMatches(IEnumerable<WindowHandle> source)
         {
-            var comparer = new SortExpressionComparer<WindowHandle>().ThenByAscending(x => x.Title.Length).ThenByAscending(x => x.Title);
+            var comparer = new SortExpressionComparer<WindowHandle>()
+                .ThenByAscending(x => x.Title.Length)
+                .ThenByAscending(x => x.Title);
             var windowList = source
                 .Where(x => IsMatch(x, targetWindow))
                 .OrderBy(x => x, comparer)

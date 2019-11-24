@@ -1,3 +1,5 @@
+using System;
+using Newtonsoft.Json;
 using PoeShared.Scaffolding;
 
 namespace EyeAuras.Shared.Services
@@ -7,6 +9,9 @@ namespace EyeAuras.Shared.Services
         public bool IsEmpty => string.IsNullOrEmpty(Title);
 
         public string Title { get; set; }
+        
+        [JsonIgnore]
+        public IntPtr Handle { get; set; }
         
         public bool IsRegex { get; set; }
 

@@ -397,7 +397,8 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                 {
                     WindowMatch = new WindowMatchParams
                     {
-                        Title = result.Window.Title
+                        Title = result.Window.Title,
+                        Handle = result.Window.Handle
                     },
                     IsEnabled = true,
                     OverlayBounds = result.AbsoluteSelection,

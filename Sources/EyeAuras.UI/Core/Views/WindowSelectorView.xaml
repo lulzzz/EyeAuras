@@ -80,7 +80,8 @@
                     <DataTemplate DataType="{x:Type lib:WindowHandle}">
                         <ContentControl
                             MaxWidth="{Binding ElementName=OverlayWindowSelector, Path=ActualWidth, Mode=OneWay}"
-                            Content="{Binding}" />
+                            Content="{Binding}" Background="Transparent">
+                        </ContentControl>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>

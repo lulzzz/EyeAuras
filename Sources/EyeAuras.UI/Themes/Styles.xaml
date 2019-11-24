@@ -268,14 +268,45 @@
     </Style>
 
     <DataTemplate DataType="{x:Type lib:WindowHandle}">
-        <DockPanel Height="20">
+        <DockPanel Height="20" Background="Transparent" ToolTipService.ShowDuration="30000">
+            <DockPanel.ToolTip>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Class:" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Class}" Margin="10,0" />
+                                    
+                    <TextBlock Grid.Column="0" Grid.Row="1" Text="Process:" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding ProcessId}" Margin="10,0" />
+                                    
+                    <TextBlock Grid.Column="0" Grid.Row="2" Text="Client bounds:" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding ClientBounds}" Margin="10,0" />
+                                    
+                    <TextBlock Grid.Column="0" Grid.Row="3" Text="Window bounds:" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding WindowBounds}" Margin="10,0" />
+                </Grid>
+            </DockPanel.ToolTip>
             <Image Source="{Binding IconBitmap}" Margin="5,0" Width="16" Height="16" />
             <TextBlock Text="{Binding Title}"
-                       ToolTip="{Binding Title}"
                        HorizontalAlignment="Left"
                        VerticalAlignment="Center"
                        TextAlignment="Left"
                        TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Handle, Converter={StaticResource IntPtrToHexadecimalConverter}}"
+                       Opacity="0.7"
+                       Margin="10,0,0,0"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center"
+                       TextAlignment="Right" />
         </DockPanel>
     </DataTemplate>
 </ResourceDictionary>
