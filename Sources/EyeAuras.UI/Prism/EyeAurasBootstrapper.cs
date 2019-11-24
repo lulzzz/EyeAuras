@@ -132,10 +132,6 @@ namespace EyeAuras.UI.Prism
 
             var window = (Window) Shell;
             
-            var keyboardMouseEventSource = Container.Resolve<IKeyboardEventsSource>();
-            keyboardMouseEventSource.RealtimeMode = true;
-            keyboardMouseEventSource.InitializeKeyboardHook().AddTo(anchors);
-
             var sw = Stopwatch.StartNew();
             Log.Info("Initializing Main window...");
             var viewModel = Container.Resolve<IMainWindowViewModel>();

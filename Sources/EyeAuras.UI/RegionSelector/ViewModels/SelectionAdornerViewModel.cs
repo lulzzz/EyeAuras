@@ -100,12 +100,10 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                     Disposable.Create(() => IsVisible = false).AddTo(selectionAnchors);
                     Selection = Rect.Empty;
                     MousePosition = owner.PointFromScreen(Control.MousePosition.ToWpfPoint());
-                    keyboardEventsSource.InitializeMouseHook().AddTo(selectionAnchors);
 
                     Observable.Merge(
                             keyboardEventsSource.WhenKeyUp.Where(x => x.KeyData == Keys.Escape).Select(x => $"{x.KeyData} pressed"),
                             keyboardEventsSource.WhenMouseUp.Where(x => x.Button != mouseSelectionButton).Select(x => $"mouse {x.Button} pressed"))
-                        .ObserveOn(uiScheduler)
                         .Do(reason => Log.Info($"Closing SelectionAdorner, reason: {reason}"))
                         .Subscribe(subscriber.OnCompleted)
                         .AddTo(selectionAnchors);

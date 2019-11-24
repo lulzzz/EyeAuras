@@ -312,6 +312,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private void SelectRegionCommandExecuted()
         {
+            using var unused = new OperationTimer(elapsed => Log.Debug($"SelectRegion initialization took {elapsed.TotalMilliseconds:F0}ms"));
             Log.Debug($"Region selection mode turned on, Region: {Region}");
 
             var selectRegionAnchors = OpenConfigEditor();
@@ -351,6 +352,8 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private CompositeDisposable OpenConfigEditor()
         {
+            using var unused = new OperationTimer(elapsed => Log.Debug($"ConfigEditor initialization took {elapsed.TotalMilliseconds:F0}ms"));
+
             var anchors = new CompositeDisposable();
             activeSelectRegionAnchors.Disposable = anchors;
 

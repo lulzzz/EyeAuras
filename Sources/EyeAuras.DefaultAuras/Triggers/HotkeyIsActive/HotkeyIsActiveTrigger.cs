@@ -143,14 +143,15 @@ namespace EyeAuras.DefaultAuras.Triggers.HotkeyIsActive
             IKeyboardEventsSource eventSource)
         {
             var hotkeyDown =
-                Observable.Merge(eventSource.WhenMouseDown.Select(HotkeyData.FromEvent), eventSource.WhenKeyDown.Select(HotkeyData.FromEvent))
+                Observable.Merge(eventSource.WhenKeyDown.Select(HotkeyData.FromEvent))
                     .Where(IsConfiguredHotkey)
                     .Select(x => x.SetKeyDown(true));
             
             var hotkeyUp =
-                Observable.Merge(eventSource.WhenMouseUp.Select(HotkeyData.FromEvent), eventSource.WhenKeyUp.Select(HotkeyData.FromEvent))
+                Observable.Merge(eventSource.WhenKeyUp.Select(HotkeyData.FromEvent))
                     .Where(IsConfiguredHotkey)
                     .Select(x => x.SetKeyDown(false));
+            
 
             return hotkeyDown
                 .Merge(hotkeyUp);
