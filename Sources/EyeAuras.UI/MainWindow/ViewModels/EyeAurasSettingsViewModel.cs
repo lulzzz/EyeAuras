@@ -1,5 +1,6 @@
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using EyeAuras.UI.Prism.Modularity;
 using JetBrains.Annotations;
@@ -13,7 +14,8 @@ using Unity;
 
 namespace EyeAuras.UI.MainWindow.ViewModels
 {
-    internal sealed class EyeAurasSettingsViewModel : DisposableReactiveObject
+    [UsedImplicitly]
+    internal sealed class EyeAurasSettingsViewModel : DisposableReactiveObject, ISettingsViewModel<EyeAurasConfig>
     {
         private readonly IHotkeyConverter hotkeyConverter;
         private readonly IConfigProvider<EyeAurasConfig> configProvider;
@@ -22,30 +24,14 @@ namespace EyeAuras.UI.MainWindow.ViewModels
         
         private HotkeyGesture unlockAurasHotkey;
         private HotkeyMode unlockAurasHotkeyMode;
-        private bool isOpen;
         private HotkeyGesture selectRegionHotkey;
 
         public EyeAurasSettingsViewModel(
             [NotNull] IHotkeyConverter hotkeyConverter,
-            [NotNull] IConfigProvider<EyeAurasConfig> configProvider,
-            [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
+            [NotNull] IConfigProvider<EyeAurasConfig> configProvider)
         {
             this.hotkeyConverter = hotkeyConverter;
             this.configProvider = configProvider;
-
-            this.WhenAnyValue(x => x.IsOpen)
-                .Where(x => x)
-                .Subscribe(LoadConfig)
-                .AddTo(Anchors);
-
-            SaveConfigCommand = CommandWrapper.Create(
-                () =>
-                {
-                    SaveConfig();
-                    IsOpen = false;
-                });
-
-            CancelCommand = CommandWrapper.Create(() => IsOpen = false);
         }
 
         public HotkeyGesture FreezeAurasHotkey
@@ -78,17 +64,19 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             set => RaiseAndSetIfChanged(ref unlockAurasHotkeyMode, value);
         }
 
-        public bool IsOpen
+        public string ModuleName { get; } = "EyeAuras Main Settings";
+        
+        public Task Load(EyeAurasConfig config)
         {
-            get => isOpen;
-            set => RaiseAndSetIfChanged(ref isOpen, value);
+            FreezeAurasHotkey = hotkeyConverter.ConvertFromString(config.FreezeAurasHotkey);
+            FreezeAurasHotkeyMode = config.FreezeAurasHotkeyMode;
+            UnlockAurasHotkey = hotkeyConverter.ConvertFromString(config.UnlockAurasHotkey);
+            UnlockAurasHotkeyMode = config.UnlockAurasHotkeyMode;
+            SelectRegionHotkey = hotkeyConverter.ConvertFromString(config.RegionSelectHotkey);
+            return Task.CompletedTask;
         }
 
-        public ICommand SaveConfigCommand { get; }
-
-        public ICommand CancelCommand { get; }
-
-        private void SaveConfig()
+        public EyeAurasConfig Save()
         {
             var updatedConfig = configProvider.ActualConfig.CloneJson();
             updatedConfig.FreezeAurasHotkey = FreezeAurasHotkey?.ToString();
@@ -96,17 +84,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             updatedConfig.UnlockAurasHotkey = UnlockAurasHotkey?.ToString();
             updatedConfig.UnlockAurasHotkeyMode = UnlockAurasHotkeyMode;
             updatedConfig.RegionSelectHotkey = SelectRegionHotkey?.ToString();
-            configProvider.Save(updatedConfig);
-        }
-
-        private void LoadConfig()
-        {
-            var config = configProvider.ActualConfig;
-            FreezeAurasHotkey = hotkeyConverter.ConvertFromString(config.FreezeAurasHotkey);
-            FreezeAurasHotkeyMode = config.FreezeAurasHotkeyMode;
-            UnlockAurasHotkey = hotkeyConverter.ConvertFromString(config.UnlockAurasHotkey);
-            UnlockAurasHotkeyMode = config.UnlockAurasHotkeyMode;
-            SelectRegionHotkey = hotkeyConverter.ConvertFromString(config.RegionSelectHotkey);
+            return updatedConfig;
         }
     }
 }

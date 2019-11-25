@@ -4,7 +4,7 @@ using Unity.Extension;
 
 namespace PoeShared.Squirrel.Prism
 {
-    public sealed class UpdaterRegistrations : UnityContainerExtension
+    internal sealed class UpdaterRegistrations : UnityContainerExtension
     {
         protected override void Initialize()
         {

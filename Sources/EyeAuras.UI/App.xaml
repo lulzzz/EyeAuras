@@ -20,6 +20,7 @@
                 <ResourceDictionary Source="Themes/ListBoxAsTabControlStyle.xaml" />
 
                 <ResourceDictionary Source="MainWindow/Views/MessageBoxView.xaml" />
+                <ResourceDictionary Source="MainWindow/Views/EyeAurasSettingsView.xaml" />
                 <ResourceDictionary Source="RegionSelector/Views/SelectionAdornerView.xaml" />
 
                 <ResourceDictionary Source="SplashWindow/Views/SplashWindowView.xaml" />

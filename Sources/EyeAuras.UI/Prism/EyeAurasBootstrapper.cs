@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -12,6 +14,7 @@ using log4net;
 using PoeShared.Native;
 using PoeShared.Prism;
 using PoeShared.Scaffolding;
+using PoeShared.Squirrel.Prism;
 using Prism.Modularity;
 using Prism.Unity;
 using Unity;
@@ -93,7 +96,8 @@ namespace EyeAuras.UI.Prism
                 new ModuleInfo
                 {
                     ModuleName = poeSharedWpfModule.Name,
-                    ModuleType = poeSharedWpfModule.AssemblyQualifiedName
+                    ModuleType = poeSharedWpfModule.AssemblyQualifiedName,
+                    DependsOn = new[] { poeSharedModule.Name }.ToObservableCollection(),
                 });
 
             var mainModule = typeof(MainModule);
@@ -101,7 +105,17 @@ namespace EyeAuras.UI.Prism
                 new ModuleInfo
                 {
                     ModuleName = mainModule.Name,
-                    ModuleType = mainModule.AssemblyQualifiedName
+                    ModuleType = mainModule.AssemblyQualifiedName,
+                    DependsOn = new[] { poeSharedWpfModule.Name }.ToObservableCollection(),
+                });
+            
+            var updaterModule = typeof(UpdaterModule);
+            ModuleCatalog.AddModule(
+                new ModuleInfo
+                {
+                    ModuleName = updaterModule.Name,
+                    ModuleType = updaterModule.AssemblyQualifiedName,
+                    DependsOn = new[] { mainModule.Name, poeSharedModule.Name, poeSharedWpfModule.Name }.ToObservableCollection(),
                 });
         }
 

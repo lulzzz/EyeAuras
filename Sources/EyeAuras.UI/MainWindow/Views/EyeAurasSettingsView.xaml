@@ -9,41 +9,45 @@
     </ResourceDictionary.MergedDictionaries>
 
     <DataTemplate DataType="{x:Type viewModels:EyeAurasSettingsViewModel}">
-        <DockPanel>
-            <DockPanel DockPanel.Dock="Top">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
+                <ColumnDefinition Width="*" SharedSizeGroup="DataColumn" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Freeze(disable) all auras: " HorizontalAlignment="Right" />
+            <DockPanel Grid.Row="0" Grid.Column="1">
                 <ComboBox DockPanel.Dock="Right" DisplayMemberPath="Description" Margin="5,0,0,0"
                           SelectedValuePath="Value"
                           SelectedValue="{Binding FreezeAurasHotkeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                           MinWidth="70"
                           ItemsSource="{Binding Source={StaticResource HotkeyModeEnumDataProvider}}" />
-                <hotkeys:HotKeyBox DockPanel.Dock="Right" Margin="5,0,0,0" HotKey="{Binding FreezeAurasHotkey}" MinWidth="120" VerticalAlignment="Center" />
-                <TextBlock DockPanel.Dock="Left" Text="Freeze(disable) all auras: " HorizontalAlignment="Right" />
+                <hotkeys:HotKeyBox DockPanel.Dock="Right" Margin="5,0,0,0" HotKey="{Binding FreezeAurasHotkey}" MinWidth="120"
+                                   VerticalAlignment="Center" />
             </DockPanel>
 
-            <DockPanel DockPanel.Dock="Top" Margin="0,10,0,0">
+            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,5,0,0" HorizontalAlignment="Right" Text="Unlock all auras: " />
+            <DockPanel Grid.Row="1" Grid.Column="1">
                 <ComboBox DockPanel.Dock="Right" DisplayMemberPath="Description" Margin="5,0,0,0"
                           SelectedValuePath="Value"
                           SelectedValue="{Binding UnlockAurasHotkeyMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                           MinWidth="70"
                           ItemsSource="{Binding Source={StaticResource HotkeyModeEnumDataProvider}}" />
-                <hotkeys:HotKeyBox DockPanel.Dock="Right" Margin="5,0,0,0" HotKey="{Binding UnlockAurasHotkey}" MinWidth="120" VerticalAlignment="Center" />
-                <TextBlock DockPanel.Dock="Left" HorizontalAlignment="Right" Text="Unlock all auras: " />
-            </DockPanel>
-            
-            <DockPanel DockPanel.Dock="Top" Margin="0,10,0,0">
-                <ContentControl DockPanel.Dock="Right" MinWidth="70" Margin="5,0,0,0"/>
-                <hotkeys:HotKeyBox DockPanel.Dock="Right" Margin="5,0,0,0" HotKey="{Binding SelectRegionHotkey}" MinWidth="120" VerticalAlignment="Center" />
-                <TextBlock DockPanel.Dock="Left" HorizontalAlignment="Right" Text="Select region: " />
+                <hotkeys:HotKeyBox DockPanel.Dock="Right" Margin="5,0,0,0" HotKey="{Binding UnlockAurasHotkey}" MinWidth="120"
+                                   VerticalAlignment="Center" />
             </DockPanel>
 
-            <Border DockPanel.Dock="Bottom" VerticalAlignment="Bottom" Margin="10,5,10,0" BorderBrush="{StaticResource MaterialDesignTextBoxBorder}" BorderThickness="0,2,0,0">
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Margin="5,5" Width="120" Height="22" Content="Cancel" HorizontalAlignment="Right"
-                            Command="{Binding CancelCommand}" />
-                    <Button DockPanel.Dock="Left" Margin="5,5" Width="160" Height="22" Content="Save" HorizontalAlignment="Left"
-                            Command="{Binding SaveConfigCommand}" />
-                </DockPanel>
-            </Border>
-        </DockPanel>
+            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,5,0,0" HorizontalAlignment="Right" Text="Select region: " />
+            <DockPanel Grid.Row="2" Grid.Column="1">
+                <ContentControl DockPanel.Dock="Right" MinWidth="70" Margin="5,0,0,0" />
+                <hotkeys:HotKeyBox DockPanel.Dock="Right" Margin="5,0,0,0" HotKey="{Binding SelectRegionHotkey}" MinWidth="120"
+                                   VerticalAlignment="Center" />
+            </DockPanel>
+        </Grid>
     </DataTemplate>
 </ResourceDictionary>

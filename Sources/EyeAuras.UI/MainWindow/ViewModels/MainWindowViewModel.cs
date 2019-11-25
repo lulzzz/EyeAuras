@@ -34,6 +34,7 @@ using PoeShared.Scaffolding.WPF;
 using PoeShared.Squirrel.Updater;
 using PoeShared.UI;
 using PoeShared.UI.Hotkeys;
+using PoeShared.Wpf.UI.Settings;
 using ReactiveUI;
 using Unity;
 
@@ -83,7 +84,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             [NotNull] IApplicationUpdaterViewModel appUpdater,
             [NotNull] IClipboardManager clipboardManager,
             [NotNull] IConfigSerializer configSerializer,
-            [NotNull] EyeAurasSettingsViewModel settingsViewModel,
+            [NotNull] IGenericSettingsViewModel settingsViewModel,
             [NotNull] IMessageBoxViewModel messageBox,
             [NotNull] IHotkeyConverter hotkeyConverter,
             [NotNull] IFactory<HotkeyIsActiveTrigger> hotkeyTriggerFactory,
@@ -285,7 +286,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         public CommandWrapper OpenAppDataDirectoryCommand { get; }
 
-        public EyeAurasSettingsViewModel Settings { get; }
+        public IGenericSettingsViewModel Settings { get; }
 
         public IOverlayAuraViewModel SelectedTab
         {
