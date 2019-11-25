@@ -52,12 +52,11 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                 .Merge(refreshRequest)
                 .Select(x => new { SelectionAdorner.MousePosition, SelectionAdorner.Owner })
                 .Where(x => x.Owner != null)
+                .Sample(ThrottlingPeriod, bgScheduler)
                 .ObserveOn(uiScheduler)
                 .Select(x => x.MousePosition.ToScreen(x.Owner))
-                .Sample(ThrottlingPeriod, bgScheduler)
                 .Select(x => new Rectangle(x.X, x.Y, 1, 1))
                 .Select(ToRegionResult)
-                .ObserveOn(uiScheduler)
                 .Do(x => Log.Debug($"Selection candidate: {x}"))
                 .Subscribe(x => SelectionCandidate = x)
                 .AddTo(Anchors);

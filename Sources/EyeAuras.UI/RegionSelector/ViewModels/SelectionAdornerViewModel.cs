@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Gma.System.MouseKeyHook;
 using JetBrains.Annotations;
 using log4net;
@@ -28,9 +29,11 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
     internal sealed class SelectionAdornerViewModel : DisposableReactiveObject, ISelectionAdornerViewModel
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(SelectionAdornerViewModel));
+        private static readonly TimeSpan MouseCaptureRate = TimeSpan.FromMilliseconds(1000 / 60f);
 
         private readonly IKeyboardEventsSource keyboardEventsSource;
         private readonly IScheduler uiScheduler;
+        private readonly IScheduler bgScheduler;
         private readonly DoubleCollection lineDashArray = new DoubleCollection {2, 2};
         private readonly MouseButtons mouseSelectionButton = MouseButtons.Left;
 
@@ -42,10 +45,12 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
 
         public SelectionAdornerViewModel(
             [NotNull] IKeyboardEventsSource keyboardEventsSource,
-            [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
+            [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler,
+            [NotNull] [Dependency(WellKnownSchedulers.Background)] IScheduler bgScheduler)
         {
             this.keyboardEventsSource = keyboardEventsSource;
             this.uiScheduler = uiScheduler;
+            this.bgScheduler = bgScheduler;
             this.WhenAnyProperty(x => x.Selection, x => x.MousePosition, x => x.Owner)
                 .Where(x => Owner != null)
                 .Subscribe(Redraw)
@@ -109,14 +114,15 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                         .Subscribe(subscriber.OnCompleted)
                         .AddTo(selectionAnchors);
                     
-                    keyboardEventsSource.WhenMouseMove
+                    keyboardEventsSource.WhenMouseMove 
+                        .Sample(MouseCaptureRate) // MouseMove generates thousands of events
+                        .ObserveOn(uiScheduler)
                         .Subscribe(HandleMouseMove)
                         .AddTo(selectionAnchors);
 
                     keyboardEventsSource
                         .WhenMouseDown
                         .Where(x => x.Button == mouseSelectionButton)
-                        .ObserveOn(uiScheduler)
                         .Select(x =>
                         {
                             var coords = owner.PointFromScreen(new Point(x.X, x.Y));
@@ -131,9 +137,8 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                             {
                                 var result = Selection;
                                 Selection = Rect.Empty;
-                                return Observable.Return(result);
+                                return result;
                             })
-                        .Switch()
                         .Subscribe(subscriber)
                         .AddTo(selectionAnchors);
 

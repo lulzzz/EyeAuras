@@ -260,6 +260,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
             RegisterSelectRegionHotkey()
                 .Where(isActive => isActive)
+                .ObserveOn(uiScheduler)
                 .Subscribe(isActive => SelectRegionCommandExecuted())
                 .AddTo(Anchors);
         }
