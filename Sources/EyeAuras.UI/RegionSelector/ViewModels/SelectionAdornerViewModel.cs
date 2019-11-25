@@ -29,7 +29,7 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
     internal sealed class SelectionAdornerViewModel : DisposableReactiveObject, ISelectionAdornerViewModel
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(SelectionAdornerViewModel));
-        private static readonly TimeSpan MouseCaptureRate = TimeSpan.FromMilliseconds(1000 / 60f);
+        private static readonly TimeSpan DesiredRedrawRate = TimeSpan.FromMilliseconds(1000 / 60f);
 
         private readonly IKeyboardEventsSource keyboardEventsSource;
         private readonly IScheduler uiScheduler;
@@ -53,6 +53,8 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
             this.bgScheduler = bgScheduler;
             this.WhenAnyProperty(x => x.Selection, x => x.MousePosition, x => x.Owner)
                 .Where(x => Owner != null)
+                .Sample(DesiredRedrawRate, bgScheduler) // MouseMove generates thousands of events
+                .ObserveOn(uiScheduler)
                 .Subscribe(Redraw)
                 .AddTo(Anchors);
         }
@@ -115,8 +117,6 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                         .AddTo(selectionAnchors);
                     
                     keyboardEventsSource.WhenMouseMove 
-                        .Sample(MouseCaptureRate) // MouseMove generates thousands of events
-                        .ObserveOn(uiScheduler)
                         .Subscribe(HandleMouseMove)
                         .AddTo(selectionAnchors);
 
