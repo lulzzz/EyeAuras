@@ -184,6 +184,16 @@ namespace EyeAuras.UI
             TaskScheduler.UnobservedTaskException -= TaskSchedulerOnUnobservedTaskException;
             Dispatcher.CurrentDispatcher.UnhandledException -= DispatcherOnUnhandledException;
             
+            var appDispatcher = Application.Current?.Dispatcher;
+            if (appDispatcher != null && Dispatcher.CurrentDispatcher != appDispatcher)
+            {
+                Log.Warn("Exception occurred on non-UI thread, rescheduling to UI");
+                appDispatcher.BeginInvoke(() => ReportCrash(exception, developerMessage), DispatcherPriority.Send);
+                Log.Debug($"Sent signal to UI thread to report crash related to exception {exception.Message}");
+
+                return;
+            }
+            
             try
             {
                 var reporter = new ExceptionDialog();
@@ -214,7 +224,7 @@ namespace EyeAuras.UI
                 
                 reporter.Show(exception);
                 
-                Log.Warn($"Forcefully terminating application due to unrecoverable error");
+                Log.Warn($"Forcefully terminating Environment due to unrecoverable error");
                 Environment.Exit(-1);
             }
             catch (Exception e)
