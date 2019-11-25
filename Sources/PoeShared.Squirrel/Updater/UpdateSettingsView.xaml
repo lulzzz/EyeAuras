@@ -9,7 +9,7 @@
     <DataTemplate DataType="{x:Type viewModels:UpdateSettingsViewModel}">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" MinHeight="40" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />

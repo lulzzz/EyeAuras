@@ -11,9 +11,9 @@
     <DataTemplate DataType="{x:Type viewModels:EyeAurasSettingsViewModel}">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" MinHeight="40" />
+                <RowDefinition Height="Auto" MinHeight="40" />
+                <RowDefinition Height="Auto" MinHeight="40" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
@@ -31,7 +31,7 @@
                                    VerticalAlignment="Center" />
             </DockPanel>
 
-            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,5,0,0" HorizontalAlignment="Right" Text="Unlock all auras: " />
+            <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right" Text="Unlock all auras: " />
             <DockPanel Grid.Row="1" Grid.Column="1">
                 <ComboBox DockPanel.Dock="Right" DisplayMemberPath="Description" Margin="5,0,0,0"
                           SelectedValuePath="Value"
@@ -42,7 +42,7 @@
                                    VerticalAlignment="Center" />
             </DockPanel>
 
-            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,5,0,0" HorizontalAlignment="Right" Text="Select region: " />
+            <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" Text="Select region: " />
             <DockPanel Grid.Row="2" Grid.Column="1">
                 <ContentControl DockPanel.Dock="Right" MinWidth="70" Margin="5,0,0,0" />
                 <hotkeys:HotKeyBox DockPanel.Dock="Right" Margin="5,0,0,0" HotKey="{Binding SelectRegionHotkey}" MinWidth="120"
