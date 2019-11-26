@@ -33,9 +33,7 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
 
         private readonly IKeyboardEventsSource keyboardEventsSource;
         private readonly IScheduler uiScheduler;
-        private readonly IScheduler bgScheduler;
         private readonly DoubleCollection lineDashArray = new DoubleCollection {2, 2};
-        private readonly MouseButtons mouseSelectionButton = MouseButtons.Left;
 
         private Point anchorPoint;
         private Point mousePosition;
@@ -50,7 +48,6 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
         {
             this.keyboardEventsSource = keyboardEventsSource;
             this.uiScheduler = uiScheduler;
-            this.bgScheduler = bgScheduler;
             this.WhenAnyProperty(x => x.Selection, x => x.MousePosition, x => x.Owner)
                 .Where(x => Owner != null)
                 .Sample(DesiredRedrawRate, bgScheduler) // MouseMove generates thousands of events
@@ -110,7 +107,7 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
 
                     Observable.Merge(
                             keyboardEventsSource.WhenKeyUp.Where(x => x.KeyData == Keys.Escape).Select(x => $"{x.KeyData} pressed"),
-                            keyboardEventsSource.WhenMouseUp.Where(x => x.Button != mouseSelectionButton).Select(x => $"mouse {x.Button} pressed"))
+                            keyboardEventsSource.WhenMouseUp.Where(x => x.Button != MouseButtons.Left).Select(x => $"mouse {x.Button} pressed"))
                         .Do(reason => Log.Info($"Closing SelectionAdorner, reason: {reason}"))
                         .ObserveOn(uiScheduler)
                         .Subscribe(subscriber.OnCompleted)
@@ -120,15 +117,18 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                         .Subscribe(HandleMouseMove)
                         .AddTo(selectionAnchors);
 
-                    keyboardEventsSource
-                        .WhenMouseDown
-                        .Where(x => x.Button == mouseSelectionButton)
+                    Observable
+                        .FromEventPattern<MouseButtonEventHandler, MouseButtonEventArgs>(
+                            h => owner.MouseDown += h,
+                            h => owner.MouseDown -= h)
+                        .Select(x => x.EventArgs)
+                        .Where(x => x.LeftButton == MouseButtonState.Pressed)
                         .Select(x =>
                         {
-                            var coords = owner.PointFromScreen(new Point(x.X, x.Y));
+                            var coords = x.GetPosition(owner);
                             AnchorPoint = coords;
                             Selection = new Rect(anchorPoint.X, anchorPoint.Y, 0, 0);
-                            return keyboardEventsSource.WhenMouseUp.Where(y => y.Button == mouseSelectionButton);
+                            return keyboardEventsSource.WhenMouseUp.Where(y => y.Button == MouseButtons.Left);
                         })
                         .Switch()
                         .ObserveOn(uiScheduler)
@@ -154,7 +154,7 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
                 Math.Max(0, Math.Min(coords.X, renderSize.Width)),
                 Math.Max(0, Math.Min(coords.Y, renderSize.Height)));
             
-            if (e.Button == mouseSelectionButton)
+            if (e.Button == MouseButtons.Left)
             {
                 var destinationRect = new Rect(0, 0, renderSize.Width, renderSize.Height);
 
