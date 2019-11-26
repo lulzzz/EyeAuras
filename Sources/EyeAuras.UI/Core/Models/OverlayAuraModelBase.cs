@@ -55,11 +55,10 @@ namespace EyeAuras.UI.Core.Models
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler,
             [NotNull] [Dependency(WellKnownSchedulers.Background)] IScheduler bgScheduler)
         {
-            using var sw = new OperationTimer(elapsed => Log.Debug($"[{Name}({Id})] [ctor] OverlayAuraModel initialization took {elapsed.TotalMilliseconds:F0}ms"));
-
             defaultAuraName = $"Aura #{Interlocked.Increment(ref GlobalAuraIdx)}";
             Name = defaultAuraName;
             Id = idGenerator.Next();
+            using var sw = new BenchmarkTimer($"[{Name}({Id})] OverlayAuraModel initialization", Log, nameof(OverlayAuraModelBase));
             
             var auraTriggers = new ComplexAuraTrigger();
             Triggers = auraTriggers.Triggers;
@@ -73,17 +72,15 @@ namespace EyeAuras.UI.Core.Models
                 .Create(matcher)
                 .AddTo(Anchors);
 
-            sw.PutTimestamp();
-            
             var overlayController = overlayWindowControllerFactory
                 .Create(windowTracker)
                 .AddTo(Anchors);
-            sw.LogOperation(elapsed => Log.Debug($"[{Name}({Id})] [ctor] Overlay controller initialization took {elapsed.TotalMilliseconds:F0}ms"));
+            sw.Step($"Overlay controller created: {overlayController}");
 
             var overlayViewModel = overlayViewModelFactory
                 .Create(overlayController, this)
                 .AddTo(Anchors);
-            sw.LogOperation(elapsed => Log.Debug($"[{Name}({Id})] [ctor] Overlay view model initialization took {elapsed.TotalMilliseconds:F0}ms"));
+            sw.Step($"Overlay view model created: {overlayViewModel}");
 
             Observable.Merge(
                     overlayViewModel.WhenValueChanged(x => x.AttachedWindow, false).ToUnit(),
@@ -99,6 +96,7 @@ namespace EyeAuras.UI.Core.Models
                 .AddTo(Anchors);
             
             Overlay = overlayViewModel;
+            sw.Step($"Overlay view model initialized: {overlayViewModel}");
 
             Observable.CombineLatest(
                     auraTriggers.WhenAnyValue(x => x.IsActive),  
@@ -150,17 +148,10 @@ namespace EyeAuras.UI.Core.Models
                 OnEnterActions.Clear();
                 Triggers.Clear();
             }).AddTo(Anchors);
+            sw.Step($"Overlay model properties initialized");
 
-            Observable.FromAsync(() =>
-                {
-                    using var unused = new OperationTimer(elapsed => Log.Debug($"[{Name}({Id})] [ctor] Overlay registration took {elapsed.TotalMilliseconds:F0}ms"));
-                    Log.Debug($"[{Name}({Id})] [ctor] Registering Overlay...");
-                    overlayController.RegisterChild(overlayViewModel);
-                    return Task.CompletedTask;
-                })
-                .SubscribeOnDispatcher(DispatcherPriority.Background)
-                .Subscribe(() => { }, Log.HandleUiException)
-                .AddTo(Anchors);
+            overlayController.RegisterChild(overlayViewModel).AddTo(Anchors);
+            sw.Step($"Overlay registration completed: {this}");
         }
 
         private void ExecuteOnEnterActions()

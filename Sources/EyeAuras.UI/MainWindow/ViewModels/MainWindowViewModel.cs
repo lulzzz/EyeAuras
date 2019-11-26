@@ -478,7 +478,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private void PasteTabCommandExecuted()
         {
-            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(PasteTabCommand)} took {elapsed.TotalMilliseconds:F0}ms"));
+            using var sw = new BenchmarkTimer("Paste tab", Log);
 
             var content = "";
             try
@@ -520,7 +520,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private void CloseTabCommandExecuted(IEyeAuraViewModel tab)
         {
-            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(CloseTabCommand)} took {elapsed.TotalMilliseconds:F0}ms"));
+            using var sw = new BenchmarkTimer("Close tab", Log);
             Guard.ArgumentNotNull(tab, nameof(tab));
 
             Log.Debug($"Removing tab {tab}...");
@@ -535,12 +535,14 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             }
 
             sharedContext.AuraList.Remove(tab);
+            sw.Step($"Removed tab from AuraList (current count: {sharedContext.AuraList.Count})");
 
             var cfg = tab.Properties;
             recentlyClosedQueries.PushBack(cfg);
             UndoCloseTabCommand.RaiseCanExecuteChanged();
 
             tab.Dispose();
+            sw.Step($"Disposed tab {tab}");
         }
 
         private void SaveConfig()
@@ -554,7 +556,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private EyeAurasConfig PrepareConfig()
         {
-            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(PrepareConfig)} took {elapsed.TotalMilliseconds:F0}ms"));
+            using var unused = new BenchmarkTimer("Prepare config", Log);
 
             var positionedItems = positionMonitor.Items.ToArray();
             Log.Debug($"Preparing config, tabs count: {positionedItems.Length}");
@@ -574,7 +576,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private void LoadConfig()
         {
-            using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(LoadConfig)} took {elapsed.TotalMilliseconds:F0}ms"));
+            using var unused = new BenchmarkTimer("Load config operation", Log);
 
             Log.Debug($"Loading config (provider: {configProvider})...");
 
@@ -629,14 +631,18 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private IEyeAuraViewModel CreateAndAddTab(OverlayAuraProperties tabProperties)
         {
-            using var unused = new OperationTimer(elapsed => Log.Debug($"CreateNewTab operation took {elapsed.TotalMilliseconds:F0}ms"));
+            using var sw = new BenchmarkTimer("Create new tab", Log);
 
             Log.Debug($"Adding new tab using config {tabProperties.DumpToTextRaw()}...");
 
             var auraViewModel = (IEyeAuraViewModel)auraViewModelFactory.Create(tabProperties);
+            sw.Step($"Created view model of type {auraViewModel.GetType()}: {auraViewModel}");
             var auraCloseController = new CloseController<IEyeAuraViewModel>(auraViewModel, () => CloseTabCommandExecuted(auraViewModel));
             auraViewModel.SetCloseController(auraCloseController);
+            sw.Step($"Initialized CloseController");
+
             sharedContext.AuraList.Add(auraViewModel);
+            sw.Step($"Added to AuraList(current count: {sharedContext.AuraList.Count})");
 
             return auraViewModel;
         }

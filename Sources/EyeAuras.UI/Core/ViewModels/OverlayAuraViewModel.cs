@@ -122,10 +122,10 @@ namespace EyeAuras.UI.Core.ViewModels
 
         private IOverlayAuraModel ReloadModel()
         {
-            using var sw = new OperationTimer(elapsed => Log.Debug($"[{TabName}({Id})] {(isEnabled ? "Model loaded in" : "Model unloaded in")} {elapsed.TotalMilliseconds:F0}ms"));
+            using var sw = new BenchmarkTimer(isEnabled ? $"[{TabName}({Id})] Loading new model" : $"[{TabName}({Id})] Unloading model", Log, $"{nameof(OverlayAuraViewModel)}.{nameof(ReloadModel)}");
 
             var modelAnchors = new CompositeDisposable().AssignTo(loadedModelAnchors);
-            sw.LogOperation(elapsed => Log.Debug($"[{TabName}({Id}))] Disposed previous Model in {elapsed.TotalMilliseconds:F0}ms"));
+            sw.Step($"Disposed previous model");
 
             Properties.IsEnabled = isEnabled;
             if (!isEnabled)
@@ -136,13 +136,13 @@ namespace EyeAuras.UI.Core.ViewModels
             }
             
             var model = auraModelFactory.Create();
-            sw.LogOperation(elapsed => Log.Debug($"[{model.Name}({Id})] Model created in {elapsed.TotalMilliseconds:F0}ms"));
+            sw.Step($"Created new model: {model}");
             GeneralEditor.Value = model;
-            sw.LogOperation(elapsed => Log.Debug($"[{model.Name}({Id})] Editor for model {model} created in {elapsed.TotalMilliseconds:F0}ms"));
+            sw.Step($"Initialized model Editor");
 
             model.AddTo(modelAnchors);
             model.Properties = Properties;
-            sw.LogOperation(elapsed => Log.Debug($"[{model.Name}({Id})] Properties for model {model} loaded in {elapsed.TotalMilliseconds:F0}ms"));
+            sw.Step($"Loaded model Properties");
 
             model.WhenAnyValue(x => x.Name)
                 .Subscribe(x =>
@@ -172,6 +172,7 @@ namespace EyeAuras.UI.Core.ViewModels
                 .Where(x => x != null)
                 .Subscribe(x => model.SetCloseController(x))
                 .AddTo(modelAnchors);
+            sw.Step($"Fully initialized model");
 
             return model;
         }

@@ -56,7 +56,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private readonly ObservableAsPropertyHelper<bool> isInEditMode;
         private readonly ObservableAsPropertyHelper<double> aspectRatio;
 
-        private OverlayConfigEditor configEditor;
+        private Lazy<OverlayConfigEditor> configEditorSupplier;
 
         private bool maintainAspectRatio = true;
         private WindowHandle attachedWindow;
@@ -77,6 +77,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
             [NotNull] ISelectionAdornerViewModel selectionAdorner,
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
         {
+            using var sw = new BenchmarkTimer("Initialization", Log, nameof(EyeOverlayViewModel));
             SelectionAdorner = selectionAdorner.AddTo(Anchors);
             this.mainWindowTracker = mainWindowTracker;
             this.overlayWindowController = overlayWindowController;
@@ -94,12 +95,14 @@ namespace EyeAuras.UI.Overlay.ViewModels
             thumbnailOpacity.SetDefaultValue(DefaultThumbnailOpacity);
 
             ResetRegionCommandExecuted();
-
+            sw.Step("Basic properties initialized");
+            
             WhenLoaded
                 .Take(1)
                 .Subscribe(ApplyConfig)
                 .AddTo(Anchors);
-
+            sw.Step("WhenLoaded executed");
+            
             resetRegionCommand = CommandWrapper.Create(ResetRegionCommandExecuted, ResetRegionCommandCanExecute);
             selectRegionCommand = CommandWrapper.Create(SelectRegionCommandExecuted, SelectRegionCommandCanExecute);
             closeConfigEditorCommand = CommandWrapper.Create(CloseConfigEditorCommandExecuted);
@@ -151,8 +154,9 @@ namespace EyeAuras.UI.Overlay.ViewModels
                     : double.PositiveInfinity)
                 .ToPropertyHelper(this, x => x.AspectRatio, uiScheduler)
                 .AddTo(Anchors);
-            
-            configEditor = CreateConfigEditor(this);
+            sw.ResetStep();
+            configEditorSupplier = new Lazy<OverlayConfigEditor>(() => CreateConfigEditor(this));
+            sw.Step("Initialized Config editor");
         }
 
         private bool CloseCommandCanExecute()
@@ -300,7 +304,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private void CloseConfigEditorCommandExecuted()
         {
             Log.Debug("Closing ConfigEditor");
-            configEditor.Hide();
+            configEditorSupplier.Value.Hide();
         }
 
         private bool ResetRegionCommandCanExecute()
@@ -357,8 +361,8 @@ namespace EyeAuras.UI.Overlay.ViewModels
         {
             var anchors = new CompositeDisposable();
 
-            configEditor.Left = OverlayWindow.Left + OverlayWindow.ActualWidth + 10;
-            configEditor.Top = OverlayWindow.Top;
+            configEditorSupplier.Value.Left = OverlayWindow.Left + OverlayWindow.ActualWidth + 10;
+            configEditorSupplier.Value.Top = OverlayWindow.Top;
             
             Disposable.Create(
                     () =>
@@ -375,11 +379,11 @@ namespace EyeAuras.UI.Overlay.ViewModels
                     {
                         if (x)
                         {
-                            configEditor.Show();
+                            configEditorSupplier.Value.Show();
                         }
                         else
                         {
-                            configEditor.Hide();
+                            configEditorSupplier.Value.Hide();
                         }
                     })
                 .AddTo(Anchors);
