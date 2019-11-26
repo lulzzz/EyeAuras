@@ -12,6 +12,7 @@ using DynamicData;
 using DynamicData.Binding;
 using EyeAuras.Shared;
 using EyeAuras.Shared.Services;
+using EyeAuras.UI.Core.Services;
 using EyeAuras.UI.MainWindow.Models;
 using EyeAuras.UI.Overlay.ViewModels;
 using JetBrains.Annotations;
@@ -39,10 +40,12 @@ namespace EyeAuras.UI.Core.Models
         private bool isEnabled = true;
         private string name;
         private WindowMatchParams targetWindow;
+        private string uniqueId;
 
         public OverlayAuraModelBase(
             [NotNull] ISharedContext sharedContext,
             [NotNull] IAuraRepository repository,
+            [NotNull] IUniqueIdGenerator idGenerator,
             [NotNull] IFactory<IEyeOverlayViewModel, IOverlayWindowController, IAuraModelController> overlayViewModelFactory,
             [NotNull] IFactory<IOverlayWindowController, IWindowTracker> overlayWindowControllerFactory,
             [NotNull] IFactory<WindowTracker, IStringMatcher> windowTrackerFactory,
@@ -51,7 +54,8 @@ namespace EyeAuras.UI.Core.Models
         {
             defaultAuraName = $"Aura #{Interlocked.Increment(ref GlobalAuraIdx)}";
             Name = defaultAuraName;
-            using var unused = new OperationTimer(elapsed => Log.Debug($"[{Name}] Overlay model loaded in {elapsed.TotalMilliseconds:F0}ms"));
+            Id = idGenerator.Next();
+            using var unused = new OperationTimer(elapsed => Log.Debug($"[{Name}({Id})] Overlay model loaded in {elapsed.TotalMilliseconds:F0}ms"));
             
             var auraTriggers = new ComplexAuraTrigger();
             Triggers = auraTriggers.Triggers;
@@ -61,7 +65,7 @@ namespace EyeAuras.UI.Core.Models
             
             this.repository = repository;
             
-            using (new OperationTimer(elapsed => Log.Debug($"[{Name}] Overlay initialization took {elapsed.TotalMilliseconds:F0}ms")))
+            using (new OperationTimer(elapsed => Log.Debug($"[{Name}({Id})] Overlay initialization took {elapsed.TotalMilliseconds:F0}ms")))
             {
                 var matcher = new RegexStringMatcher().AddToWhitelist(".*");
                 var windowTracker = windowTrackerFactory
@@ -130,9 +134,9 @@ namespace EyeAuras.UI.Core.Models
             Observable.Merge(
                     this.WhenAnyProperty(x => x.Name, x => x.TargetWindow, x => x.IsEnabled).Select(x => $"[{Name}].{x.EventArgs.PropertyName} property changed"),
                     Overlay.WhenAnyProperty().Where(x => !modelPropertiesToIgnore.Contains(x.EventArgs.PropertyName)).Select(x => $"[{Name}].{nameof(Overlay)}.{x.EventArgs.PropertyName} property changed"),
-                    Triggers.ToObservableChangeSet().Select(x => $"[{Name}] Trigger list changed, item count: {Triggers.Count}"),
+                    Triggers.ToObservableChangeSet().Select(x => $"[{Name}({Id})] Trigger list changed, item count: {Triggers.Count}"),
                     Triggers.ToObservableChangeSet().WhenPropertyChanged().Where(x => !modelPropertiesToIgnore.Contains(x.EventArgs.PropertyName)).Select(x => $"[{Name}].{x.Sender}.{x.EventArgs.PropertyName} Trigger property changed"),
-                    OnEnterActions.ToObservableChangeSet().Select(x => $"[{Name}] Action list changed, item count: {OnEnterActions.Count}"),
+                    OnEnterActions.ToObservableChangeSet().Select(x => $"[{Name}({Id})] Action list changed, item count: {OnEnterActions.Count}"),
                     OnEnterActions.ToObservableChangeSet().WhenPropertyChanged().Where(x => !modelPropertiesToIgnore.Contains(x.EventArgs.PropertyName)).Select(x => $"[{Name}].{x.Sender}.{x.EventArgs.PropertyName} Action property changed"))
                 .Subscribe(reason => RaisePropertyChanged(nameof(Properties)))
                 .AddTo(Anchors);
@@ -140,7 +144,7 @@ namespace EyeAuras.UI.Core.Models
             Disposable.Create(() =>
             {
                 Log.Debug(
-                    $"Disposed Aura {Name} (aka {defaultAuraName}), triggers: {Triggers.Count}, actions: {OnEnterActions.Count}");
+                    $"Disposed Aura {Name}({Id}) (aka {defaultAuraName}), triggers: {Triggers.Count}, actions: {OnEnterActions.Count}");
                 OnEnterActions.Clear();
                 Triggers.Clear();
             }).AddTo(Anchors);
@@ -148,7 +152,7 @@ namespace EyeAuras.UI.Core.Models
 
         private void ExecuteOnEnterActions()
         {
-            Log.Debug($"[{Name}] Trigger state changed, executing OnEnter Actions");
+            Log.Debug($"[{Name}({Id})] Trigger state changed, executing OnEnter Actions");
             OnEnterActions.ForEach(action => action.Execute());
         }
 
@@ -168,6 +172,12 @@ namespace EyeAuras.UI.Core.Models
         {
             get => isEnabled;
             set => RaiseAndSetIfChanged(ref isEnabled, value);
+        }
+
+        public string Id
+        {
+            get => uniqueId;
+            private set => this.RaiseAndSetIfChanged(ref uniqueId, value);
         }
 
         public ObservableCollection<IAuraTrigger> Triggers { get; }
@@ -209,6 +219,10 @@ namespace EyeAuras.UI.Core.Models
             TargetWindow = source.WindowMatch;
             ReloadCollections(source);
 
+            if (!string.IsNullOrEmpty(source.Id))
+            {
+                Id = source.Id;
+            }
             IsEnabled = source.IsEnabled;
             Overlay.ThumbnailOpacity = source.ThumbnailOpacity;
             Overlay.Region.SetValue(source.SourceRegionBounds);
@@ -239,7 +253,8 @@ namespace EyeAuras.UI.Core.Models
                 MaintainAspectRatio = Overlay.MaintainAspectRatio,
                 BorderColor = Overlay.BorderColor,
                 BorderThickness = Overlay.BorderThickness,
-                IsEnabled = IsEnabled
+                IsEnabled = IsEnabled,
+                Id = Id,
             };
             return save;
         }
@@ -248,7 +263,7 @@ namespace EyeAuras.UI.Core.Models
         {
             if (properties is EmptyAuraProperties)
             {
-                Log.Warn($"[{Name}] {nameof(EmptyAuraProperties)} should never be used for Models Save/Load purposes - too generic");
+                Log.Warn($"[{Name}({Id})] {nameof(EmptyAuraProperties)} should never be used for Models Save/Load purposes - too generic");
                 return false;
             }
 

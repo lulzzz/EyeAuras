@@ -1,16 +1,8 @@
 using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Threading;
 using System.Windows.Input;
-using DynamicData;
-using DynamicData.Binding;
-using EyeAuras.Shared;
 using EyeAuras.UI.Core.Models;
-using EyeAuras.UI.Overlay.ViewModels;
 using JetBrains.Annotations;
 using log4net;
 using PoeShared;
@@ -18,11 +10,8 @@ using PoeShared.Native;
 using PoeShared.Prism;
 using PoeShared.Scaffolding;
 using PoeShared.Scaffolding.WPF;
-using PoeShared.UI;
 using Prism.Commands;
-using Prism.Modularity;
 using ReactiveUI;
-using Unity;
 
 namespace EyeAuras.UI.Core.ViewModels
 {
@@ -59,6 +48,7 @@ namespace EyeAuras.UI.Core.ViewModels
             
             IsEnabled = properties.IsEnabled;
             tabName.SetValue(properties.Name);
+            tabName.SetDefaultValue(properties.Name);
             
             this.WhenAnyValue(x => x.IsEnabled)
                 .Subscribe(() => Model = ReloadModel())
@@ -147,12 +137,14 @@ namespace EyeAuras.UI.Core.ViewModels
             GeneralEditor.Value = model;
 
             model.AddTo(modelAnchors);
-            tabName.SetDefaultValue(model.Name);
-
             model.Properties = Properties;
-            
+
             model.WhenAnyValue(x => x.Name)
-                .Subscribe(x => tabName.SetValue(x))
+                .Subscribe(x =>
+                {
+                    tabName.SetValue(x);
+                    tabName.SetDefaultValue(x);
+                })
                 .AddTo(modelAnchors);
             
             model.WhenAnyValue(x => x.IsActive)
@@ -209,7 +201,7 @@ namespace EyeAuras.UI.Core.ViewModels
 
             var previousValue = tabName.Value;
             tabName.SetValue(newTabNameOrDefault);
-            Log.Debug($"Changed name of tab {tabName.DefaultValue}, {previousValue} => {tabName.Value}");
+            Log.Debug($"[{TabName}] Changed name of tab {tabName.DefaultValue}, {previousValue} => {tabName.Value}");
         }
 
         public override string ToString()

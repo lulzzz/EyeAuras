@@ -26,6 +26,7 @@ namespace EyeAuras.UI.Prism
                 .RegisterSingleton<IWindowListProvider, WindowListProvider>()
                 .RegisterSingleton<ISharedContext, MainWindowSharedContext>()
                 .RegisterSingleton<IRegionSelectorService, RegionSelectorService>()
+                .RegisterSingleton<IUniqueIdGenerator, UniqueIdGenerator>()
                 .RegisterSingleton<IPrismModuleStatusViewModel, PrismModuleStatusViewModel>()
                 .RegisterSingleton<MainWindowViewModel>(typeof(IMainWindowViewModel));
 

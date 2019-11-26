@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Media;
 using EyeAuras.Shared;
 using EyeAuras.Shared.Services;
+using EyeAuras.UI.Core.Services;
 using JetBrains.Annotations;
 using Color = System.Windows.Media.Color;
 
@@ -17,9 +19,13 @@ namespace EyeAuras.UI.Core.Models
             IsEnabled = true
         };
 
-        public IList<IAuraProperties> TriggerProperties { [CanBeNull] get; [CanBeNull] set; } = new List<IAuraProperties>();
-        
-        public IList<IAuraProperties> OnEnterActionProperties { [CanBeNull] get; [CanBeNull] set; } = new List<IAuraProperties>();
+        public IList<IAuraProperties> TriggerProperties { [CanBeNull] get; [CanBeNull] set; } =
+            new List<IAuraProperties>();
+
+        public IList<IAuraProperties> OnEnterActionProperties { [CanBeNull] get; [CanBeNull] set; } =
+            new List<IAuraProperties>();
+
+        public string Id { get; set; }
 
         public string Name { get; set; }
 
@@ -28,9 +34,9 @@ namespace EyeAuras.UI.Core.Models
         public Rectangle OverlayBounds { get; set; }
 
         public Rectangle SourceRegionBounds { get; set; }
-        
+
         public double BorderThickness { get; set; }
-        
+
         public Color BorderColor { get; set; } = Colors.AntiqueWhite;
 
         public bool IsClickThrough { get; set; }

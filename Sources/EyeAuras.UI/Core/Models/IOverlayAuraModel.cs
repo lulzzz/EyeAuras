@@ -8,7 +8,9 @@ using PoeShared.Native;
 namespace EyeAuras.UI.Core.Models
 {
     internal interface IOverlayAuraModel : IAuraModel<OverlayAuraProperties>, IAuraModelController
-    {
+    {   
+        string Id { [NotNull] get; }
+
         bool IsActive { get; }
 
         WindowMatchParams TargetWindow { [CanBeNull] get; [CanBeNull] set; }

@@ -36,6 +36,7 @@
             <ContentControl Content="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType={x:Type dragablz:TabablzControl}}}"
                             DockPanel.Dock="Right" ToolTip="Remove aura" x:Name="RemoveAuraButton"
                             eye:CommandWrapperHelper.Icon="&#xf00d;"
+                            Focusable="False" IsTabStop="False"
                             Width="24" Height="24" Margin="5,0"
                             Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type dragablz:DragablzItem}}, Path=IsMouseOver, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
                             ContentTemplate="{StaticResource CommandWrapperIcon}"
@@ -43,7 +44,7 @@
 
             <ToggleButton DockPanel.Dock="Right"
                           Style="{StaticResource MaterialDesignActionToggleButton}"
-                          
+                          Focusable="False" IsTabStop="False"
                           Width="20" Height="20" Margin="0,0,10,0"
                           Visibility="{Binding Path=IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type dragablz:DragablzItem}}, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
                           IsChecked="{Binding IsEnabled}"
