@@ -15,6 +15,7 @@
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Accent/materialdesigncolor.lightblue.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Generic.shared.xaml" />
 
+                
                 <ResourceDictionary Source="Themes/Styles.xaml" />
                 <ResourceDictionary Source="Themes/Converters.xaml" />
                 <ResourceDictionary Source="Themes/ListBoxAsTabControlStyle.xaml" />
@@ -29,6 +30,8 @@
                 <ResourceDictionary Source="Core/Views/WindowSelectorView.xaml" />
                 <ResourceDictionary Source="Core/Views/PropertyEditorView.xaml" />
                 <ResourceDictionary Source="Core/Views/OverlayAuraEditor.xaml" />
+                
+                <ResourceDictionary Source="Triggers/AuraIsActive/AuraIsActiveEditorView.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

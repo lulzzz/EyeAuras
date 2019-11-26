@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using EyeAuras.DefaultAuras.Triggers.Default;
 using EyeAuras.OnTopReplica.WindowSeekers;
+using EyeAuras.UI.Core.Services;
 using EyeAuras.UI.MainWindow.Models;
 using EyeAuras.UI.RegionSelector.ViewModels;
 using EyeAuras.UI.RegionSelector.Views;

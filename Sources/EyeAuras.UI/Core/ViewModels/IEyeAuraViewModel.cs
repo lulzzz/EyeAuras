@@ -9,6 +9,8 @@ namespace EyeAuras.UI.Core.ViewModels
 {
     internal interface IEyeAuraViewModel : IDisposableReactiveObject
     {
+        string Id { [NotNull] get; }
+        
         string TabName { [NotNull] get; }
         
         bool IsSelected { get; set; }
@@ -22,7 +24,7 @@ namespace EyeAuras.UI.Core.ViewModels
         bool IsEnabled { get; set; }
         
         ICommand RenameCommand { [NotNull] get; }
-        
+
         OverlayAuraProperties Properties { get; }
 
         void SetCloseController([NotNull] ICloseController closeController);

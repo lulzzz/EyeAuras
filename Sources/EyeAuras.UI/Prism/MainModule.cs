@@ -4,6 +4,7 @@ using EyeAuras.UI.Core.Models;
 using EyeAuras.UI.Core.ViewModels;
 using EyeAuras.UI.MainWindow.ViewModels;
 using EyeAuras.UI.Prism.Modularity;
+using EyeAuras.UI.Triggers.AuraIsActive;
 using log4net;
 using PoeShared;
 using PoeShared.Modularity;
@@ -45,6 +46,9 @@ namespace EyeAuras.UI.Prism
             var auraManager = container.Resolve<IAuraRegistrator>();
 
             auraManager.Register<OverlayAuraPropertiesEditorViewModel, OverlayAuraModelBase>();
+            
+            auraManager.Register<AuraIsActiveTrigger>();
+            auraManager.Register<AuraIsActiveTriggerEditor, AuraIsActiveTrigger>();
         }
     }
 }

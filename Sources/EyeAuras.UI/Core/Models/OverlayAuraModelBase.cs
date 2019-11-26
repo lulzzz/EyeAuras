@@ -4,10 +4,13 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Threading;
 using DynamicData;
 using DynamicData.Binding;
 using EyeAuras.Shared;
@@ -52,10 +55,11 @@ namespace EyeAuras.UI.Core.Models
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler,
             [NotNull] [Dependency(WellKnownSchedulers.Background)] IScheduler bgScheduler)
         {
+            using var sw = new OperationTimer(elapsed => Log.Debug($"[{Name}({Id})] [ctor] OverlayAuraModel initialization took {elapsed.TotalMilliseconds:F0}ms"));
+
             defaultAuraName = $"Aura #{Interlocked.Increment(ref GlobalAuraIdx)}";
             Name = defaultAuraName;
             Id = idGenerator.Next();
-            using var unused = new OperationTimer(elapsed => Log.Debug($"[{Name}({Id})] Overlay model loaded in {elapsed.TotalMilliseconds:F0}ms"));
             
             var auraTriggers = new ComplexAuraTrigger();
             Triggers = auraTriggers.Triggers;
@@ -64,39 +68,37 @@ namespace EyeAuras.UI.Core.Models
             OnEnterActions = auraActions.Actions;
             
             this.repository = repository;
+            var matcher = new RegexStringMatcher().AddToWhitelist(".*");
+            var windowTracker = windowTrackerFactory
+                .Create(matcher)
+                .AddTo(Anchors);
+
+            sw.PutTimestamp();
             
-            using (new OperationTimer(elapsed => Log.Debug($"[{Name}({Id})] Overlay initialization took {elapsed.TotalMilliseconds:F0}ms")))
-            {
-                var matcher = new RegexStringMatcher().AddToWhitelist(".*");
-                var windowTracker = windowTrackerFactory
-                    .Create(matcher)
-                    .AddTo(Anchors);
+            var overlayController = overlayWindowControllerFactory
+                .Create(windowTracker)
+                .AddTo(Anchors);
+            sw.LogOperation(elapsed => Log.Debug($"[{Name}({Id})] [ctor] Overlay controller initialization took {elapsed.TotalMilliseconds:F0}ms"));
 
-                var overlayController = overlayWindowControllerFactory
-                    .Create(windowTracker)
-                    .AddTo(Anchors);
+            var overlayViewModel = overlayViewModelFactory
+                .Create(overlayController, this)
+                .AddTo(Anchors);
+            sw.LogOperation(elapsed => Log.Debug($"[{Name}({Id})] [ctor] Overlay view model initialization took {elapsed.TotalMilliseconds:F0}ms"));
 
-                var overlayViewModel = overlayViewModelFactory
-                    .Create(overlayController, this)
-                    .AddTo(Anchors);
-                overlayController.RegisterChild(overlayViewModel);
-                overlayController.AddTo(Anchors);
-                
-                Observable.Merge(
-                        overlayViewModel.WhenValueChanged(x => x.AttachedWindow, false).ToUnit(),
-                        this.WhenValueChanged(x => x.IsActive, false).ToUnit())
-                    .StartWithDefault()
-                    .Select(
-                        () => new
-                        {
-                            IsActive,
-                            WindowIsAttached = overlayViewModel.AttachedWindow != null
-                        })
-                    .Subscribe(x => overlayController.IsEnabled = x.IsActive && x.WindowIsAttached)
-                    .AddTo(Anchors);
-                
-                Overlay = overlayViewModel;
-            }
+            Observable.Merge(
+                    overlayViewModel.WhenValueChanged(x => x.AttachedWindow, false).ToUnit(),
+                    this.WhenValueChanged(x => x.IsActive, false).ToUnit())
+                .StartWithDefault()
+                .Select(
+                    () => new
+                    {
+                        IsActive,
+                        WindowIsAttached = overlayViewModel.AttachedWindow != null
+                    })
+                .Subscribe(x => overlayController.IsEnabled = x.IsActive && x.WindowIsAttached)
+                .AddTo(Anchors);
+            
+            Overlay = overlayViewModel;
 
             Observable.CombineLatest(
                     auraTriggers.WhenAnyValue(x => x.IsActive),  
@@ -148,6 +150,17 @@ namespace EyeAuras.UI.Core.Models
                 OnEnterActions.Clear();
                 Triggers.Clear();
             }).AddTo(Anchors);
+
+            Observable.FromAsync(() =>
+                {
+                    using var unused = new OperationTimer(elapsed => Log.Debug($"[{Name}({Id})] [ctor] Overlay registration took {elapsed.TotalMilliseconds:F0}ms"));
+                    Log.Debug($"[{Name}({Id})] [ctor] Registering Overlay...");
+                    overlayController.RegisterChild(overlayViewModel);
+                    return Task.CompletedTask;
+                })
+                .SubscribeOnDispatcher(DispatcherPriority.Background)
+                .Subscribe(() => { }, Log.HandleUiException)
+                .AddTo(Anchors);
         }
 
         private void ExecuteOnEnterActions()
@@ -215,14 +228,17 @@ namespace EyeAuras.UI.Core.Models
 
         protected override void Load(OverlayAuraProperties source)
         {
-            Name = source.Name;
-            TargetWindow = source.WindowMatch;
-            ReloadCollections(source);
-
             if (!string.IsNullOrEmpty(source.Id))
             {
                 Id = source.Id;
             }
+            if (!string.IsNullOrEmpty(source.Name))
+            {
+                Name = source.Name;
+            }
+
+            TargetWindow = source.WindowMatch;
+            ReloadCollections(source);
             IsEnabled = source.IsEnabled;
             Overlay.ThumbnailOpacity = source.ThumbnailOpacity;
             Overlay.Region.SetValue(source.SourceRegionBounds);

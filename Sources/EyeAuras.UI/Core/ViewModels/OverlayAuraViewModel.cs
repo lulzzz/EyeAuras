@@ -29,6 +29,7 @@ namespace EyeAuras.UI.Core.ViewModels
         private bool isEnabled;
         private bool isActive;
         private ICloseController closeController;
+        private IOverlayAuraModel model;
 
         public OverlayAuraViewModel(
             OverlayAuraProperties initialProperties,
@@ -45,8 +46,9 @@ namespace EyeAuras.UI.Core.ViewModels
             GeneralEditor = propertiesEditorFactory.Create();
 
             Properties = initialProperties;
-            
             IsEnabled = properties.IsEnabled;
+            Id = properties.Id;
+            
             tabName.SetValue(properties.Name);
             tabName.SetDefaultValue(properties.Name);
             
@@ -91,12 +93,12 @@ namespace EyeAuras.UI.Core.ViewModels
             set => RaiseAndSetIfChanged(ref isSelected, value);
         }
 
-        private IOverlayAuraModel model;
+        public string Id { get; }
 
         public IOverlayAuraModel Model
         {
             get => model;
-            set => this.RaiseAndSetIfChanged(ref model, value);
+            private set => this.RaiseAndSetIfChanged(ref model, value);
         }
 
         public OverlayAuraProperties Properties
@@ -120,24 +122,27 @@ namespace EyeAuras.UI.Core.ViewModels
 
         private IOverlayAuraModel ReloadModel()
         {
-            using var unused = new OperationTimer(elapsed => Log.Debug($"[{tabName}] {(isEnabled ? "Model loaded in" : "Model unloaded in")} {elapsed.TotalMilliseconds:F0}ms"));
+            using var sw = new OperationTimer(elapsed => Log.Debug($"[{TabName}({Id})] {(isEnabled ? "Model loaded in" : "Model unloaded in")} {elapsed.TotalMilliseconds:F0}ms"));
 
             var modelAnchors = new CompositeDisposable().AssignTo(loadedModelAnchors);
+            sw.LogOperation(elapsed => Log.Debug($"[{TabName}({Id}))] Disposed previous Model in {elapsed.TotalMilliseconds:F0}ms"));
+
+            Properties.IsEnabled = isEnabled;
             if (!isEnabled)
             {
-                if (properties != null)
-                {
-                    properties.IsEnabled = false;
-                }
                 GeneralEditor.Value = null;
+                IsActive = false;
                 return null;
             }
             
             var model = auraModelFactory.Create();
+            sw.LogOperation(elapsed => Log.Debug($"[{model.Name}({Id})] Model created in {elapsed.TotalMilliseconds:F0}ms"));
             GeneralEditor.Value = model;
+            sw.LogOperation(elapsed => Log.Debug($"[{model.Name}({Id})] Editor for model {model} created in {elapsed.TotalMilliseconds:F0}ms"));
 
             model.AddTo(modelAnchors);
             model.Properties = Properties;
+            sw.LogOperation(elapsed => Log.Debug($"[{model.Name}({Id})] Properties for model {model} loaded in {elapsed.TotalMilliseconds:F0}ms"));
 
             model.WhenAnyValue(x => x.Name)
                 .Subscribe(x =>
@@ -201,7 +206,7 @@ namespace EyeAuras.UI.Core.ViewModels
 
             var previousValue = tabName.Value;
             tabName.SetValue(newTabNameOrDefault);
-            Log.Debug($"[{TabName}] Changed name of tab {tabName.DefaultValue}, {previousValue} => {tabName.Value}");
+            Log.Debug($"[{TabName}({Id})] Changed name of tab {tabName.DefaultValue}, {previousValue} => {tabName.Value}");
         }
 
         public override string ToString()

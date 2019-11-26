@@ -89,4 +89,8 @@
       <Resource Include="Resources\Play-Regular.ttf" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Triggers" />
+    </ItemGroup>
+
 </Project>

@@ -1,5 +1,4 @@
-﻿using EyeAuras.DefaultAuras.Actions;
-using EyeAuras.DefaultAuras.Actions.PlaySound;
+﻿using EyeAuras.DefaultAuras.Actions.PlaySound;
 using EyeAuras.DefaultAuras.Actions.WinActivate;
 using EyeAuras.DefaultAuras.Triggers.Default;
 using EyeAuras.DefaultAuras.Triggers.HotkeyIsActive;
@@ -40,7 +39,6 @@ namespace EyeAuras.DefaultAuras.Prism
             auraManager.Register<DefaultTrigger>();
             auraManager.Register<WinActiveTrigger>();
             auraManager.Register<HotkeyIsActiveTrigger>();
-
             auraManager.Register<WinActiveTriggerEditor, WinActiveTrigger>();
             auraManager.Register<DefaultTriggerEditor, DefaultTrigger>();
             auraManager.Register<HotkeyIsActiveTriggerEditor, HotkeyIsActiveTrigger>();
