@@ -77,6 +77,7 @@ namespace EyeAuras.UI.Core.ViewModels
             ValueEditor = auraRepository.CreateEditor(value);
             if (ValueEditor != null)
             {
+                ValueEditor.AddTo(editorAnchors);
                 ValueEditor.Source = value;
             }
         }

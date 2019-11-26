@@ -48,8 +48,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
         private static readonly string ExplorerExecutablePath = Environment.ExpandEnvironmentVariables(@"%WINDIR%\explorer.exe");
         private static readonly TimeSpan ConfigSaveSamplingTimeout = TimeSpan.FromSeconds(5);
 
-        private readonly IFactory<IOverlayAuraModel> auraModelFactory;
-        private readonly IFactory<IOverlayAuraViewModel, IOverlayAuraModel> auraViewModelFactory;
+        private readonly IFactory<IOverlayAuraViewModel, OverlayAuraProperties> auraViewModelFactory;
         private readonly IClipboardManager clipboardManager;
         private readonly IConfigProvider<EyeAurasConfig> configProvider;
         private readonly IConfigSerializer configSerializer;
@@ -64,23 +63,22 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private readonly IHotkeyConverter hotkeyConverter;
         private readonly IFactory<HotkeyIsActiveTrigger> hotkeyTriggerFactory;
-        private readonly TabablzPositionMonitor<IOverlayAuraViewModel> positionMonitor = new TabablzPositionMonitor<IOverlayAuraViewModel>();
+        private readonly TabablzPositionMonitor<IEyeAuraViewModel> positionMonitor = new TabablzPositionMonitor<IEyeAuraViewModel>();
         private readonly CircularBuffer<OverlayAuraProperties> recentlyClosedQueries = new CircularBuffer<OverlayAuraProperties>(UndoStackDepth);
         private readonly IRegionSelectorService regionSelectorService;
-        private readonly ISourceList<IOverlayAuraViewModel> tabsListSource = new SourceList<IOverlayAuraViewModel>();
+        private readonly ISourceList<IEyeAuraViewModel> tabsListSource = new SourceList<IEyeAuraViewModel>();
         private double height;
         private double left;
 
         private GridLength listWidth;
 
-        private IOverlayAuraViewModel selectedTab;
+        private IEyeAuraViewModel selectedTab;
         private double top;
         private double width;
         private WindowState windowState;
 
         public MainWindowViewModel(
-            [NotNull] IFactory<IOverlayAuraViewModel, IOverlayAuraModel> auraViewModelFactory,
-            [NotNull] IFactory<IOverlayAuraModel> auraModelFactory,
+            [NotNull] IFactory<IOverlayAuraViewModel, OverlayAuraProperties> auraViewModelFactory,
             [NotNull] IApplicationUpdaterViewModel appUpdater,
             [NotNull] IClipboardManager clipboardManager,
             [NotNull] IConfigSerializer configSerializer,
@@ -107,7 +105,6 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             StatusBarItems = mainWindowBlocksProvider.StatusBarItems;
 
             this.auraViewModelFactory = auraViewModelFactory;
-            this.auraModelFactory = auraModelFactory;
             this.configProvider = configProvider;
             this.regionSelectorService = regionSelectorService;
             this.clipboardManager = clipboardManager;
@@ -169,12 +166,11 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                     tabsListSource.Connect()
                         .Select(x => "Tabs list change"),
                     tabsListSource.Connect()
-                        .Transform(x => x.Model)
                         .WhenPropertyChanged(x => x.Properties)
                         .WithPrevious((prev, curr) => new {prev, curr})
                         .Select(x => new { x.curr.Sender, ComparisonResult = diffLogic.Compare(x.prev?.Value, x.curr.Value) })
                         .Where(x => !x.ComparisonResult.AreEqual)
-                        .Select(x => $"[{x.Sender.Name}] Model properties change: {x.ComparisonResult.DifferencesString}"))
+                        .Select(x => $"[{x.Sender.TabName}] Tab properties change: {x.ComparisonResult.DifferencesString}"))
                 .Buffer(ConfigSaveSamplingTimeout)
                 .Where(x => x.Count > 0)
                 .Subscribe(
@@ -217,11 +213,14 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             globalUnlockHotkeyTrigger.SuppressKey = true;
             globalUnlockHotkeyTrigger.HotkeyMode = HotkeyMode.Hold;
             globalUnlockHotkeyTrigger.IsActive = false;
-            globalUnlockHotkeyTrigger.WhenAnyValue(x => x.IsActive)
+            globalUnlockHotkeyTrigger.WhenAnyProperty(x => x.IsActive)
+                .Select(x => globalUnlockHotkeyTrigger.IsActive)
                 .Subscribe(
                     unlock =>
                     {
-                        var allOverlays = TabsList.Select(y => y.Model.Overlay);
+                        var allOverlays = TabsList
+                            .OfType<IOverlayAuraViewModel>()
+                            .Select(y => y.Model.Overlay);
                         if (unlock)
                         {
                             allOverlays
@@ -280,7 +279,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         public IMessageBoxViewModel MessageBox { get; }
 
-        public ReadOnlyObservableCollection<IOverlayAuraViewModel> TabsList { get; }
+        public ReadOnlyObservableCollection<IEyeAuraViewModel> TabsList { get; }
 
         public PositionMonitor PositionMonitor => positionMonitor;
 
@@ -288,7 +287,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         public IGenericSettingsViewModel Settings { get; }
 
-        public IOverlayAuraViewModel SelectedTab
+        public IEyeAuraViewModel SelectedTab
         {
             get => selectedTab;
             set => RaiseAndSetIfChanged(ref selectedTab, value);
@@ -408,11 +407,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                     MaintainAspectRatio = true
                 };
                 Log.Info($"Quick-Creating new tab using {newTabProperties.DumpToTextRaw()} args...");
-                var viewModel = CreateAndAddTab(newTabProperties);
-                if (viewModel.Model.Overlay.UnlockWindowCommand.CanExecute(null))
-                {
-                    viewModel.Model.Overlay.UnlockWindowCommand.Execute(null);
-                }
+                AddNewCommandExecuted(newTabProperties); 
             }
             else
             {
@@ -447,7 +442,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
             Log.Debug($"Copying tab {selectedTab}...");
 
-            var cfg = selectedTab.Model.Properties;
+            var cfg = selectedTab.Properties;
             var data = configSerializer.Compress(cfg);
             clipboardManager.SetText(data);
         }
@@ -502,16 +497,16 @@ namespace EyeAuras.UI.MainWindow.ViewModels
         {
             Guard.ArgumentIsTrue(() => DuplicateTabCommandCanExecute());
 
-            var cfg = selectedTab.Model.Properties;
+            var cfg = selectedTab.Properties;
             CreateAndAddTab(cfg);
         }
 
-        private bool CloseTabCommandCanExecute(IOverlayAuraViewModel tab)
+        private bool CloseTabCommandCanExecute(IEyeAuraViewModel tab)
         {
             return tab != null;
         }
 
-        private void CloseTabCommandExecuted(IOverlayAuraViewModel tab)
+        private void CloseTabCommandExecuted(IEyeAuraViewModel tab)
         {
             using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(CloseTabCommand)} took {elapsed.TotalMilliseconds:F0}ms"));
             Guard.ArgumentNotNull(tab, nameof(tab));
@@ -529,7 +524,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
             tabsListSource.Remove(tab);
 
-            var cfg = tab.Model.Properties;
+            var cfg = tab.Properties;
             recentlyClosedQueries.PushBack(cfg);
             UndoCloseTabCommand.RaiseCanExecuteChanged();
 
@@ -557,7 +552,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                 .Select(x => new {Idx = positionedItems.IndexOf(x), Tab = x})
                 .OrderBy(x => x.Idx)
                 .Select(x => x.Tab)
-                .Select(tab => tab.Model.Properties)
+                .Select(tab => tab.Properties)
                 .ToArray();
 
             config.MainWindowBounds = new Rect(Left, Top, Width, Height);
@@ -616,24 +611,20 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             var newItems = args.NewOrder.OfType<IOverlayAuraViewModel>().ToList();
 
             Log.Debug(
-                $"Source ordering:\n\tSource: {string.Join(" => ", existingItems.Select(x => x.Model.Name))}\n\tView: {string.Join(" => ", newItems.Select(x => x.Model.Name))}");
+                $"Source ordering:\n\tSource: {string.Join(" => ", existingItems.Select(x => x.TabName))}\n\tView: {string.Join(" => ", newItems.Select(x => x.TabName))}");
             configUpdateSubject.OnNext(Unit.Default);
         }
 
-        private IOverlayAuraViewModel CreateAndAddTab(OverlayAuraProperties tabProperties)
+        private IEyeAuraViewModel CreateAndAddTab(OverlayAuraProperties tabProperties)
         {
             using var unused = new OperationTimer(elapsed => Log.Debug($"CreateNewTab operation took {elapsed.TotalMilliseconds:F0}ms"));
 
             Log.Debug($"Adding new tab using config {tabProperties.DumpToTextRaw()}...");
 
-            var auraModel = auraModelFactory.Create();
-            var auraViewModel = auraViewModelFactory.Create(auraModel);
-            var auraCloseController = new CloseController<IOverlayAuraViewModel>(auraViewModel, () => CloseTabCommandExecuted(auraViewModel));
+            var auraViewModel = (IEyeAuraViewModel)auraViewModelFactory.Create(tabProperties);
+            var auraCloseController = new CloseController<IEyeAuraViewModel>(auraViewModel, () => CloseTabCommandExecuted(auraViewModel));
+            auraViewModel.SetCloseController(auraCloseController);
             tabsListSource.Add(auraViewModel);
-
-            auraModel.SetCloseController(auraCloseController);
-
-            auraModel.Properties = tabProperties;
 
             return auraViewModel;
         }
@@ -643,9 +634,11 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             try
             {
                 var newTab = CreateAndAddTab(tabProperties);
-                if (newTab.Model.Overlay.UnlockWindowCommand.CanExecute(null))
+                
+                if (newTab is IOverlayAuraViewModel newOverlayTab)
                 {
-                    newTab.Model.Overlay.UnlockWindowCommand.Execute(null);
+                    newOverlayTab.Model.Overlay.UnlockWindowCommand.CanExecute(null);
+                    newOverlayTab.Model.Overlay.UnlockWindowCommand.Execute(null);
                 }
             }
             catch (Exception e)

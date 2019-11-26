@@ -263,6 +263,11 @@
                             Visibility="{Binding SelectedTab, Converter={StaticResource NullToCollapsedConverter}}">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" IsTabStop="False" Focusable="False">
                             <ItemsControl ItemsSource="{Binding TabsList}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <Grid />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type viewModels1:IOverlayAuraViewModel}">
                                         <ContentControl Content="{Binding}">

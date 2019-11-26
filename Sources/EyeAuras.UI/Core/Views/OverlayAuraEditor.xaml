@@ -2,11 +2,9 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
                     xmlns:viewModels="clr-namespace:EyeAuras.UI.Core.ViewModels"
-                    xmlns:lib="clr-namespace:EyeAuras.OnTopReplica;assembly=EyeAuras.OnTopReplica"
                     xmlns:converters="http://schemas.kent.boogaart.com/converters"
                     xmlns:eye="http://coderush.net/poeeye/"
-                    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
-                    xmlns:system="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:shared="clr-namespace:EyeAuras.Shared;assembly=EyeAuras.Shared"
                     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit">
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="pack://application:,,,/EyeAuras;component/Themes/Converters.xaml" />
@@ -18,112 +16,307 @@
     <converters:MapConverter x:Key="TrueToSemiTransparentConverter" FallbackValue="1">
         <converters:Mapping From="{StaticResource FalseValue}" To="0.1" />
     </converters:MapConverter>
+    
+    <DataTemplate x:Key="AuraTriggerHeaderTemplateKey" DataType="{x:Type shared:IAuraTrigger}">
+        <DockPanel TextBlock.Foreground="WhiteSmoke">
+            <materialDesign:PackIcon
+                DockPanel.Dock="Left"
+                VerticalAlignment="Center"
+                Foreground="{StaticResource NegativeBrush}"
+                ToolTip="Aura is NOT active"
+                Visibility="{Binding IsActive, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}"
+                Kind="CheckboxBlankCircleOutline" />
+            <materialDesign:PackIcon
+                DockPanel.Dock="Left"
+                VerticalAlignment="Center"
+                Foreground="{StaticResource PositiveBrush}"
+                ToolTip="Aura is active"
+                Visibility="{Binding IsActive, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                Kind="CheckboxMarkedCircleOutline" />
+            <TextBlock Margin="5,0" FontWeight="Bold" FontSize="14" Text="{Binding TriggerName}" />
+            <TextBlock Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="{Binding TriggerDescription}" />
+        </DockPanel>
+    </DataTemplate>
+
+    <DataTemplate x:Key="AuraTriggerSelectorTemplateKey" DataType="{x:Type shared:IAuraTrigger}">
+        <DockPanel>
+            <TextBlock Margin="5,0" FontWeight="Bold" FontSize="14" Text="{Binding TriggerName}" />
+            <TextBlock Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="{Binding TriggerDescription}" />
+        </DockPanel>
+    </DataTemplate>
+    
+    <DataTemplate x:Key="AuraActionSelectorTemplateKey" DataType="{x:Type shared:IAuraAction}">
+        <DockPanel>
+            <TextBlock Margin="5,0" FontWeight="Bold" FontSize="14" Text="{Binding ActionName}" />
+            <TextBlock Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="{Binding ActionDescription}" />
+        </DockPanel>
+    </DataTemplate>
 
     <DataTemplate DataType="{x:Type viewModels:OverlayAuraPropertiesEditorViewModel}">
-        <DockPanel>
-            <Grid DockPanel.Dock="Top">
-                <Border Grid.Column="0"
-                        Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
-                        BorderBrush="{StaticResource SecondaryAccentBrush}"
-                        BorderThickness="0,1,0,1"
-                        Padding="5">
-                    <ContentControl Content="{Binding WindowSelector}" />
-                </Border>
-            </Grid>
+        <StackPanel Orientation="Vertical">
+            <GroupBox DockPanel.Dock="Top" BorderThickness="0" Margin="0" Padding="0">
+                <GroupBox.Content>
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top">
+                            <Border Grid.Column="0"
+                                    Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
+                                    BorderBrush="{StaticResource SecondaryAccentBrush}"
+                                    BorderThickness="0,1,0,1"
+                                    Padding="5">
+                                <ContentControl Content="{Binding WindowSelector}" />
+                            </Border>
+                        </Grid>
 
-            <Border DockPanel.Dock="Top" Margin="0,5,0,0"
-                    Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
-                    BorderBrush="{StaticResource SecondaryAccentBrush}"
-                    BorderThickness="0,1,0,1"
-                    Visibility="{Binding Source.Overlay.AttachedWindow, Converter={StaticResource NullToCollapsedConverter}}"
-                    Padding="5">
-                <Grid>
-                    <DockPanel IsEnabled="{Binding Source.Overlay.AttachedWindow, Converter={StaticResource NullToFalseConverter}}">
-                        <ContentControl Content="{Binding Source.Overlay}"
-                                        ContentTemplate="{StaticResource EyeOverlayViewModelPositionEditor}" />
+                        <Border DockPanel.Dock="Top" Margin="0,5,0,0"
+                                Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
+                                BorderBrush="{StaticResource SecondaryAccentBrush}"
+                                BorderThickness="0,1,0,1"
+                                Visibility="{Binding Source.Overlay.AttachedWindow, Converter={StaticResource NullToCollapsedConverter}}"
+                                Padding="5">
+                            <Grid>
+                                <DockPanel
+                                    IsEnabled="{Binding Source.Overlay.AttachedWindow, Converter={StaticResource NullToFalseConverter}}">
+                                    <ContentControl Content="{Binding Source.Overlay}"
+                                                    ContentTemplate="{StaticResource EyeOverlayViewModelPositionEditor}" />
 
-                        <DockPanel Margin="10,0,0,0">
-                            <DockPanel DockPanel.Dock="Top" VerticalAlignment="Top" Height="36"
-                                       IsEnabled="{Binding Source.Overlay.IsLocked}"
-                                       ToolTipService.ShowOnDisabled="True"
-                                       Background="Transparent">
-                                <DockPanel.ToolTip>
-                                    <Binding Path="Source.Overlay.IsLocked">
-                                        <Binding.Converter>
-                                            <converters:MapConverter FallbackBehavior="ReturnFallbackValue" FallbackValue="Overlay opacity">
-                                                <converters:Mapping From="{StaticResource FalseValue}" To="Overlay opacity - Lock overlay to change the value"/>
-                                            </converters:MapConverter>
-                                        </Binding.Converter>
-                                    </Binding>
-                                </DockPanel.ToolTip>
-                                <TextBlock DockPanel.Dock="Left" Text="Opacity" />
-                                <TextBlock DockPanel.Dock="Right" Margin="5,0,0,0" MinWidth="20" Text="{Binding Source.Overlay.ThumbnailOpacity, StringFormat='{}{0:F2}'}" />
+                                    <DockPanel Margin="10,0,0,0">
+                                        <DockPanel DockPanel.Dock="Top" VerticalAlignment="Top" Height="36"
+                                                   IsEnabled="{Binding Source.Overlay.IsLocked}"
+                                                   ToolTipService.ShowOnDisabled="True"
+                                                   Background="Transparent">
+                                            <DockPanel.ToolTip>
+                                                <Binding Path="Source.Overlay.IsLocked">
+                                                    <Binding.Converter>
+                                                        <converters:MapConverter FallbackBehavior="ReturnFallbackValue"
+                                                                                 FallbackValue="Overlay opacity">
+                                                            <converters:Mapping From="{StaticResource FalseValue}"
+                                                                                To="Overlay opacity - Lock overlay to change the value" />
+                                                        </converters:MapConverter>
+                                                    </Binding.Converter>
+                                                </Binding>
+                                            </DockPanel.ToolTip>
+                                            <TextBlock DockPanel.Dock="Left" Text="Opacity" />
+                                            <TextBlock DockPanel.Dock="Right" Margin="5,0,0,0" MinWidth="20"
+                                                       Text="{Binding Source.Overlay.ThumbnailOpacity, StringFormat='{}{0:F2}'}" />
 
-                                <Slider DockPanel.Dock="Left"
-                                        Value="{Binding Source.Overlay.ThumbnailOpacity}"
-                                        Minimum="0.1"
-                                        Margin="5,0,0,0"
-                                        TickFrequency="0.05"
-                                        IsSnapToTickEnabled="True"
-                                        VerticalAlignment="Center"
-                                        Maximum="1" />
-                            </DockPanel>
+                                            <Slider DockPanel.Dock="Left"
+                                                    Value="{Binding Source.Overlay.ThumbnailOpacity}"
+                                                    Minimum="0.1"
+                                                    Margin="5,0,0,0"
+                                                    TickFrequency="0.05"
+                                                    IsSnapToTickEnabled="True"
+                                                    VerticalAlignment="Center"
+                                                    Maximum="1" />
+                                        </DockPanel>
 
-                            <CheckBox DockPanel.Dock="Top" VerticalAlignment="Top" Margin="0,5,0,0"
-                                      IsChecked="{Binding Source.Overlay.IsClickThrough}"
-                                      ToolTipService.ShowOnDisabled="True"
-                                      IsEnabled="{Binding Source.Overlay.IsLocked}"
-                                      Content="Is Click-through">
-                                <CheckBox.ToolTip>
-                                    <Binding Path="Source.Overlay.IsLocked">
-                                        <Binding.Converter>
-                                            <converters:MapConverter FallbackBehavior="ReturnFallbackValue" FallbackValue="Click-Through Mode - Make Overlay pass mouse clicks to underlying window">
-                                                <converters:Mapping From="{StaticResource FalseValue}" To="Click-Through Mode - Lock overlay to change the value"/>
-                                            </converters:MapConverter>
-                                        </Binding.Converter>
-                                    </Binding>
-                                </CheckBox.ToolTip>
-                            </CheckBox>
+                                        <CheckBox DockPanel.Dock="Top" VerticalAlignment="Top" Margin="0,5,0,0"
+                                                  IsChecked="{Binding Source.Overlay.IsClickThrough}"
+                                                  ToolTipService.ShowOnDisabled="True"
+                                                  IsEnabled="{Binding Source.Overlay.IsLocked}"
+                                                  Content="Is Click-through">
+                                            <CheckBox.ToolTip>
+                                                <Binding Path="Source.Overlay.IsLocked">
+                                                    <Binding.Converter>
+                                                        <converters:MapConverter FallbackBehavior="ReturnFallbackValue"
+                                                                                 FallbackValue="Click-Through Mode - Make Overlay pass mouse clicks to underlying window">
+                                                            <converters:Mapping From="{StaticResource FalseValue}"
+                                                                                To="Click-Through Mode - Lock overlay to change the value" />
+                                                        </converters:MapConverter>
+                                                    </Binding.Converter>
+                                                </Binding>
+                                            </CheckBox.ToolTip>
+                                        </CheckBox>
 
-                            <CheckBox DockPanel.Dock="Top" VerticalAlignment="Top" Margin="0,5,0,0"
-                                      IsChecked="{Binding Source.Overlay.MaintainAspectRatio}"
-                                      ToolTip="Resize Overlay accordingly to Source window aspect ratio"
-                                      Content="Maintain Aspect Ratio" />
+                                        <CheckBox DockPanel.Dock="Top" VerticalAlignment="Top" Margin="0,5,0,0"
+                                                  IsChecked="{Binding Source.Overlay.MaintainAspectRatio}"
+                                                  ToolTip="Resize Overlay accordingly to Source window aspect ratio"
+                                                  Content="Maintain Aspect Ratio" />
 
-                        </DockPanel>
+                                    </DockPanel>
 
-                        <DockPanel Margin="10,0,0,0">
-                            <DockPanel DockPanel.Dock="Top" VerticalAlignment="Top">
-                                <xctk:DoubleUpDown DockPanel.Dock="Left" Margin="5,0,0,0"
-                                                   materialDesign:HintAssist.Hint="Border Thickness" 
-                                                   Style="{StaticResource MaterialNumericUpDownStyleKey}"
-                                                   DisplayDefaultValueOnEmptyText="True"
-                                                   DefaultValue="0"
-                                                   Width="100"
-                                                   Minimum="0"
-                                                   Maximum="255"
-                                                   FormatString="0"
-                                                   Value="{Binding Source.Overlay.BorderThickness, Mode=TwoWay, FallbackValue=0, UpdateSourceTrigger=PropertyChanged}" />
+                                    <DockPanel Margin="10,0,0,0">
+                                        <DockPanel DockPanel.Dock="Top" VerticalAlignment="Top">
+                                            <xctk:DoubleUpDown DockPanel.Dock="Left" Margin="5,0,0,0"
+                                                               materialDesign:HintAssist.Hint="Border Thickness"
+                                                               Style="{StaticResource MaterialNumericUpDownStyleKey}"
+                                                               DisplayDefaultValueOnEmptyText="True"
+                                                               DefaultValue="0"
+                                                               Width="100"
+                                                               Minimum="0"
+                                                               Maximum="255"
+                                                               FormatString="0"
+                                                               Value="{Binding Source.Overlay.BorderThickness, Mode=TwoWay, FallbackValue=0, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <materialDesign:ColorPicker DockPanel.Dock="Left" 
-                                                            Margin="5,0,-2.5,0" 
-                                                            HueSliderPosition="Top" 
-                                                            MinWidth="150"
-                                                            materialDesign:HintAssist.Hint="Border Color" 
-                                                            Color="{Binding Source.Overlay.BorderColor}"
-                                                            Style="{StaticResource ColorPickerWithPopupStyle}">
-                                </materialDesign:ColorPicker>
-                            </DockPanel>
-                        </DockPanel>
+                                            <materialDesign:ColorPicker DockPanel.Dock="Left"
+                                                                        Margin="5,0,-2.5,0"
+                                                                        HueSliderPosition="Top"
+                                                                        MinWidth="150"
+                                                                        materialDesign:HintAssist.Hint="Border Color"
+                                                                        Color="{Binding Source.Overlay.BorderColor}"
+                                                                        Style="{StaticResource ColorPickerWithPopupStyle}" />
+                                        </DockPanel>
+                                    </DockPanel>
+                                </DockPanel>
+
+                                <Label Content="Select Overlay Source to proceed" FontSize="16"
+                                       VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                       VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                       Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
+                                       Visibility="{Binding Source.Overlay.AttachedWindow, Converter={StaticResource NotNullToCollapsedConverter}}" />
+                            </Grid>
+                        </Border>
                     </DockPanel>
+                </GroupBox.Content>
+                <GroupBox.Header>
+                    <DockPanel x:Name="GeneralPropertiesHeader" Margin="4">
+                        <TextBlock Margin="5,0" FontWeight="Bold" FontSize="14" Text="General" />
+                        <TextBlock Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="{Binding Source.Name}"
+                                   MaxWidth="150" TextTrimming="CharacterEllipsis" />
 
-                    <Label Content="Select Overlay Source to proceed" FontSize="16"
-                           VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
-                           VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                           Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
-                           Visibility="{Binding Source.Overlay.AttachedWindow, Converter={StaticResource NotNullToCollapsedConverter}}" />
-                </Grid>
-            </Border>
-        </DockPanel>
+                        <Grid Margin="5,0,0,0" Width="140" HorizontalAlignment="Right"
+                              IsEnabled="{Binding Source.Overlay.AttachedWindow, Converter={StaticResource NullToFalseConverter}}">
+                            <ContentControl Grid.Column="0" Content="{Binding Source.Overlay.LockWindowCommand}"
+                                            Visibility="{Binding Source.Overlay.IsLocked, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}"
+                                            eye:CommandWrapperHelper.Text="Lock overlay" />
+                            <ContentControl Grid.Column="0" Content="{Binding Source.Overlay.UnlockWindowCommand}"
+                                            Visibility="{Binding Source.Overlay.IsLocked, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
+                                            eye:CommandWrapperHelper.Text="Unlock overlay" />
+                        </Grid>
+                    </DockPanel>
+                </GroupBox.Header>
+            </GroupBox>
+
+            <GroupBox DockPanel.Dock="Top" BorderThickness="0" Margin="0,0,0,10" Padding="0">
+                <GroupBox.Header>
+                    <Grid Margin="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="5,0" FontWeight="Bold" FontSize="14" Text="Triggers" />
+                        <TextBlock Grid.Column="1" Margin="5,0" FontSize="10" VerticalAlignment="Center"
+                                   Text="aura is Active only when ALL triggers are Active" />
+
+                        <materialDesign:PopupBox Grid.Column="3"
+                                                 StaysOpen="False" Height="22" Margin="0,-2,0,1"
+                                                 x:Name="TriggerList">
+                            <Grid>
+                                <ItemsControl ItemsSource="{Binding KnownTriggers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type shared:IAuraTrigger}">
+                                            <Button Content="{Binding}"
+                                                    ContentTemplate="{StaticResource AuraTriggerSelectorTemplateKey}"
+                                                    CommandParameter="{Binding}"
+                                                    Command="{Binding ElementName=TriggerList, Path=DataContext.AddTriggerCommand}" />
+                                        </DataTemplate>
+
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </materialDesign:PopupBox>
+                    </Grid>
+                </GroupBox.Header>
+
+                <DockPanel x:Name="TriggerListBody">
+                    <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding TriggerEditors}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type viewModels:IPropertyEditorViewModel}">
+
+                                <Border Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
+                                        BorderBrush="{StaticResource SecondaryAccentBrush}"
+                                        Padding="5"
+                                        Margin="0,5,0,0"
+                                        BorderThickness="0,1,0,1">
+                                    <DockPanel>
+                                        <DockPanel Dock="Top" Margin="0, 2.5">
+                                            <ContentControl DockPanel.Dock="Right"
+                                                            Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Border}}, Path=IsMouseOver, Converter={StaticResource TrueToVisibleFalseToHiddenConverter}}"
+                                                            Content="{Binding CloseCommand}"
+                                                            ToolTip="Remove trigger" x:Name="RemoveTriggerButton"
+                                                            eye:CommandWrapperHelper.Icon="&#xf00d;"
+                                                            ContentTemplate="{StaticResource CommandWrapperIcon}" />
+
+                                            <ContentControl DockPanel.Dock="Left" Content="{Binding Value}"
+                                                            x:Name="TriggerHeader"
+                                                            ContentTemplate="{StaticResource AuraTriggerHeaderTemplateKey}" />
+                                        </DockPanel>
+
+                                        <ContentControl DockPanel.Dock="Top" x:Name="TriggerBody" Content="{Binding }" />
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
+            </GroupBox>
+
+            <GroupBox DockPanel.Dock="Top" BorderThickness="0" Margin="0,0,0,10" Padding="0">
+                <GroupBox.Header>
+                    <Grid Margin="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Margin="5,0" FontWeight="Bold" FontSize="14" Text="On Enter actions" />
+                        <TextBlock Grid.Column="1" Margin="5,0" FontSize="10" VerticalAlignment="Center"
+                                   Text="these actions will be executed when aura Activates" />
+
+                        <materialDesign:PopupBox Grid.Column="3"
+                                                 StaysOpen="False" Height="22" Margin="0,-2,0,1"
+                                                 x:Name="OnEnterActionList">
+                            <Grid>
+                                <ItemsControl ItemsSource="{Binding KnownActions}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type shared:IAuraAction}">
+                                            <Button Content="{Binding}"
+                                                    ContentTemplate="{StaticResource AuraActionSelectorTemplateKey}"
+                                                    CommandParameter="{Binding}"
+                                                    Command="{Binding ElementName=OnEnterActionList, Path=DataContext.AddActionCommand}" />
+                                        </DataTemplate>
+
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </materialDesign:PopupBox>
+                    </Grid>
+                </GroupBox.Header>
+
+                <DockPanel x:Name="ActionListBody">
+                    <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding ActionEditors}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type viewModels:IPropertyEditorViewModel}">
+
+                                <Border Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
+                                        BorderBrush="{StaticResource SecondaryAccentBrush}"
+                                        Padding="5"
+                                        Margin="0,5,0,0"
+                                        BorderThickness="0,1,0,1">
+                                    <DockPanel>
+                                        <DockPanel Dock="Top" Margin="0, 2.5">
+                                            <ContentControl DockPanel.Dock="Right"
+                                                            Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Border}}, Path=IsMouseOver, Converter={StaticResource TrueToVisibleFalseToHiddenConverter}}"
+                                                            Content="{Binding CloseCommand}"
+                                                            ToolTip="Remove action" x:Name="RemoveActionButton"
+                                                            eye:CommandWrapperHelper.Icon="&#xf00d;"
+                                                            ContentTemplate="{StaticResource CommandWrapperIcon}" />
+
+                                            <ContentControl DockPanel.Dock="Left" Content="{Binding Value}"
+                                                            x:Name="ActionHeader"
+                                                            ContentTemplate="{StaticResource AuraActionSelectorTemplateKey}" />
+                                        </DockPanel>
+
+                                        <ContentControl DockPanel.Dock="Top" x:Name="ActionBody" Content="{Binding}" />
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
+            </GroupBox>
+        </StackPanel>
     </DataTemplate>
 </ResourceDictionary>

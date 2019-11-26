@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
+using DynamicData;
 using DynamicData.Binding;
 using EyeAuras.Shared;
 using EyeAuras.Shared.Services;
@@ -26,11 +29,11 @@ namespace EyeAuras.UI.Core.Models
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(OverlayAuraModelBase));
         private static readonly TimeSpan ModelsReloadTimeout = TimeSpan.FromSeconds(1);
-
         private static int GlobalAuraIdx;
 
-        private readonly string defaultAuraName;
         private readonly IAuraRepository repository;
+        private readonly string defaultAuraName;
+
         private ICloseController closeController;
         private bool isActive;
         private bool isEnabled = true;
@@ -48,103 +51,99 @@ namespace EyeAuras.UI.Core.Models
         {
             defaultAuraName = $"Aura #{Interlocked.Increment(ref GlobalAuraIdx)}";
             Name = defaultAuraName;
-
-            this.repository = repository;
-
-            var matcher = new RegexStringMatcher().AddToWhitelist(".*");
-            var windowTracker = windowTrackerFactory
-                .Create(matcher)
-                .AddTo(Anchors);
-
-            var overlayController = overlayWindowControllerFactory
-                .Create(windowTracker)
-                .AddTo(Anchors);
-
-            var overlayViewModel = overlayViewModelFactory
-                .Create(overlayController, this)
-                .AddTo(Anchors);
-            Overlay = overlayViewModel;
-
-            overlayController.RegisterChild(overlayViewModel);
-            overlayController.AddTo(Anchors);
-
-            Observable.Merge(
-                    Overlay.WhenValueChanged(x => x.AttachedWindow, false).ToUnit(),
-                    this.WhenValueChanged(x => x.IsActive, false).ToUnit())
-                .StartWithDefault()
-                .Select(
-                    () => new
-                    {
-                        IsActive,
-                        WindowIsAttached = Overlay.AttachedWindow != null
-                    })
-                .Subscribe(x => overlayController.IsEnabled = x.IsActive && x.WindowIsAttached)
-                .AddTo(Anchors);
-
-            OnEnterActions = new ObservableCollection<IAuraAction>();
-
+            using var unused = new OperationTimer(elapsed => Log.Debug($"[{Name}] Overlay model loaded in {elapsed.TotalMilliseconds:F0}ms"));
+            
             var auraTriggers = new ComplexAuraTrigger();
             Triggers = auraTriggers.Triggers;
             
-            var isActiveSource = Observable.Merge(
-                    this.WhenValueChanged(x => x.IsEnabled, false).ToUnit(),
-                    auraTriggers.WhenValueChanged(x => x.IsActive, false).ToUnit())
-                .StartWithDefault()
-                .Select(
-                    () => new
-                    {
-                        IsEnabled,
-                        TriggersAreActive = auraTriggers.IsActive,
-                    })
-                .DistinctUntilChanged()
-                .Select(x => x.IsEnabled && x.TriggersAreActive)
-                .Publish();
+            var auraActions = new ComplexAuraAction();
+            OnEnterActions = auraActions.Actions;
+            
+            this.repository = repository;
+            
+            using (new OperationTimer(elapsed => Log.Debug($"[{Name}] Overlay initialization took {elapsed.TotalMilliseconds:F0}ms")))
+            {
+                var matcher = new RegexStringMatcher().AddToWhitelist(".*");
+                var windowTracker = windowTrackerFactory
+                    .Create(matcher)
+                    .AddTo(Anchors);
 
-            Observable.CombineLatest(isActiveSource,  sharedContext.SystemTrigger.WhenValueChanged(x => x.IsActive))
+                var overlayController = overlayWindowControllerFactory
+                    .Create(windowTracker)
+                    .AddTo(Anchors);
+
+                var overlayViewModel = overlayViewModelFactory
+                    .Create(overlayController, this)
+                    .AddTo(Anchors);
+                overlayController.RegisterChild(overlayViewModel);
+                overlayController.AddTo(Anchors);
+                
+                Observable.Merge(
+                        overlayViewModel.WhenValueChanged(x => x.AttachedWindow, false).ToUnit(),
+                        this.WhenValueChanged(x => x.IsActive, false).ToUnit())
+                    .StartWithDefault()
+                    .Select(
+                        () => new
+                        {
+                            IsActive,
+                            WindowIsAttached = overlayViewModel.AttachedWindow != null
+                        })
+                    .Subscribe(x => overlayController.IsEnabled = x.IsActive && x.WindowIsAttached)
+                    .AddTo(Anchors);
+                
+                Overlay = overlayViewModel;
+            }
+
+            Observable.CombineLatest(
+                    auraTriggers.WhenAnyValue(x => x.IsActive),  
+                    sharedContext.SystemTrigger.WhenValueChanged(x => x.IsActive))
                 .DistinctUntilChanged()
                 .Subscribe(x => IsActive = x.All(isActive => isActive), Log.HandleException)
                 .AddTo(Anchors);
 
-            isActiveSource
+            auraTriggers.WhenAnyValue(x => x.IsActive)
                 .WithPrevious((prev, curr) => new {prev, curr})
                 .Where(x => x.prev == false && x.curr)
                 .Subscribe(ExecuteOnEnterActions, Log.HandleException)
                 .AddTo(Anchors);
 
-            isActiveSource.Connect().AddTo(Anchors);
-
             this.repository.KnownEntities
                 .ToObservableChangeSet()
+                .SkipInitial()
                 .Throttle(ModelsReloadTimeout, bgScheduler)
                 .ObserveOn(uiScheduler)
                 .Subscribe(
                     () =>
                     {
                         var properties = Properties;
-                        OnEnterActions.Clear();
-                        Triggers.Clear();
-                        ReloadTriggers(properties.TriggerProperties);
-                        ReloadAction(properties.OnEnterActionProperties);
+                        ReloadCollections(properties);
                     })
                 .AddTo(Anchors);
             
             var modelPropertiesToIgnore = new[]
             {
-                nameof(IAuraModel.Properties),
                 nameof(IAuraTrigger.IsActive),
                 nameof(IAuraTrigger.TriggerDescription),
                 nameof(IAuraTrigger.TriggerName),
             }.ToImmutableHashSet();
 
             Observable.Merge(
-                    this.WhenAnyProperty().Where(x => !modelPropertiesToIgnore.Contains(x.EventArgs.PropertyName)).Select(x => $"[{Name}].{x.EventArgs.PropertyName} property changed"),
+                    this.WhenAnyProperty(x => x.Name, x => x.TargetWindow, x => x.IsEnabled).Select(x => $"[{Name}].{x.EventArgs.PropertyName} property changed"),
                     Overlay.WhenAnyProperty().Where(x => !modelPropertiesToIgnore.Contains(x.EventArgs.PropertyName)).Select(x => $"[{Name}].{nameof(Overlay)}.{x.EventArgs.PropertyName} property changed"),
                     Triggers.ToObservableChangeSet().Select(x => $"[{Name}] Trigger list changed, item count: {Triggers.Count}"),
-                    OnEnterActions.ToObservableChangeSet().Select(x => $"[{Name}] Action list changed, item count: {OnEnterActions.Count}"),
                     Triggers.ToObservableChangeSet().WhenPropertyChanged().Where(x => !modelPropertiesToIgnore.Contains(x.EventArgs.PropertyName)).Select(x => $"[{Name}].{x.Sender}.{x.EventArgs.PropertyName} Trigger property changed"),
+                    OnEnterActions.ToObservableChangeSet().Select(x => $"[{Name}] Action list changed, item count: {OnEnterActions.Count}"),
                     OnEnterActions.ToObservableChangeSet().WhenPropertyChanged().Where(x => !modelPropertiesToIgnore.Contains(x.EventArgs.PropertyName)).Select(x => $"[{Name}].{x.Sender}.{x.EventArgs.PropertyName} Action property changed"))
                 .Subscribe(reason => RaisePropertyChanged(nameof(Properties)))
                 .AddTo(Anchors);
+            
+            Disposable.Create(() =>
+            {
+                Log.Debug(
+                    $"Disposed Aura {Name} (aka {defaultAuraName}), triggers: {Triggers.Count}, actions: {OnEnterActions.Count}");
+                OnEnterActions.Clear();
+                Triggers.Clear();
+            }).AddTo(Anchors);
         }
 
         private void ExecuteOnEnterActions()
@@ -196,26 +195,19 @@ namespace EyeAuras.UI.Core.Models
             set => RaiseAndSetIfChanged(ref name, value);
         }
 
-        private void ReloadTriggers(IEnumerable<IAuraProperties> properties)
-        {
-            Triggers.Clear();
-            properties.Where(ValidateProperty).Select(x => repository.CreateModel<IAuraTrigger>(x)).ForEach(x => Triggers.Add(x));
-        }
-
-        private void ReloadAction(IEnumerable<IAuraProperties> properties)
+        private void ReloadCollections(OverlayAuraProperties source)
         {
             OnEnterActions.Clear();
-            properties.Where(ValidateProperty).Select(x => repository.CreateModel<IAuraAction>(x)).ForEach(x => OnEnterActions.Add(x));
+            Triggers.Clear();
+            source.TriggerProperties.Where(ValidateProperty).Select(x => repository.CreateModel<IAuraTrigger>(x)).ForEach(x => Triggers.Add(x));
+            source.OnEnterActionProperties.Where(ValidateProperty).Select(x => repository.CreateModel<IAuraAction>(x)).ForEach(x => OnEnterActions.Add(x));
         }
 
         protected override void Load(OverlayAuraProperties source)
         {
             Name = source.Name;
             TargetWindow = source.WindowMatch;
-            OnEnterActions.Clear();
-
-            ReloadTriggers(source.TriggerProperties);
-            ReloadAction(source.OnEnterActionProperties);
+            ReloadCollections(source);
 
             IsEnabled = source.IsEnabled;
             Overlay.ThumbnailOpacity = source.ThumbnailOpacity;

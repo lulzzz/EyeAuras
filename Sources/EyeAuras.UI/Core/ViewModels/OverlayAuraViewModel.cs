@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Windows.Input;
@@ -9,13 +10,17 @@ using DynamicData;
 using DynamicData.Binding;
 using EyeAuras.Shared;
 using EyeAuras.UI.Core.Models;
+using EyeAuras.UI.Overlay.ViewModels;
 using JetBrains.Annotations;
 using log4net;
 using PoeShared;
+using PoeShared.Native;
 using PoeShared.Prism;
 using PoeShared.Scaffolding;
+using PoeShared.Scaffolding.WPF;
 using PoeShared.UI;
 using Prism.Commands;
+using Prism.Modularity;
 using ReactiveUI;
 using Unity;
 
@@ -24,117 +29,63 @@ namespace EyeAuras.UI.Core.ViewModels
     internal sealed class OverlayAuraViewModel : DisposableReactiveObject, IOverlayAuraViewModel
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(OverlayAuraViewModel));
-        private readonly DelegateCommand<object> addTriggerCommand;
-        private readonly DelegateCommand<object> addActionCommand;
 
-        private readonly ReadOnlyObservableCollection<IAuraTrigger> knownTriggers;
-        private readonly ReadOnlyObservableCollection<IAuraAction> knownActions;
-
-        private readonly IAuraRepository repository;
         private readonly Fallback<string> tabName = new Fallback<string>();
+        private readonly SerialDisposable loadedModelAnchors = new SerialDisposable();
+        private readonly IFactory<IOverlayAuraModel> auraModelFactory;
+        
         private bool isFlipped;
         private bool isSelected;
+        private OverlayAuraProperties properties;
+        private bool isEnabled;
+        private bool isActive;
+        private ICloseController closeController;
 
         public OverlayAuraViewModel(
-            [NotNull] IOverlayAuraModel auraModel,
+            OverlayAuraProperties initialProperties,
             [NotNull] IFactory<IPropertyEditorViewModel> propertiesEditorFactory,
-            [NotNull] IAuraRepository repository,
-            [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
+            [NotNull] IFactory<IOverlayAuraModel> auraModelFactory)
         {
-            Model = auraModel.AddTo(Anchors);
-            this.repository = repository;
-            tabName.SetDefaultValue(auraModel.Name);
+            this.auraModelFactory = auraModelFactory;
+            loadedModelAnchors.AddTo(Anchors);
             RenameCommand = new DelegateCommand<string>(RenameCommandExecuted);
-
-            repository.KnownEntities
-                .ToObservableChangeSet()
-                .Filter(x => x is IAuraTrigger)
-                .Transform(x => x as IAuraTrigger)
-                .Bind(out knownTriggers)
-                .Subscribe()
-                .AddTo(Anchors);
-            
-            repository.KnownEntities
-                .ToObservableChangeSet()
-                .Filter(x => x is IAuraAction)
-                .Transform(x => x as IAuraAction)
-                .Bind(out knownActions)
-                .Subscribe()
-                .AddTo(Anchors);
-
-            addTriggerCommand = new DelegateCommand<object>(AddTriggerCommandExecuted);
-            addActionCommand = new DelegateCommand<object>(AddOnEnterActionCommandExecuted);
-
-            auraModel.Triggers
-                .ToObservableChangeSet()
-                .Transform(
-                    x =>
-                    {
-                        var editor = propertiesEditorFactory.Create();
-                        var closeController = new RemoveItemController<IAuraTrigger>(x, auraModel.Triggers);
-                        editor.SetCloseController(closeController);
-                        editor.Value = x;
-                        return editor;
-                    })
-                .DisposeMany()
-                .ObserveOn(uiScheduler)
-                .Bind(out var triggersSource)
-                .Subscribe()
-                .AddTo(Anchors);
-
-            TriggerEditors = triggersSource;
-            
-            auraModel.OnEnterActions
-                .ToObservableChangeSet()
-                .Transform(
-                    x =>
-                    {
-                        var editor = propertiesEditorFactory.Create();
-                        var closeController = new RemoveItemController<IAuraAction>(x, auraModel.OnEnterActions);
-                        editor.SetCloseController(closeController);
-                        editor.Value = x;
-                        return editor;
-                    })
-                .DisposeMany()
-                .ObserveOn(uiScheduler)
-                .Bind(out var onEnterActionsSource)
-                .Subscribe()
-                .AddTo(Anchors);
-            ActionEditors = onEnterActionsSource;
-
-            GeneralEditor = propertiesEditorFactory.Create();
-            GeneralEditor.Value = auraModel;
 
             this.RaiseWhenSourceValue(x => x.TabName, tabName, x => x.Value).AddTo(Anchors);
             this.RaiseWhenSourceValue(x => x.DefaultTabName, tabName, x => x.DefaultValue).AddTo(Anchors);
-            Model.WhenAnyValue(x => x.Name)
-                .Subscribe(x => tabName.SetValue(x))
-                .AddTo(Anchors);
 
-            this.WhenAnyValue(x => x.TabName)
-                .Subscribe(x => Model.Name = x)
+            GeneralEditor = propertiesEditorFactory.Create();
+
+            Properties = initialProperties;
+            
+            IsEnabled = properties.IsEnabled;
+            tabName.SetValue(properties.Name);
+            
+            this.WhenAnyValue(x => x.IsEnabled)
+                .Subscribe(() => Model = ReloadModel())
                 .AddTo(Anchors);
+            
+            EnableCommand = CommandWrapper.Create(() => IsEnabled = true);
         }
 
         public string DefaultTabName => tabName.DefaultValue;
 
-        public ICommand AddTriggerCommand => addTriggerCommand;
-        
-        public ICommand AddActionCommand => addActionCommand;
+        public bool IsActive
+        {
+            get => isActive;
+            private set => this.RaiseAndSetIfChanged(ref isActive, value);
+        }
+
+        public bool IsEnabled
+        {
+            get => isEnabled;
+            set => this.RaiseAndSetIfChanged(ref isEnabled, value);
+        }
 
         public ICommand RenameCommand { [NotNull] get; }
+        
+        public ICommand EnableCommand { get; }
 
         public IPropertyEditorViewModel GeneralEditor { get; }
-
-        public ReadOnlyObservableCollection<IAuraTrigger> KnownTriggers => knownTriggers;
-        
-        public ReadOnlyObservableCollection<IAuraAction> KnownActions => knownActions;
-
-        public ReadOnlyObservableCollection<IPropertyEditorViewModel> TriggerEditors { get; }
-            
-        public ReadOnlyObservableCollection<IPropertyEditorViewModel> ActionEditors { get; }
-
-        public IOverlayAuraModel Model { get; }
 
         public string TabName => tabName.Value;
 
@@ -149,23 +100,85 @@ namespace EyeAuras.UI.Core.ViewModels
             get => isSelected;
             set => RaiseAndSetIfChanged(ref isSelected, value);
         }
+
+        private IOverlayAuraModel model;
+
+        public IOverlayAuraModel Model
+        {
+            get => model;
+            set => this.RaiseAndSetIfChanged(ref model, value);
+        }
+
+        public OverlayAuraProperties Properties
+        {
+            get => properties;
+            private set => this.RaiseAndSetIfChanged(ref properties, value);
+        }
         
-        private void AddOnEnterActionCommandExecuted(object obj)
+        public ICloseController CloseController
         {
-            Guard.ArgumentNotNull(obj, nameof(obj));
+            get => closeController;
+            private set => RaiseAndSetIfChanged(ref closeController, value);
+        }
+        
+        public void SetCloseController(ICloseController closeController)
+        {
+            Guard.ArgumentNotNull(closeController, nameof(closeController));
 
-            var model = repository.CreateModel<IAuraAction>(obj.GetType());
-            Model.OnEnterActions.Add(model);
+            CloseController = closeController;
         }
 
-        private void AddTriggerCommandExecuted(object obj)
+        private IOverlayAuraModel ReloadModel()
         {
-            Guard.ArgumentNotNull(obj, nameof(obj));
+            using var unused = new OperationTimer(elapsed => Log.Debug($"[{tabName}] {(isEnabled ? "Model loaded in" : "Model unloaded in")} {elapsed.TotalMilliseconds:F0}ms"));
 
-            var trigger = repository.CreateModel<IAuraTrigger>(obj.GetType());
-            Model.Triggers.Add(trigger);
+            var modelAnchors = new CompositeDisposable().AssignTo(loadedModelAnchors);
+            if (!isEnabled)
+            {
+                if (properties != null)
+                {
+                    properties.IsEnabled = false;
+                }
+                GeneralEditor.Value = null;
+                return null;
+            }
+            
+            var model = auraModelFactory.Create();
+            GeneralEditor.Value = model;
+
+            model.AddTo(modelAnchors);
+            tabName.SetDefaultValue(model.Name);
+
+            model.Properties = Properties;
+            
+            model.WhenAnyValue(x => x.Name)
+                .Subscribe(x => tabName.SetValue(x))
+                .AddTo(modelAnchors);
+            
+            model.WhenAnyValue(x => x.IsActive)
+                .Subscribe(modelIsActive => IsActive = modelIsActive)
+                .AddTo(modelAnchors);
+            
+            model.WhenAnyProperty(x => x.Properties)
+                .Subscribe(modelProperties => Properties = model.Properties)
+                .AddTo(modelAnchors);
+            
+            model.WhenAnyProperty(x => x.IsEnabled)
+                .Subscribe(modelIsEnabled => IsEnabled = model.IsEnabled)
+                .AddTo(modelAnchors);
+            
+            this.WhenAnyValue(x => x.TabName)
+                .Subscribe(x => model.Name = TabName)
+                .AddTo(modelAnchors);
+
+            this.WhenAnyValue(x => x.CloseController)
+                .Where(x => x != null)
+                .Subscribe(x => model.SetCloseController(x))
+                .AddTo(modelAnchors);
+
+            return model;
         }
-
+        
         private void RenameCommandExecuted(string value)
         {
             if (IsFlipped)

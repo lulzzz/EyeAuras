@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Windows.Input;
 using EyeAuras.Shared;
@@ -35,9 +36,15 @@ namespace EyeAuras.DefaultAuras.Triggers.HotkeyIsActive
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
         {
             this.hotkeyConverter = hotkeyConverter;
+            Disposable
+                .Create(() => Log.Debug($"Disposing HotkeyTrigger, gesture: {Hotkey} (mode: {HotkeyMode})"))
+                .AddTo(Anchors);
             IsActive = true;
+            this.RaiseWhenSourceValue(x => x.Properties, this, x => x.IsActive).AddTo(Anchors);
 
-            BuildHotkeySubscription(eventSource)
+            this.WhenAnyValue(x => x.Hotkey)
+                .Select(hotkey => hotkey == null ? Observable.Empty<HotkeyData>() : BuildHotkeySubscription(eventSource))
+                .Switch()
                 .DistinctUntilChanged(x => new { x.Hotkey, x.KeyDown })
                 .Where(
                     hotkeyData =>

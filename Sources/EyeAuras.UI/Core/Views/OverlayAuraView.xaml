@@ -1,9 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:shared="clr-namespace:EyeAuras.Shared;assembly=EyeAuras.Shared"
-                    xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
                     xmlns:viewModels="clr-namespace:EyeAuras.UI.Core.ViewModels"
                     xmlns:eye="http://coderush.net/poeeye/">
 
@@ -12,194 +10,24 @@
         <ResourceDictionary Source="pack://application:,,,/EyeAuras;component/Themes/Converters.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
-    <DataTemplate x:Key="AuraTriggerHeaderTemplateKey" DataType="{x:Type shared:IAuraTrigger}">
-        <DockPanel TextBlock.Foreground="WhiteSmoke">
-            <materialDesign:PackIcon
-                DockPanel.Dock="Left"
-                VerticalAlignment="Center"
-                Foreground="{StaticResource NegativeBrush}"
-                ToolTip="Aura is NOT active"
-                Visibility="{Binding IsActive, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}"
-                Kind="CheckboxBlankCircleOutline" />
-            <materialDesign:PackIcon
-                DockPanel.Dock="Left"
-                VerticalAlignment="Center"
-                Foreground="{StaticResource PositiveBrush}"
-                ToolTip="Aura is active"
-                Visibility="{Binding IsActive, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
-                Kind="CheckboxMarkedCircleOutline" />
-            <TextBlock Margin="5,0" FontWeight="Bold" FontSize="14" Text="{Binding TriggerName}" />
-            <TextBlock Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="{Binding TriggerDescription}" />
-        </DockPanel>
-    </DataTemplate>
-
-    <DataTemplate x:Key="AuraTriggerSelectorTemplateKey" DataType="{x:Type shared:IAuraTrigger}">
-        <DockPanel>
-            <TextBlock Margin="5,0" FontWeight="Bold" FontSize="14" Text="{Binding TriggerName}" />
-            <TextBlock Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="{Binding TriggerDescription}" />
-        </DockPanel>
-    </DataTemplate>
-    
-    
-    <DataTemplate x:Key="AuraActionSelectorTemplateKey" DataType="{x:Type shared:IAuraAction}">
-        <DockPanel>
-            <TextBlock Margin="5,0" FontWeight="Bold" FontSize="14" Text="{Binding ActionName}" />
-            <TextBlock Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="{Binding ActionDescription}" />
-        </DockPanel>
-    </DataTemplate>
-
     <DataTemplate DataType="{x:Type viewModels:OverlayAuraViewModel}">
-        <StackPanel Orientation="Vertical">
-            <GroupBox DockPanel.Dock="Top" BorderThickness="0" Margin="0" Padding="0">
-                <GroupBox.Content>
-                    <ContentControl x:Name="GeneralPropertiesBody" Margin="0,5" Content="{Binding GeneralEditor}" />
-                </GroupBox.Content>
-                <GroupBox.Header>
-                    <DockPanel x:Name="GeneralPropertiesHeader" Margin="4">
-                        <TextBlock Margin="5,0" FontWeight="Bold" FontSize="14" Text="General" />
-                        <TextBlock Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="{Binding TabName}" MaxWidth="150" TextTrimming="CharacterEllipsis" />
-
-                        <Grid Margin="5,0,0,0" Width="140" HorizontalAlignment="Right"
-                              IsEnabled="{Binding Model.Overlay.AttachedWindow, Converter={StaticResource NullToFalseConverter}}">
-                            <ContentControl Grid.Column="0" Content="{Binding Model.Overlay.LockWindowCommand}"
-                                            Visibility="{Binding Model.Overlay.IsLocked, Converter={StaticResource TrueToCollapsedFalseToVisibleConverter}}"
-                                            eye:CommandWrapperHelper.Text="Lock overlay" />
-                            <ContentControl Grid.Column="0" Content="{Binding Model.Overlay.UnlockWindowCommand}"
-                                            Visibility="{Binding Model.Overlay.IsLocked, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}"
-                                            eye:CommandWrapperHelper.Text="Unlock overlay" />
-                        </Grid>
-                    </DockPanel>
-                </GroupBox.Header>
-            </GroupBox>
-
-            <GroupBox DockPanel.Dock="Top" BorderThickness="0" Margin="0,0,0,10" Padding="0">
-                <GroupBox.Header>
-                    <Grid Margin="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Margin="5,0" FontWeight="Bold" FontSize="14" Text="Triggers" />
-                        <TextBlock Grid.Column="1" Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="aura is Active only when ALL triggers are Active" />
-
-                        <materialDesign:PopupBox Grid.Column="3" 
-                                                 StaysOpen="False" Height="22" Margin="0,-2,0,1"
-                                                 x:Name="TriggerList">
-                            <Grid>
-                                <ItemsControl ItemsSource="{Binding KnownTriggers}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type shared:IAuraTrigger}">
-                                            <Button Content="{Binding}"
-                                                    ContentTemplate="{StaticResource AuraTriggerSelectorTemplateKey}"
-                                                    CommandParameter="{Binding}"
-                                                    Command="{Binding ElementName=TriggerList, Path=DataContext.AddTriggerCommand}" />
-                                        </DataTemplate>
-
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Grid>
-                        </materialDesign:PopupBox>
-                    </Grid>
-                </GroupBox.Header>
-
-                <DockPanel x:Name="TriggerListBody">
-                    <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding TriggerEditors}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type viewModels:IPropertyEditorViewModel}">
-
-                                <Border Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
-                                        BorderBrush="{StaticResource SecondaryAccentBrush}"
-                                        Padding="5"
-                                        Margin="0,5,0,0"
-                                        BorderThickness="0,1,0,1">
-                                    <DockPanel>
-                                        <DockPanel Dock="Top" Margin="0, 2.5">
-                                            <ContentControl DockPanel.Dock="Right"
-                                                            Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Border}}, Path=IsMouseOver, Converter={StaticResource TrueToVisibleFalseToHiddenConverter}}"
-                                                            Content="{Binding CloseCommand}"
-                                                            ToolTip="Remove trigger" x:Name="RemoveTriggerButton"
-                                                            eye:CommandWrapperHelper.Icon="&#xf00d;"
-                                                            ContentTemplate="{StaticResource CommandWrapperIcon}" />
-
-                                            <ContentControl DockPanel.Dock="Left" Content="{Binding Value}" x:Name="TriggerHeader"
-                                                            ContentTemplate="{StaticResource AuraTriggerHeaderTemplateKey}" />
-                                        </DockPanel>
-
-                                        <ContentControl DockPanel.Dock="Top" x:Name="TriggerBody" Content="{Binding }" />
-                                    </DockPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </DockPanel>
-            </GroupBox>
-            
-            <GroupBox DockPanel.Dock="Top" BorderThickness="0" Margin="0,0,0,10" Padding="0">
-                <GroupBox.Header>
-                    <Grid Margin="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Margin="5,0" FontWeight="Bold" FontSize="14" Text="On Enter actions" />
-                        <TextBlock Grid.Column="1" Margin="5,0" FontSize="10" VerticalAlignment="Center" Text="these actions will be executed when aura Activates" />
-
-                        <materialDesign:PopupBox Grid.Column="3"
-                                                 StaysOpen="False" Height="22" Margin="0,-2,0,1"
-                                                 x:Name="OnEnterActionList">
-                            <Grid>
-                                <ItemsControl ItemsSource="{Binding KnownActions}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type shared:IAuraAction}">
-                                            <Button Content="{Binding}"
-                                                    ContentTemplate="{StaticResource AuraActionSelectorTemplateKey}"
-                                                    CommandParameter="{Binding}"
-                                                    Command="{Binding ElementName=OnEnterActionList, Path=DataContext.AddActionCommand}" />
-                                        </DataTemplate>
-
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Grid>
-                        </materialDesign:PopupBox>
-                    </Grid>
-                </GroupBox.Header>
-
-                <DockPanel x:Name="ActionListBody">
-                    <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding ActionEditors}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type viewModels:IPropertyEditorViewModel}">
-
-                                <Border Background="{StaticResource OverlayWindowTitleLightBackgroundBrushKey}"
-                                        BorderBrush="{StaticResource SecondaryAccentBrush}"
-                                        Padding="5"
-                                        Margin="0,5,0,0"
-                                        BorderThickness="0,1,0,1">
-                                    <DockPanel>
-                                        <DockPanel Dock="Top" Margin="0, 2.5">
-                                            <ContentControl DockPanel.Dock="Right"
-                                                            Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Border}}, Path=IsMouseOver, Converter={StaticResource TrueToVisibleFalseToHiddenConverter}}"
-                                                            Content="{Binding CloseCommand}"
-                                                            ToolTip="Remove action" x:Name="RemoveActionButton"
-                                                            eye:CommandWrapperHelper.Icon="&#xf00d;"
-                                                            ContentTemplate="{StaticResource CommandWrapperIcon}" />
-
-                                            <ContentControl DockPanel.Dock="Left" Content="{Binding Value}" x:Name="ActionHeader"
-                                                            ContentTemplate="{StaticResource AuraActionSelectorTemplateKey}" />
-                                        </DockPanel>
-
-                                        <ContentControl DockPanel.Dock="Top" x:Name="ActionBody" Content="{Binding}" />
-                                    </DockPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </DockPanel>
-            </GroupBox>
-
-        </StackPanel>
+        
+        
+        <Grid>
+            <ContentControl x:Name="GeneralPropertiesBody" 
+                            Visibility="{Binding GeneralEditor.Value, Converter={StaticResource NullToCollapsedConverter}}"
+                            Content="{Binding GeneralEditor}" />
+            <DockPanel Visibility="{Binding GeneralEditor.Value, Converter={StaticResource NotNullToCollapsedConverter}}"
+                       VerticalAlignment="Center">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource IconTextBlock}" 
+                           HorizontalAlignment="Center" FontSize="100"
+                           Text="&#xf070;" Foreground="{StaticResource NegativeBrush}" />
+                <TextBlock DockPanel.Dock="Top" FontSize="24" HorizontalAlignment="Center"
+                           Text="Aura is not loaded"/>
+                <ContentControl DockPanel.Dock="Top" Width="300" HorizontalAlignment="Center" x:Name="LoadAuraButton"
+                                eye:CommandWrapperHelper.Text="LOAD" eye:CommandWrapperHelper.Icon="&#xF0E2;"
+                                Content="{Binding EnableCommand}" />
+            </DockPanel>
+        </Grid>
     </DataTemplate>
 </ResourceDictionary>
