@@ -57,6 +57,8 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private readonly ObservableAsPropertyHelper<double> aspectRatio;
 
         private Lazy<OverlayConfigEditor> configEditorSupplier;
+        
+        private readonly SerialDisposable activeConfigEditorAnchors = new SerialDisposable();
 
         private bool maintainAspectRatio = true;
         private WindowHandle attachedWindow;
@@ -79,6 +81,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
         {
             using var sw = new BenchmarkTimer("Initialization", Log, nameof(EyeOverlayViewModel));
             SelectionAdorner = selectionAdorner.AddTo(Anchors);
+            activeConfigEditorAnchors.AddTo(Anchors);
             this.mainWindowTracker = mainWindowTracker;
             this.overlayWindowController = overlayWindowController;
             this.auraModelController = auraModelController;
@@ -304,7 +307,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
         private void CloseConfigEditorCommandExecuted()
         {
             Log.Debug("Closing ConfigEditor");
-            configEditorSupplier.Value.Hide();
+            activeConfigEditorAnchors.Disposable = null;
         }
 
         private bool ResetRegionCommandCanExecute()
@@ -321,8 +324,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
         {
             using var unused = new OperationTimer(elapsed => Log.Debug($"SelectRegion initialization took {elapsed.TotalMilliseconds:F0}ms"));
             Log.Debug($"Region selection mode turned on, Region: {Region}");
-
-            var selectRegionAnchors = OpenConfigEditor();
+            var selectRegionAnchors = OpenConfigEditor().AssignTo(activeConfigEditorAnchors);
             Disposable.Create(() =>
             {
                 Log.Debug("Disabling Region selection");
@@ -368,6 +370,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
                     () =>
                     {
                         Log.Debug("Hiding ConfigEditor window");
+                        configEditorSupplier.Value.Hide();
                         CloseConfigEditorCommandExecuted();
                     })
                 .AddTo(anchors);
@@ -386,7 +389,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
                             configEditorSupplier.Value.Hide();
                         }
                     })
-                .AddTo(Anchors);
+                .AddTo(anchors);
 
             return anchors;
         }

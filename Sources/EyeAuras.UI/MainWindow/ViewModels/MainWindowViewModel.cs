@@ -520,7 +520,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         private void CloseTabCommandExecuted(IEyeAuraViewModel tab)
         {
-            using var sw = new BenchmarkTimer("Close tab", Log);
+            using var sw = new BenchmarkTimer($"Close tab {tab.TabName}({tab.Id})", Log);
             Guard.ArgumentNotNull(tab, nameof(tab));
 
             Log.Debug($"Removing tab {tab}...");

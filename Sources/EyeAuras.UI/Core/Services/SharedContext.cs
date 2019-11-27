@@ -35,7 +35,6 @@ namespace EyeAuras.UI.Core.Services
             tabsListSource
                 .Connect()
                 .DisposeMany()
-                .ObserveOn(uiScheduler)
                 .Bind(auraList)
                 .Subscribe(() => { }, Log.HandleUiException)
                 .AddTo(Anchors);
