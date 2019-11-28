@@ -23,6 +23,10 @@ using Unity;
 using Point = System.Drawing.Point;
 using Size = System.Windows.Size;
 
+using WinSize = System.Drawing.Size;
+using WinPoint = System.Drawing.Point;
+using WinRectangle = System.Drawing.Rectangle;
+
 namespace EyeAuras.UI.RegionSelector.ViewModels
 {
     internal sealed class RegionSelectorViewModel : DisposableReactiveObject, IRegionSelectorViewModel
@@ -74,9 +78,9 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
         public IObservable<RegionSelectorResult> SelectWindow()
         {
             return SelectionAdorner.StartSelection()
+                .Select(x => x.ScaleToScreen())
                 .Do(x => Log.Debug($"Selected region: {x}"))
-                .Select(x => x.Width * x.Height >= MinSelectionArea ? x : new Rect(x.X, x.Y, 0 , 0))
-                .Select(x => GeometryExtensions.ToScreen(x, SelectionAdorner.Owner))
+                .Select(x => x.Width * x.Height >= MinSelectionArea ? x : new WinRectangle(x.X, x.Y, 0 , 0))
                 .Select(ToRegionResult)
                 .Do(x => Log.Debug($"Selection Result: {x}"));
         }

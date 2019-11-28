@@ -10,8 +10,6 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using System.Windows.Threading;
-using Gma.System.MouseKeyHook;
 using JetBrains.Annotations;
 using log4net;
 using PoeShared.Native;
@@ -48,6 +46,10 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
         {
             this.keyboardEventsSource = keyboardEventsSource;
             this.uiScheduler = uiScheduler;
+
+            this.RaiseWhenSourceValue(x => x.ScreenMousePosition, this, x => x.MousePosition).AddTo(Anchors);
+            this.RaiseWhenSourceValue(x => x.ScreenSelection, this, x => x.Selection).AddTo(Anchors);
+            
             this.WhenAnyProperty(x => x.Selection, x => x.MousePosition, x => x.Owner)
                 .Where(x => Owner != null)
                 .Sample(DesiredRedrawRate, bgScheduler) // MouseMove generates thousands of events
@@ -61,6 +63,8 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
             get => selection;
             private set => RaiseAndSetIfChanged(ref selection, value);
         }
+
+        public WinRectangle ScreenSelection => Selection.ScaleToScreen();
 
         public bool IsVisible
         {
@@ -85,6 +89,8 @@ namespace EyeAuras.UI.RegionSelector.ViewModels
             get => mousePosition;
             private set => RaiseAndSetIfChanged(ref mousePosition, value);
         }
+
+        public WinPoint ScreenMousePosition => MousePosition.ScaleToScreen();
 
         public UIElement Owner
         {

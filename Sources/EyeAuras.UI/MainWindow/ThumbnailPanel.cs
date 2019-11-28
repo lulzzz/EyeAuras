@@ -171,7 +171,6 @@ namespace EyeAuras.UI.MainWindow
                     thumbnail => Observable.Merge(
                             this.Observe(SourceRegionProperty).Select(x => SourceRegion).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $"RegionBounds changed {x.prev} => {x.curr}"),
                             this.Observe(ThumbnailOpacityProperty).Select(x => ThumbnailOpacity).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $"ThumbnailOpacity changed {x.prev} => {x.curr}"),
-                            //this.Observe(ThumbnailSizeProperty).Select(x => ThumbnailSize).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $"ThumbnailSize changed {x.prev} => {x.curr}"),
                             renderSizeSource.Where(x => !x.IsEmpty).Select(x => x.ToWinSize()).DistinctUntilChanged().WithPrevious((prev, curr) => new { prev, curr }).Select(x => $"RenderSize changed {x.prev} => {x.curr}"))
                         .StartWith($"Initial {nameof(UpdateThumbnail)} tick")
                         .Select(
@@ -253,7 +252,8 @@ namespace EyeAuras.UI.MainWindow
             {
                 Guard.ArgumentIsTrue(CanUpdateThumbnail(thumbnail), "CanUpdateThumbnail");
 
-                var sourceWindowSize = thumbnail.GetSourceSize();
+                // GetSourceSize returns DPI-affected Size, so we have to convert it to Screen
+                var sourceWindowSize = thumbnail.GetSourceSize().ToWpfSize().ScaleToScreen();
                 var thumbnailSize = !sourceBounds.IsNotEmpty()
                     ? sourceWindowSize
                     : sourceBounds.FitToSize(sourceWindowSize);
@@ -299,19 +299,13 @@ namespace EyeAuras.UI.MainWindow
             {
                 Guard.ArgumentIsTrue(CanUpdateThumbnail(thumbnail), "CanUpdateThumbnail");
 
-                var dpi = VisualTreeHelper.GetDpi(canvas);
                 var ownerLocation = canvas.TranslatePoint(new Point(0, 0), owner);
-                var location = ownerLocation.ToWinPoint();
-                var destination = new Rect(
-                    Math.Floor(location.X * dpi.DpiScaleX),
-                    Math.Floor(location.Y * dpi.DpiScaleY),
-                    Math.Ceiling(canvasSize.Width * dpi.DpiScaleX),
-                    Math.Ceiling(canvasSize.Height * dpi.DpiScaleY)).ToWinRectangle();
+                var destination = new Rect(ownerLocation, canvasSize).ScaleToScreen();
                 
                 var result = new ThumbnailUpdateArgs
                 {
                     DestinationRegion = destination,
-                    SourceRegion = sourceRegion,
+                    SourceRegion = sourceRegion.ScaleToWpf(),
                     SourceRegionOriginalSize = sourceRegionOriginalSize,
                     Thumbnail = thumbnail,
                     Opacity = ToByte(opacity),
@@ -351,7 +345,7 @@ namespace EyeAuras.UI.MainWindow
 
                 args.Thumbnail.Update(
                     destination: args.DestinationRegion, 
-                    source: args.SourceRegion, 
+                    source: args.SourceRegion.ToWinRectangle(), 
                     opacity: args.Opacity, 
                     visible: true,
                     onlyClientArea: true);
@@ -361,58 +355,6 @@ namespace EyeAuras.UI.MainWindow
                 Log.Error($"UpdateThumbnail error, args: {args}", ex);
                 throw;
             }
-        }
-
-        private void UpdateRegion(Rect selection)
-        {
-            if (selection.IsEmpty)
-            {
-                SourceRegion = WinRectangle.Empty;
-                return;
-            }
-            
-            selection.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY); // Wpf Px => Win Px
-            var targetSize = SourceWindowSize; // Win Px
-            var destinationSize = RenderSize.Scale(Dpi.DpiScaleX, Dpi.DpiScaleY); // Win Px
-            var currentTargetRegion = SourceRegion; // Win Px
-
-            var selectionPercent = new Rect
-            {
-                X = selection.X / destinationSize.Width,
-                Y = selection.Y / destinationSize.Height,
-                Height = selection.Height / destinationSize.Height,
-                Width = selection.Width / destinationSize.Width
-            };
-
-            Rect currentRegionPercent;
-            if (currentTargetRegion.IsNotEmpty())
-            {
-                currentRegionPercent = new Rect
-                {
-                    X = (double)currentTargetRegion.X / targetSize.Width,
-                    Y = (double)currentTargetRegion.Y / targetSize.Height,
-                    Height = (double)currentTargetRegion.Height / targetSize.Height,
-                    Width = (double)currentTargetRegion.Width / targetSize.Width
-                };
-            }
-            else
-            {
-                currentRegionPercent = new Rect
-                {
-                    Width = 1,
-                    Height = 1
-                };
-            }
-
-            var destinationRegion = new Rect
-            {
-                X = (currentRegionPercent.X + selectionPercent.X * currentRegionPercent.Width) * targetSize.Width,
-                Y = (currentRegionPercent.Y + selectionPercent.Y * currentRegionPercent.Height) * targetSize.Height,
-                Width = Math.Max(1, currentRegionPercent.Width * selectionPercent.Width * targetSize.Width),
-                Height = Math.Max(1, currentRegionPercent.Height * selectionPercent.Height * targetSize.Height)
-            };
-
-            SourceRegion = destinationRegion.ToWinRectangle();
         }
 
         private struct ThumbnailArgs
@@ -432,7 +374,7 @@ namespace EyeAuras.UI.MainWindow
             public Thumbnail Thumbnail { get; set; }
             public WinSize SourceRegionOriginalSize { get; set; }
             public WinSize SourceSize { get; set; }
-            public WinRectangle SourceRegion { get; set; }
+            public Rect SourceRegion { get; set; }
             public WinRectangle DestinationRegion { get; set; }
             public byte Opacity { get; set; }
 

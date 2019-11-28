@@ -47,7 +47,7 @@ namespace EyeAuras.UI.Triggers.AuraIsActive
             private set => this.RaiseAndSetIfChanged(ref aura, value);
         }
 
-        public string AuraId
+        public string AuraId    
         {
             get => auraId;
             set => this.RaiseAndSetIfChanged(ref auraId, value);
