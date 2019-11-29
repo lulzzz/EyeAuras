@@ -14,6 +14,7 @@ using EyeAuras.OnTopReplica;
 using JetBrains.Annotations;
 using log4net;
 using PoeShared;
+using PoeShared.Native;
 using PoeShared.Scaffolding;
 using ReactiveUI;
 using Brushes = System.Windows.Media.Brushes;
@@ -177,9 +178,11 @@ namespace EyeAuras.UI.MainWindow
                             reason =>
                             {
                                 ThumbnailUpdateArgs args;
-                                if (CanUpdateThumbnail(thumbnail))
+                                var sourceWindow = SourceWindow.Handle;
+                                var ownerWindow = new WindowInteropHelper(Owner).Handle;
+                                if (sourceWindow != IntPtr.Zero && ownerWindow != IntPtr.Zero && CanUpdateThumbnail(thumbnail))
                                 {
-                                    var sourceArgs = PreparSourceRegion(thumbnail, SourceRegion);
+                                    var sourceArgs = PrepareSourceRegion(thumbnail, sourceWindow, ownerWindow, SourceRegion);
                                     SourceWindowSize = sourceArgs.sourceSize;
                                     SourceRegionSize = sourceArgs.sourceRegionOriginalSize;
 
@@ -244,8 +247,10 @@ namespace EyeAuras.UI.MainWindow
             }
         }
         
-        private static (WinRectangle sourceRegion, WinSize sourceRegionOriginalSize, WinSize sourceSize) PreparSourceRegion(
+        private static (WinRectangle sourceRegion, WinSize sourceRegionOriginalSize, WinSize sourceSize) PrepareSourceRegion(
             Thumbnail thumbnail,
+            IntPtr ownerWindow,
+            IntPtr sourceWindow,
             WinRectangle sourceBounds)
         {
             try
@@ -253,7 +258,7 @@ namespace EyeAuras.UI.MainWindow
                 Guard.ArgumentIsTrue(CanUpdateThumbnail(thumbnail), "CanUpdateThumbnail");
 
                 // GetSourceSize returns DPI-affected Size, so we have to convert it to Screen
-                var sourceWindowSize = thumbnail.GetSourceSize().ToWpfSize().ScaleToScreen();
+                var sourceWindowSize = thumbnail.GetSourceSize();
                 var thumbnailSize = !sourceBounds.IsNotEmpty()
                     ? sourceWindowSize
                     : sourceBounds.FitToSize(sourceWindowSize);
@@ -275,8 +280,11 @@ namespace EyeAuras.UI.MainWindow
                             ? sourceBounds.Height
                             : thumbnailSize.Height);
                 }
-
-                return (source, thumbnailSize, sourceWindowSize);
+                var windowDpi = UnsafeNative.GetDisplayScaleFactor(sourceWindow);
+                var ownerDpi = UnsafeNative.GetDisplayScaleFactor(ownerWindow);
+                var wpfToScreen = ownerDpi / windowDpi;
+                var screenToWpf = windowDpi / ownerDpi;
+                return (source.Scale(screenToWpf), thumbnailSize, sourceWindowSize.Scale(wpfToScreen));
             }
             catch (Exception e)
             {
@@ -302,10 +310,11 @@ namespace EyeAuras.UI.MainWindow
                 var ownerLocation = canvas.TranslatePoint(new Point(0, 0), owner);
                 var destination = new Rect(ownerLocation, canvasSize).ScaleToScreen();
                 
+                
                 var result = new ThumbnailUpdateArgs
                 {
                     DestinationRegion = destination,
-                    SourceRegion = sourceRegion.ScaleToWpf(),
+                    SourceRegion = sourceRegion,
                     SourceRegionOriginalSize = sourceRegionOriginalSize,
                     Thumbnail = thumbnail,
                     Opacity = ToByte(opacity),
@@ -345,7 +354,7 @@ namespace EyeAuras.UI.MainWindow
 
                 args.Thumbnail.Update(
                     destination: args.DestinationRegion, 
-                    source: args.SourceRegion.ToWinRectangle(), 
+                    source: args.SourceRegion, 
                     opacity: args.Opacity, 
                     visible: true,
                     onlyClientArea: true);
@@ -374,7 +383,7 @@ namespace EyeAuras.UI.MainWindow
             public Thumbnail Thumbnail { get; set; }
             public WinSize SourceRegionOriginalSize { get; set; }
             public WinSize SourceSize { get; set; }
-            public Rect SourceRegion { get; set; }
+            public WinRectangle SourceRegion { get; set; }
             public WinRectangle DestinationRegion { get; set; }
             public byte Opacity { get; set; }
 
