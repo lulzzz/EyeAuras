@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using EyeAuras.Shared;
+using EyeAuras.Shared.Services;
 using EyeAuras.UI.Core.ViewModels;
 using log4net;
 using PoeShared;
@@ -56,7 +57,7 @@ namespace EyeAuras.UI.Core.Services
             knownEntities.Add(sample);
         }
 
-        public TAuraBaseType CreateModel<TAuraBaseType>(Type auraModelType) where TAuraBaseType : IAuraModel
+        public TAuraBaseType CreateModel<TAuraBaseType>(Type auraModelType, IAuraContext context) where TAuraBaseType : IAuraModel
         {
             return (TAuraBaseType) container.Resolve(auraModelType);
         }

@@ -98,7 +98,7 @@ namespace EyeAuras.UI.Core.ViewModels
         {
             Guard.ArgumentNotNull(obj, nameof(obj));
 
-            var model = repository.CreateModel<IAuraAction>(obj.GetType());
+            var model = repository.CreateModel<IAuraAction>(obj.GetType(), Source.Context);
             Source.OnEnterActions.Add(model);
         }
 
@@ -106,7 +106,7 @@ namespace EyeAuras.UI.Core.ViewModels
         {
             Guard.ArgumentNotNull(obj, nameof(obj));
 
-            var trigger = repository.CreateModel<IAuraTrigger>(obj.GetType());
+            var trigger = repository.CreateModel<IAuraTrigger>(obj.GetType(), Source.Context);
             Source.Triggers.Add(trigger);
         }
          

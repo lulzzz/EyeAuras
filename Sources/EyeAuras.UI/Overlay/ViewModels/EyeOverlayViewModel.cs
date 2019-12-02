@@ -7,6 +7,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using EyeAuras.OnTopReplica;
 using EyeAuras.Shared.Services;
@@ -43,6 +44,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private readonly CommandWrapper fitOverlayCommand;
         private readonly IWindowTracker mainWindowTracker;
+        private readonly IAuraContext auraContext;
         private readonly IOverlayWindowController overlayWindowController;
         private readonly IAuraModelController auraModelController;
 
@@ -73,6 +75,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         public EyeOverlayViewModel(
             [NotNull] [Dependency(WellKnownWindows.AllWindows)] IWindowTracker mainWindowTracker,
+            [NotNull] IAuraContext auraContext,
             [NotNull] IOverlayWindowController overlayWindowController,
             [NotNull] IAuraModelController auraModelController,
             [NotNull] IWindowListProvider windowListProvider,
@@ -83,6 +86,7 @@ namespace EyeAuras.UI.Overlay.ViewModels
             SelectionAdorner = selectionAdorner.AddTo(Anchors);
             activeConfigEditorAnchors.AddTo(Anchors);
             this.mainWindowTracker = mainWindowTracker;
+            this.auraContext = auraContext;
             this.overlayWindowController = overlayWindowController;
             this.auraModelController = auraModelController;
             this.windowListProvider = windowListProvider;
@@ -404,7 +408,13 @@ namespace EyeAuras.UI.Overlay.ViewModels
                 ShowActivated = false,
                 Visibility = Visibility.Collapsed
             };
-            
+            var windowHandle = new WindowInteropHelper(window).EnsureHandle();
+            Log.Debug($"Config window handel: {windowHandle.ToHexadecimal()}");
+            auraContext.RegisterWindow(new WindowMatchParams
+            {
+                Handle = windowHandle,
+                Title = window.Title,
+            }).AddTo(Anchors);
             Disposable.Create(
                     () =>
                     {
@@ -429,6 +439,15 @@ namespace EyeAuras.UI.Overlay.ViewModels
 
         private void ApplyConfig()
         {
+            Log.Debug($"[{OverlayName}] Overlay window loaded");
+            var overlayWindowHandle = new WindowInteropHelper(OverlayWindow).EnsureHandle();
+            Log.Debug($"[{OverlayName}] Overlay window loaded handle: {overlayWindowHandle.ToHexadecimal()}");
+            auraContext.RegisterWindow(new WindowMatchParams
+            {
+                Handle = overlayWindowHandle,
+                Title = OverlayWindow.Title
+            }).AddTo(Anchors);
+            
             dpi = VisualTreeHelper.GetDpi(OverlayWindow);
 
             mainWindowTracker.WhenAnyValue(x => x.ActiveProcessId)

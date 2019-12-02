@@ -2,7 +2,9 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using EyeAuras.Shared.Services;
 using EyeAuras.UI.Core.Models;
+using EyeAuras.UI.Core.Services;
 using JetBrains.Annotations;
 using log4net;
 using PoeShared;
@@ -134,13 +136,12 @@ namespace EyeAuras.UI.Core.ViewModels
                 IsActive = false;
                 return null;
             }
-            
-            var model = auraModelFactory.Create();
+
+            var model = auraModelFactory.Create().AddTo(modelAnchors);
             sw.Step($"Created new model: {model}");
             GeneralEditor.Value = model;
             sw.Step($"Initialized model Editor");
 
-            model.AddTo(modelAnchors);
             model.Properties = Properties;
             sw.Step($"Loaded model Properties");
 

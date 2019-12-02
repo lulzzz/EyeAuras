@@ -49,7 +49,8 @@ namespace EyeAuras.UI.Core.Models
             [NotNull] ISharedContext sharedContext,
             [NotNull] IAuraRepository repository,
             [NotNull] IUniqueIdGenerator idGenerator,
-            [NotNull] IFactory<IEyeOverlayViewModel, IOverlayWindowController, IAuraModelController> overlayViewModelFactory,
+            [NotNull] IFactory<AuraContext> auraContextFactory,
+            [NotNull] IFactory<IEyeOverlayViewModel, IAuraContext, IOverlayWindowController, IAuraModelController> overlayViewModelFactory,
             [NotNull] IFactory<IOverlayWindowController, IWindowTracker> overlayWindowControllerFactory,
             [NotNull] IFactory<WindowTracker, IStringMatcher> windowTrackerFactory,
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler,
@@ -59,7 +60,8 @@ namespace EyeAuras.UI.Core.Models
             Name = defaultAuraName;
             Id = idGenerator.Next();
             using var sw = new BenchmarkTimer($"[{Name}({Id})] OverlayAuraModel initialization", Log, nameof(OverlayAuraModelBase));
-            
+
+            Context = auraContextFactory.Create().AddTo(Anchors);
             var auraTriggers = new ComplexAuraTrigger();
             Triggers = auraTriggers.Triggers;
             
@@ -78,7 +80,7 @@ namespace EyeAuras.UI.Core.Models
             sw.Step($"Overlay controller created: {overlayController}");
 
             var overlayViewModel = overlayViewModelFactory
-                .Create(overlayController, this)
+                .Create(Context, overlayController, this)
                 .AddTo(Anchors);
             sw.Step($"Overlay view model created: {overlayViewModel}");
 
@@ -150,8 +152,16 @@ namespace EyeAuras.UI.Core.Models
             }).AddTo(Anchors);
             sw.Step($"Overlay model properties initialized");
 
-            overlayController.RegisterChild(overlayViewModel).AddTo(Anchors);
-            sw.Step($"Overlay registration completed: {this}");
+            Observable.FromAsync(() =>
+                {
+                    using var sw = new BenchmarkTimer($"[{Name}({Id})] Overlay registration", Log, nameof(OverlayAuraModelBase));
+                    Log.Debug($"[{Name}({Id})] [ctor] Registering Overlay...");
+                    overlayController.RegisterChild(overlayViewModel);
+                    return Task.CompletedTask;
+                })
+                .SubscribeOnDispatcher(DispatcherPriority.SystemIdle)
+                .Subscribe(() => { }, Log.HandleUiException)
+                .AddTo(Anchors);
         }
 
         private void ExecuteOnEnterActions()
@@ -165,6 +175,8 @@ namespace EyeAuras.UI.Core.Models
             get => isActive;
             private set => RaiseAndSetIfChanged(ref isActive, value);
         }
+
+        public IAuraContext Context { get; }
 
         public WindowMatchParams TargetWindow
         {

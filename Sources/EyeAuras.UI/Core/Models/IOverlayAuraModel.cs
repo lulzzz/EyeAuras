@@ -12,6 +12,8 @@ namespace EyeAuras.UI.Core.Models
         string Id { [NotNull] get; }
 
         bool IsActive { get; }
+        
+        IAuraContext Context { [NotNull] get; }
 
         WindowMatchParams TargetWindow { [CanBeNull] get; [CanBeNull] set; }
         
