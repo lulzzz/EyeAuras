@@ -151,7 +151,6 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                 .Subscribe()
                 .AddTo(Anchors);
 
-
             this.WhenAnyValue(x => x.SelectedTab)
                 .Subscribe(x => Log.Debug($"Selected tab: {x}"))
                 .AddTo(Anchors);
@@ -232,6 +231,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                     {
                         var allOverlays = TabsList
                             .OfType<IOverlayAuraViewModel>()
+                            .Where(x => x.Model?.Overlay != null)
                             .Select(y => y.Model.Overlay);
                         if (unlock)
                         {
@@ -245,7 +245,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                                 .Where(overlay => overlay.LockWindowCommand.CanExecute(null))
                                 .ForEach(overlay => overlay.LockWindowCommand.Execute(null));
                         }
-                    })
+                    }, Log.HandleUiException)
                 .AddTo(Anchors);
 
             Observable.Merge(
@@ -267,13 +267,13 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                         globalUnlockHotkeyTrigger.Hotkey = cfg.curr.UnlockAurasHotkey;
                         globalUnlockHotkeyTrigger.HotkeyMode = cfg.curr.UnlockAurasHotkeyMode;
                     },
-                    Log.HandleException)
+                    Log.HandleUiException)
                 .AddTo(Anchors);
 
             RegisterSelectRegionHotkey()
                 .Where(isActive => isActive)
                 .ObserveOn(uiScheduler)
-                .Subscribe(isActive => SelectRegionCommandExecuted())
+                .Subscribe(isActive => SelectRegionCommandExecuted(), Log.HandleUiException)
                 .AddTo(Anchors);
         }
 
