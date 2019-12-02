@@ -250,7 +250,7 @@ namespace EyeAuras.UI.Core.Models
             Overlay.BorderColor = source.BorderColor;
             Overlay.BorderThickness = source.BorderThickness;
 
-            var bounds = source.OverlayBounds.ToWpfRectangle().ScaleToWpf();
+            var bounds = source.OverlayBounds.ScaleToWpf();
             Overlay.Left = bounds.Left;
             Overlay.Top = bounds.Top;
             Overlay.Height = bounds.Height;

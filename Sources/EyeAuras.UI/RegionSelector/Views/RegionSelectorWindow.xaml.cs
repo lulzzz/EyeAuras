@@ -133,7 +133,7 @@ namespace EyeAuras.UI.RegionSelector.Views
                         
                         RegionCandidate.Visibility = Visibility.Visible;
                         
-                        var bounds = GeometryExtensions.FromScreen(regionResult.Window.WindowBounds);
+                        var bounds = regionResult.Window.WindowBounds.ScaleToWpf();
                         Canvas.SetLeft(RegionCandidate, bounds.X);
                         Canvas.SetTop(RegionCandidate, bounds.Y);
                         RegionCandidate.Width = bounds.Width;
