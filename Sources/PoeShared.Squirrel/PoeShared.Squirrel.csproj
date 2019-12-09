@@ -8,10 +8,7 @@
         <Configurations>Debug</Configurations>
         <Platforms>AnyCPU</Platforms>
         <LangVersion>latest</LangVersion>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>

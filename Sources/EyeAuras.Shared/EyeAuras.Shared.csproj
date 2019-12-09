@@ -5,10 +5,7 @@
         <TargetFramework>net461</TargetFramework>
         <Configurations>Debug</Configurations>
         <Platforms>AnyCPU</Platforms>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <WarningsAsErrors />
+        <WarningsAsErrors />
     </PropertyGroup>
 
     <ItemGroup>

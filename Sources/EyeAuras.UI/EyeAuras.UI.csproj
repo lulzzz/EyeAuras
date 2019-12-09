@@ -10,15 +10,12 @@
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <ApplicationIcon>Resources/mainIcon.ico</ApplicationIcon>
         <ApplicationManifest>EyeAuras.exe.manifest</ApplicationManifest>
-        <Configurations>Debug</Configurations>
+        <Configurations>Debug;Debug.Plus</Configurations>
         <Platforms>AnyCPU</Platforms>
         <StartupObject>EyeAuras.UI.App</StartupObject>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <OutputPath>..\bin\</OutputPath>
-      <WarningsAsErrors />
-      <PlatformTarget>AnyCPU</PlatformTarget>
+        <OutputPath>..\bin\</OutputPath>
+        <WarningsAsErrors />
+        <PlatformTarget>AnyCPU</PlatformTarget>
     </PropertyGroup>
 
     <ItemGroup>
@@ -30,11 +27,19 @@
       <ProjectReference Include="..\PoeShared.Wpf\PoeShared.Wpf.csproj" />
     </ItemGroup>
 
+    <Target Name="Test" AfterTargets="Build">
+        <Message Text="The value of Configuration:" />
+        <Message Text="$(Configuration)" />
+    </Target>
 
-  <ItemGroup Condition="'$(Configuration)' == 'Debug.Plus'">
-    <ProjectReference Include="..\EyeAuras.Loader\EyeAuras.Loader.csproj" />
-    <ProjectReference Include="..\EyeAuras.OpenCVAuras\EyeAuras.OpenCVAuras.csproj" />
-  </ItemGroup>
+    <Choose>
+        <When Condition="'$(Configuration)' == 'Debug.Plus'">
+            <ItemGroup>
+                <ProjectReference Include="..\EyeAuras.Loader\EyeAuras.Loader.csproj" />
+                <ProjectReference Include="..\EyeAuras.OpenCVAuras\EyeAuras.OpenCVAuras.csproj" />
+            </ItemGroup>
+        </When>
+    </Choose>
 
     <ItemGroup>
       <PackageReference Include="Blue.MVVM.Converter" Version="1.5.0" />
