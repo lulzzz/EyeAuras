@@ -36,6 +36,7 @@
                 <ResourceDictionary Source="pack://application:,,,/PoeShared.Wpf;component/Themes/Converters.xaml" />
                 <ResourceDictionary Source="MainWindow.tab.xaml" />
                 <ResourceDictionary Source="PrismModuleStatusView.xaml" />
+
             </ResourceDictionary.MergedDictionaries>
 
             <blue:MultiplyDoubleConverter x:Key="MultiplyDoubleDivideByThreeConverter" Factor="0.33" />

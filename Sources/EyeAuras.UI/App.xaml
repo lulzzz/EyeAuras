@@ -32,6 +32,7 @@
                 <ResourceDictionary Source="Core/Views/OverlayAuraEditor.xaml" />
                 
                 <ResourceDictionary Source="Triggers/AuraIsActive/AuraIsActiveEditorView.xaml" />
+                
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
