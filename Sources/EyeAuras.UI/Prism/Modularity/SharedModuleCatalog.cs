@@ -29,6 +29,7 @@ namespace EyeAuras.UI.Prism.Modularity
         private IModuleManager manager;
         private Collection<string> defaultModuleList;
         private readonly CompositeDisposable anchors = new CompositeDisposable();
+        private readonly Collection<MemoryAssemblyLoadContext> loadedModules = new Collection<MemoryAssemblyLoadContext>();
 
         public SharedModuleCatalog()
         {
@@ -94,7 +95,6 @@ namespace EyeAuras.UI.Prism.Modularity
             {
                 Log.Debug($"Loading modules from file {module.dllFile}");
                 var assemblyBytes = File.ReadAllBytes(module.dllFile.FullName);
-                LoadAssembly(assemblyBytes);
                 LoadModulesFromBytes(assemblyBytes);
             }
         }
@@ -169,7 +169,7 @@ namespace EyeAuras.UI.Prism.Modularity
             }
         }
 
-        private Assembly LoadAssembly(byte[] assemblyBytes)
+        private Assembly LoadAssembly(AssemblyLoadContext context, byte[] assemblyBytes)
         {
             Log.Debug($"Loading module from memory, binary data size: {assemblyBytes.Length}b...");
             
@@ -177,7 +177,6 @@ namespace EyeAuras.UI.Prism.Modularity
             Log.Debug($"Loaded assembly list:\n\t{loadedAssemblies.Select(x => new {x.FullName, x.Location}).DumpToTable()}");
              
             using var assemblyStream = new MemoryStream(assemblyBytes);
-            var context = new AssemblyLoadContext(Guid.NewGuid().ToString());
             var assembly = context.LoadFromStream(assemblyStream);
             var assemblyName = assembly.GetName().Name;
             Log.Debug($"Successfully loaded .NET assembly from memory(name: {assemblyName}, size: {assemblyBytes.Length}): {new { assembly.FullName, assembly.EntryPoint, assembly.ImageRuntimeVersion, assembly.IsFullyTrusted  }}");
@@ -205,8 +204,9 @@ namespace EyeAuras.UI.Prism.Modularity
             {
                 throw new InvalidOperationException($"Failed to find any Prism-compatible type implementing {PrismModuleInterfaceName} in assembly {moduleDef.FullName}");
             }
-
-            //var assembly = LoadAssembly(assemblyBytes);
+            
+            var context = new MemoryAssemblyLoadContext(moduleDef.FullName).AddTo(loadedModules);
+            var assembly = LoadAssembly(context, assemblyBytes);
             foreach (var bootstrapperType in prismBootstrappers)
             {
                 Log.Debug($"Loading type {bootstrapperType}");

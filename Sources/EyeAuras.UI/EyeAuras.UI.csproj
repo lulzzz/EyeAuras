@@ -18,6 +18,7 @@
         <PlatformTarget>AnyCPU</PlatformTarget>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <GenerateDependencyFile>false</GenerateDependencyFile>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <ItemGroup>
