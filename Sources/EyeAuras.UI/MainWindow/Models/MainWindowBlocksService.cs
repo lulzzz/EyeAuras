@@ -34,13 +34,13 @@ namespace EyeAuras.UI.MainWindow.Models
         {
             Guard.ArgumentNotNull(item, nameof(item));
             
-            Log.Debug($"Adding item {item} to StatusBar\r\n{StatusBarItems.DumpToTable()}");
+            Log.Debug($"Adding item {item} to StatusBar, items: {StatusBarItems.DumpToTextRaw()}");
             statusBarItemsSource.Add(item);
 
             return Disposable.Create(
                 () =>
                 {
-                    Log.Debug($"Removing item {item} from StatusBar\r\n{StatusBarItems.DumpToTable()}");
+                    Log.Debug($"Removing item {item} from StatusBar, items: {StatusBarItems.DumpToTextRaw()}");
                     statusBarItemsSource.Remove(item);
                 });
         }

@@ -16,7 +16,16 @@ namespace EyeAuras.UI.Prism.Modularity
         protected override Assembly? Load(AssemblyName assemblyName)
         {
             Log.Debug($"[{Name}] Loading assembly {assemblyName}");
-            return base.Load(assemblyName);
+            var result = base.Load(assemblyName);
+            if (result == null)
+            {
+                Log.Warn($"[{Name}] Failed to load assembly {assemblyName}");
+            }
+            else
+            {
+                Log.Debug($"[{Name}] Loaded assembly {assemblyName}: {result?.FullName}");
+            }
+            return result;
         }
 
         private Assembly? OnResolving(AssemblyLoadContext context, AssemblyName assemblyName)

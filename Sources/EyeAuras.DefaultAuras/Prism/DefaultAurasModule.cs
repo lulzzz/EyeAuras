@@ -4,6 +4,7 @@ using EyeAuras.DefaultAuras.Triggers.Default;
 using EyeAuras.DefaultAuras.Triggers.HotkeyIsActive;
 using EyeAuras.DefaultAuras.Triggers.WinActive;
 using EyeAuras.Shared;
+using JetBrains.Annotations;
 using log4net;
 using PoeShared;
 using PoeShared.Modularity;
@@ -14,6 +15,7 @@ using Unity;
 
 namespace EyeAuras.DefaultAuras.Prism
 {
+    [UsedImplicitly]
     public sealed class DefaultAurasModule : DisposableReactiveObject, IDynamicModule
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(DefaultAurasModule));
@@ -36,12 +38,15 @@ namespace EyeAuras.DefaultAuras.Prism
             container.RegisterOverlayController();
 
             var auraManager = container.Resolve<IAuraRegistrator>();
-            auraManager.Register<DefaultTrigger>();
-            auraManager.Register<WinActiveTrigger>();
+
             auraManager.Register<HotkeyIsActiveTrigger>();
-            auraManager.Register<WinActiveTriggerEditor, WinActiveTrigger>();
-            auraManager.Register<DefaultTriggerEditor, DefaultTrigger>();
             auraManager.Register<HotkeyIsActiveTriggerEditor, HotkeyIsActiveTrigger>();
+
+            auraManager.Register<WinActiveTrigger>();
+            auraManager.Register<WinActiveTriggerEditor, WinActiveTrigger>();
+
+            auraManager.Register<DefaultTrigger>();
+            auraManager.Register<DefaultTriggerEditor, DefaultTrigger>();
             
             auraManager.Register<PlaySoundAction>();
             auraManager.Register<PlaySoundActionEditor, PlaySoundAction>();

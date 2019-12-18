@@ -173,10 +173,8 @@ namespace EyeAuras.UI.Prism.Modularity
         {
             Log.Debug($"Loading module from memory, binary data size: {assemblyBytes.Length}b...");
             
-            var loadedAssemblies = GetLoadedAssemblies();
-            Log.Debug($"Loaded assembly list:\n\t{loadedAssemblies.Select(x => new {x.FullName, x.Location}).DumpToTable()}");
-             
             using var assemblyStream = new MemoryStream(assemblyBytes);
+            
             var assembly = context.LoadFromStream(assemblyStream);
             var assemblyName = assembly.GetName().Name;
             Log.Debug($"Successfully loaded .NET assembly from memory(name: {assemblyName}, size: {assemblyBytes.Length}): {new { assembly.FullName, assembly.EntryPoint, assembly.ImageRuntimeVersion, assembly.IsFullyTrusted  }}");
@@ -205,8 +203,7 @@ namespace EyeAuras.UI.Prism.Modularity
                 throw new InvalidOperationException($"Failed to find any Prism-compatible type implementing {PrismModuleInterfaceName} in assembly {moduleDef.FullName}");
             }
             
-            var context = new MemoryAssemblyLoadContext(moduleDef.FullName).AddTo(loadedModules);
-            var assembly = LoadAssembly(context, assemblyBytes);
+            var assembly = LoadAssembly(AssemblyLoadContext.Default, assemblyBytes);
             foreach (var bootstrapperType in prismBootstrappers)
             {
                 Log.Debug($"Loading type {bootstrapperType}");

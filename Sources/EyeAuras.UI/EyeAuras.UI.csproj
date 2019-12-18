@@ -18,7 +18,6 @@
         <PlatformTarget>AnyCPU</PlatformTarget>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <GenerateDependencyFile>false</GenerateDependencyFile>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <ItemGroup>
@@ -29,11 +28,6 @@
       <ProjectReference Include="..\PoeShared.Squirrel\PoeShared.Squirrel.csproj" />
       <ProjectReference Include="..\PoeShared.Wpf\PoeShared.Wpf.csproj" />
     </ItemGroup>
-
-    <Target Name="Test" AfterTargets="Build">
-        <Message Text="The value of Configuration:" />
-        <Message Text="$(Configuration)" />
-    </Target>
 
     <Choose>
         <When Condition="'$(Configuration)' == 'Debug.Plus'">
