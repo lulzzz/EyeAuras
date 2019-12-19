@@ -25,15 +25,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="PresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-        <HintPath>C:\Program Files\dotnet\packs\Microsoft.WindowsDesktop.App.Ref\3.0.0\ref\netcoreapp3.0\PresentationCore.dll</HintPath>
-      </Reference>
-      <Reference Include="PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-        <HintPath>C:\Program Files\dotnet\packs\Microsoft.WindowsDesktop.App.Ref\3.0.0\ref\netcoreapp3.0\PresentationFramework.dll</HintPath>
-      </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
       <None Remove="Overlay\OverlayWindowView.xaml" />
       <None Remove="Overlay\**" />
     </ItemGroup>

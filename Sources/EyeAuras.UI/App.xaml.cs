@@ -41,19 +41,19 @@ namespace EyeAuras.UI
 
                 InitializeLogging();
 
-                Log.Debug($"[App..ctor] Arguments: {arguments.DumpToText()}");
-                Log.Debug($"[App..ctor] Parsed args: {AppArguments.Instance.DumpToText()}");
-                Log.Debug($"[App..ctor] OS Version: {Environment.OSVersion}, is64bit: {Environment.Is64BitProcess} (OS: {Environment.Is64BitOperatingSystem})");
-                Log.Debug($"[App..ctor] Is Elevated: {AppArguments.Instance.IsElevated}");
-                Log.Debug($"[App..ctor] Culture: {Thread.CurrentThread.CurrentCulture}, UICulture: {Thread.CurrentThread.CurrentUICulture}");
+                Log.Debug($"Arguments: {arguments.DumpToText()}");
+                Log.Debug($"Parsed args: {AppArguments.Instance.DumpToText()}");
+                Log.Debug($"OS Version: {Environment.OSVersion}, is64bit: {Environment.Is64BitProcess} (OS: {Environment.Is64BitOperatingSystem})");
+                Log.Debug($"Is Elevated: {AppArguments.Instance.IsElevated}");
+                Log.Debug($"Culture: {Thread.CurrentThread.CurrentCulture}, UICulture: {Thread.CurrentThread.CurrentUICulture}");
 
-                Log.Debug($"[App..ctor] UI Scheduler: {RxApp.MainThreadScheduler}");
+                Log.Debug($"UI Scheduler: {RxApp.MainThreadScheduler}");
                 RxApp.MainThreadScheduler = DispatcherScheduler.Current;
                 RxApp.TaskpoolScheduler = TaskPoolScheduler.Default;
                 Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
-                Log.Debug($"[App..ctor] New UI Scheduler: {RxApp.MainThreadScheduler}");
+                Log.Debug($"New UI Scheduler: {RxApp.MainThreadScheduler}");
                 
-                Log.Debug($"[App..ctor] Configuring AllowSetForegroundWindow permissions");
+                Log.Debug($"Configuring AllowSetForegroundWindow permissions");
                 UnsafeNative.AllowSetForegroundWindow();
                 
                 aurasBootstrapper = new EyeAurasBootstrapper();
@@ -77,11 +77,11 @@ namespace EyeAuras.UI
         private void SingleInstanceValidationRoutine()
         {
             var mutexId = $"{AppArguments.Instance.AppName}{(AppArguments.Instance.IsDebugMode ? "DEBUG" : "RELEASE")}{{B74259C4-0F20-4EC2-9538-BA8A176FDF7D}}";
-            Log.Debug($"[App] Acquiring mutex {mutexId}...");
+            Log.Debug($"Acquiring mutex {mutexId}...");
             var mutex = new Mutex(true, mutexId);
             if (mutex.WaitOne(TimeSpan.Zero, true))
             {
-                Log.Debug($"[App] Mutex {mutexId} was successfully acquired");
+                Log.Debug($"Mutex {mutexId} was successfully acquired");
 
                 AppDomain.CurrentDomain.DomainUnload += delegate
                 {
@@ -92,7 +92,7 @@ namespace EyeAuras.UI
             }
             else
             {
-                Log.Warn($"[App] Application is already running, mutex: {mutexId}");
+                Log.Warn($"Application is already running, mutex: {mutexId}");
                 ShowShutdownWarning();
             }
         }

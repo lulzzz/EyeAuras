@@ -29,11 +29,6 @@
       <ProjectReference Include="..\PoeShared.Wpf\PoeShared.Wpf.csproj" />
     </ItemGroup>
 
-    <Target Name="Test" AfterTargets="Build">
-        <Message Text="The value of Configuration:" />
-        <Message Text="$(Configuration)" />
-    </Target>
-
     <Choose>
         <When Condition="'$(Configuration)' == 'Debug.Plus'">
             <ItemGroup>

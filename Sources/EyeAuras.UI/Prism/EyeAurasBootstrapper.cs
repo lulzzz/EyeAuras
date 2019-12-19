@@ -7,6 +7,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Windows;
 using EyeAuras.DefaultAuras.Prism;
+using EyeAuras.Shared.Services;
 using EyeAuras.UI.MainWindow.ViewModels;
 using EyeAuras.UI.Prism.Modularity;
 using EyeAuras.UI.SplashWindow.Services;
@@ -18,7 +19,7 @@ using PoeShared.Squirrel.Prism;
 using Prism.Modularity;
 using Prism.Unity;
 using Unity;
-using DirectoryModuleCatalog = EyeAuras.UI.Prism.Modularity.DirectoryModuleCatalog;
+using Unity.Lifetime;
 
 namespace EyeAuras.UI.Prism
 {
@@ -27,6 +28,11 @@ namespace EyeAuras.UI.Prism
         private static readonly ILog Log = LogManager.GetLogger(typeof(EyeAurasBootstrapper));
 
         private readonly CompositeDisposable anchors = new CompositeDisposable();
+
+        public EyeAurasBootstrapper()
+        {
+            Log.Debug($"Initializing EyeAuras bootstrapper");
+        }
 
         protected override DependencyObject CreateShell()
         {
@@ -78,7 +84,21 @@ namespace EyeAuras.UI.Prism
 
         protected override IModuleCatalog CreateModuleCatalog()
         {
-            return new DirectoryModuleCatalog(AppDomain.CurrentDomain.BaseDirectory);
+            return new SharedModuleCatalog();
+        }
+
+        protected override void ConfigureContainer()
+        {
+            base.ConfigureContainer();
+            Log.Debug($"Configuring {Container}, catalog: {ModuleCatalog} (type: {ModuleCatalog.GetType()})");
+            if (ModuleCatalog is IAppModuleLoader appModuleLoader)
+            {
+                Container.RegisterInstance(appModuleLoader, new ContainerControlledLifetimeManager());
+            }
+            else
+            {
+                throw new ApplicationException($"ModuleCatalog must be of type {nameof(IAppModuleLoader)}, got {ModuleCatalog}");
+            }
         }
 
         protected override void ConfigureModuleCatalog()
