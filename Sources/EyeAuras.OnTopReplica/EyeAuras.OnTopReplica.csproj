@@ -6,6 +6,7 @@
         <Configurations>Debug</Configurations>
         <Platforms>AnyCPU</Platforms>
         <WarningsAsErrors />
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     </PropertyGroup>
 
     <ItemGroup>
