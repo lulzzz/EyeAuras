@@ -78,18 +78,6 @@
                 </ItemsControl>
             </StatusBarItem>
             
-            
-            <StatusBarItem DockPanel.Dock="Right" Visibility="{Binding ModuleStatus.IsVisible, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}">
-                <ContentControl Content="{Binding ModuleStatus}"/>
-            </StatusBarItem>
-            
-            <StatusBarItem DockPanel.Dock="Right">
-                <ContentControl Content="{Binding OpenAppDataDirectoryCommand}"
-                                eye:CommandWrapperHelper.Icon="&#xF07C;"
-                                ContentTemplate="{StaticResource CommandWrapperIcon}"
-                                ToolTip="Open EyeAuras folder" />
-            </StatusBarItem>
-            
             <StatusBarItem DockPanel.Dock="Right">
                 <ToggleButton Style="{StaticResource MaterialDesignToggleButton}"
                               Width="150"
@@ -113,8 +101,21 @@
                         </Border>
                     </materialDesign:ToggleButtonAssist.OnContent>
                 </ToggleButton>
-
             </StatusBarItem>
+            
+            <StatusBarItem DockPanel.Dock="Right" Visibility="{Binding ModuleStatus.IsVisible, Converter={StaticResource TrueToVisibleFalseToCollapsedConverter}}">
+                <ContentControl Content="{Binding ModuleStatus}"/>
+            </StatusBarItem>
+            
+            
+            <StatusBarItem DockPanel.Dock="Right">
+                <ContentControl Content="{Binding OpenAppDataDirectoryCommand}"
+                                eye:CommandWrapperHelper.Icon="&#xF07C;"
+                                ContentTemplate="{StaticResource CommandWrapperIcon}"
+                                ToolTip="Open EyeAuras folder" />
+            </StatusBarItem>
+            
+            <Border/> <!-- Reserved filler -->
         </StatusBar>
         
         <materialDesign:DrawerHost DockPanel.Dock="Top" x:Name="MainDrawerHost">

@@ -1,3 +1,4 @@
+using System.Security;
 using Newtonsoft.Json;
 using PoeShared.Converters;
 
@@ -12,10 +13,10 @@ namespace PoeShared.Squirrel.Updater
         public bool RequiresAuthentication { get; set; }
 
         [JsonConverter(typeof(SafeDataConverter))]
-        public string Username { get; set; }
+        public SecureString Username { get; set; }
 
         [JsonConverter(typeof(SafeDataConverter))]
-        public string Password { get; set; }
+        public SecureString Password { get; set; }
 
         public bool Equals(UpdateSourceInfo other)
         {

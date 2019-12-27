@@ -198,8 +198,8 @@ namespace PoeShared.Squirrel.Updater
             Log.Debug($"Using update source: {updateSource.DumpToTextRaw()}");
             var downloader = new BasicAuthFileDownloader(
                 new NetworkCredential(
-                    updateSource.Username,
-                    updateSource.Password));
+                    updateSource.Username?.ToUnsecuredString(),
+                    updateSource.Password?.ToUnsecuredString()));
             if (updateSource.Uri.Contains("github"))
             {
                 Log.Debug($"Using GitHub source: {updateSource.DumpToTextRaw()}");
