@@ -51,7 +51,6 @@ namespace PoeShared.Squirrel.Updater
             this.RaiseWhenSourceValue(x => x.IsBusy, updaterModel, x => x.IsBusy, uiScheduler).AddTo(Anchors);
             this.RaiseWhenSourceValue(x => x.UpdateSource, updaterModel, x => x.UpdateSource, uiScheduler).AddTo(Anchors);
 
-            //FIXME UI THREAD ?
             RestartCommand = CommandWrapper
                 .Create(RestartCommandExecuted);
 
@@ -65,15 +64,18 @@ namespace PoeShared.Squirrel.Updater
                 .Subscribe(x => updaterModel.UpdateSource = x)
                 .AddTo(Anchors);
 
-            configProvider
-                .ListenTo(x => x.AutoUpdateTimeout)
-                .WithPrevious((prev, curr) => new {prev, curr})
-                .Do(timeout => Log.Debug($"[ApplicationUpdaterViewModel] AutoUpdate timeout changed: {timeout.prev} => {timeout.curr}"))
-                .Select(
-                    timeout => timeout.curr <= TimeSpan.Zero
-                        ? Observable.Never<long>()
-                        : Observable.Timer(DateTimeOffset.MinValue, timeout.curr, bgScheduler))
-                .Switch()
+            Observable.Merge(
+                    configProvider
+                        .ListenTo(x => x.AutoUpdateTimeout)
+                        .WithPrevious((prev, curr) => new {prev, curr})
+                        .Do(timeout => Log.Debug($"[ApplicationUpdaterViewModel] AutoUpdate timeout changed: {timeout.prev} => {timeout.curr}"))
+                        .Select(
+                            timeout => timeout.curr <= TimeSpan.Zero
+                                ? Observable.Never<long>()
+                                : Observable.Timer(DateTimeOffset.MinValue, timeout.curr, bgScheduler))
+                        .Switch()
+                        .ToUnit(),
+                    updaterModel.WhenAnyProperty(x => x.UpdateSource).ToUnit())
                 .ObserveOn(uiScheduler)
                 .Subscribe(() => CheckForUpdatesCommand.Execute(null), Log.HandleException)
                 .AddTo(Anchors);
@@ -119,7 +121,7 @@ namespace PoeShared.Squirrel.Updater
 
         private async Task CheckForUpdatesCommandExecuted()
         {
-            Log.Debug("[ApplicationUpdaterViewModel] Update check requested");
+            Log.Debug($"[ApplicationUpdaterViewModel] Update check requested, source: {updaterModel.UpdateSource}");
             if (CheckForUpdatesCommand.IsBusy || ApplyUpdate.IsBusy)
             {
                 Log.Debug("[ApplicationUpdaterViewModel] Already in progress");

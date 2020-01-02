@@ -4,7 +4,7 @@ using PoeShared.Modularity;
 
 namespace PoeShared.Squirrel.Updater
 {
-    internal sealed class UpdateSettingsConfig : IPoeEyeConfigVersioned
+    public sealed class UpdateSettingsConfig : IPoeEyeConfigVersioned
     {
         public static readonly TimeSpan DefaultAutoUpdateTimeout = TimeSpan.FromMinutes(30);
 
