@@ -131,6 +131,7 @@ namespace EyeAuras.UI.Core.Models
                 nameof(IAuraTrigger.TriggerName),
             }.ToImmutableHashSet();
 
+            //FIXME Properties mechanism should have inverted logic - only important parameters must matter
             Observable.Merge(
                     this.WhenAnyProperty(x => x.Name, x => x.TargetWindow, x => x.IsEnabled).Select(x => $"[{Name}].{x.EventArgs.PropertyName} property changed"),
                     Overlay.WhenAnyProperty().Where(x => !modelPropertiesToIgnore.Contains(x.EventArgs.PropertyName)).Select(x => $"[{Name}].{nameof(Overlay)}.{x.EventArgs.PropertyName} property changed"),
