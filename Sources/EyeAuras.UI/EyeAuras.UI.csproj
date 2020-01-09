@@ -40,7 +40,7 @@
 
     <ItemGroup>
       <PackageReference Include="Blue.MVVM.Converter" Version="1.5.0" />
-      <PackageReference Include="CompareNETObjects" Version="3.6.0" />
+      <PackageReference Include="CompareNETObjects" Version="4.65.0" />
       <PackageReference Include="dnlib" Version="3.3.0" />
       <PackageReference Include="Dragablz" Version="0.0.3.203" />
       <PackageReference Include="DynamicData" Version="6.13.13" />

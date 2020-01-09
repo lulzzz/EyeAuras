@@ -34,6 +34,7 @@ using PoeShared.Native;
 using PoeShared.Prism;
 using PoeShared.Scaffolding;
 using PoeShared.Scaffolding.WPF;
+using PoeShared.Services;
 using PoeShared.Squirrel.Updater;
 using PoeShared.UI;
 using PoeShared.UI.Hotkeys;
@@ -58,13 +59,6 @@ namespace EyeAuras.UI.MainWindow.ViewModels
         private readonly ISharedContext sharedContext;
         private readonly IConfigSerializer configSerializer;
         private readonly ISubject<Unit> configUpdateSubject = new Subject<Unit>();
-
-        private readonly CompareLogic diffLogic = new CompareLogic(
-            new ComparisonConfig
-            {
-                DoublePrecision = 0.01,
-                MaxDifferences = byte.MaxValue
-            });
 
         private readonly IHotkeyConverter hotkeyConverter;
         private readonly IFactory<HotkeyIsActiveTrigger> hotkeyTriggerFactory;
@@ -96,6 +90,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             [NotNull] IMainWindowBlocksProvider mainWindowBlocksProvider,
             [NotNull] IFactory<IRegionSelectorService> regionSelectorServiceFactory,
             [NotNull] ISharedContext sharedContext,
+            [NotNull] IComparisonService comparisonService,
             [NotNull] [Dependency(WellKnownSchedulers.UI)] IScheduler uiScheduler)
         {
             using var unused = new OperationTimer(elapsed => Log.Debug($"{nameof(MainWindowViewModel)} initialization took {elapsed.TotalMilliseconds:F0}ms"));
@@ -179,7 +174,7 @@ namespace EyeAuras.UI.MainWindow.ViewModels
                         .WhenPropertyChanged(x => x.Properties)
                         .Sample(ConfigSaveSamplingTimeout)
                         .WithPrevious((prev, curr) => new {prev, curr})
-                        .Select(x => new { x.curr.Sender, ComparisonResult = diffLogic.Compare(x.prev?.Value, x.curr.Value) })
+                        .Select(x => new { x.curr.Sender, ComparisonResult = comparisonService.Compare(x.prev?.Value, x.curr.Value) })
                         .Where(x => !x.ComparisonResult.AreEqual)
                         .Select(x => $"[{x.Sender.TabName}] Tab properties change: {x.ComparisonResult.DifferencesString}"))
                 .Buffer(ConfigSaveSamplingTimeout)
