@@ -1,4 +1,5 @@
 using EyeAuras.Shared;
+using PoeShared.Modularity;
 
 namespace EyeAuras.UI.Core.ViewModels
 {

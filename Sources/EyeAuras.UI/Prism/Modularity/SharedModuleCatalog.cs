@@ -13,6 +13,7 @@ using dnlib.DotNet;
 using EyeAuras.Shared.Services;
 using JetBrains.Annotations;
 using log4net;
+using PoeShared;
 using PoeShared.Modularity;
 using PoeShared.Scaffolding;
 using Prism.Modularity;
@@ -94,9 +95,32 @@ namespace EyeAuras.UI.Prism.Modularity
             foreach (var module in discoveredModules)
             {
                 Log.Debug($"Loading modules from file {module.dllFile}");
-                var assemblyBytes = File.ReadAllBytes(module.dllFile.FullName);
-                LoadModulesFromBytes(assemblyBytes);
+                if (AppArguments.Instance.IsLazyMode)
+                {
+                    var moduleInfo = PrepareLocalModuleInfo(module.prismBootstrapper, module.dllFile);
+                    Log.Debug($"LazyMode is enabled, adding ModuleInfo: {moduleInfo}");
+                    moduleCatalog.AddModule(moduleInfo);
+                }
+                else
+                {
+                    var assemblyBytes = File.ReadAllBytes(module.dllFile.FullName);
+                    LoadModulesFromBytes(assemblyBytes);
+                }
             }
+        }
+        
+        private ModuleInfo PrepareLocalModuleInfo(IType prismBootstrapperType, FileInfo dllFile)
+        {
+            var result = new ModuleInfo
+            {
+                InitializationMode = InitializationMode.OnDemand,
+                ModuleName = $"[File] {prismBootstrapperType.FullName}",
+                ModuleType = prismBootstrapperType.AssemblyQualifiedName,
+                Ref = dllFile.FullName,
+                DependsOn = defaultModuleList
+            };
+
+            return result;
         }
         
         private ModuleInfo PrepareModuleInfo(IType prismBootstrapperType)

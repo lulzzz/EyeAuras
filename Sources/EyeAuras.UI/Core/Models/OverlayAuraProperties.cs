@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
+using System.Runtime.Serialization;
 using System.Windows.Media;
 using EyeAuras.Shared;
 using EyeAuras.Shared.Services;
 using EyeAuras.UI.Core.Services;
+using EyeAuras.UI.Prism.Modularity;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
+using PoeShared.Modularity;
 using Color = System.Windows.Media.Color;
 
 namespace EyeAuras.UI.Core.Models
@@ -18,12 +23,12 @@ namespace EyeAuras.UI.Core.Models
             SourceRegionBounds = Rectangle.Empty,
             IsEnabled = true
         };
+        
+        public IList<PoeConfigMetadata<IAuraProperties>> TriggerProperties { [CanBeNull] get; [CanBeNull] set; } =
+            new List<PoeConfigMetadata<IAuraProperties>>();
 
-        public IList<IAuraProperties> TriggerProperties { [CanBeNull] get; [CanBeNull] set; } =
-            new List<IAuraProperties>();
-
-        public IList<IAuraProperties> OnEnterActionProperties { [CanBeNull] get; [CanBeNull] set; } =
-            new List<IAuraProperties>();
+        public IList<PoeConfigMetadata<IAuraProperties>> OnEnterActionProperties { [CanBeNull] get; [CanBeNull] set; } =
+            new List<PoeConfigMetadata<IAuraProperties>>();
 
         public string Id { get; set; }
 
@@ -47,6 +52,6 @@ namespace EyeAuras.UI.Core.Models
 
         public bool MaintainAspectRatio { get; set; } = true;
 
-        public int Version { get; set; } = 1;
+        public int Version { get; set; } = 2;
     }
 }

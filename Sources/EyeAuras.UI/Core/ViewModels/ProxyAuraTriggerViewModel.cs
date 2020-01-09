@@ -1,4 +1,5 @@
 using EyeAuras.Shared;
+using EyeAuras.UI.Core.Models;
 
 namespace EyeAuras.UI.Core.ViewModels
 {
@@ -18,7 +19,11 @@ namespace EyeAuras.UI.Core.ViewModels
         protected override void LoadProperties(IAuraProperties source)
         {
             base.LoadProperties(source);
-            TriggerDescription = $"Technical Proxy Trigger: {source?.GetType().Name ?? "not initialized yet"}";
+
+            var typeDescription = (source is ProxyAuraProperties proxyProperties)
+                ? $"{proxyProperties.ModuleName} is not loaded yet"
+                : $"{source.GetType().Name} is not initialized yet";
+            TriggerDescription = $"Technical Proxy Trigger: {typeDescription}";
         }
     }
 }

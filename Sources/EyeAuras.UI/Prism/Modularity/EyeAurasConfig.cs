@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Forms;
 using EyeAuras.UI.Core.Models;
 using JetBrains.Annotations;
@@ -25,6 +26,6 @@ namespace EyeAuras.UI.Prism.Modularity
         
         public double ListWidth { get; set; }
 
-        public int Version { get; set; } = 1;
+        public int Version { get; set; } = 2;
     }
 }

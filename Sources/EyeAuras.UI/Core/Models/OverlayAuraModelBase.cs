@@ -18,9 +18,11 @@ using EyeAuras.Shared.Services;
 using EyeAuras.UI.Core.Services;
 using EyeAuras.UI.MainWindow.Models;
 using EyeAuras.UI.Overlay.ViewModels;
+using EyeAuras.UI.Prism.Modularity;
 using JetBrains.Annotations;
 using log4net;
 using PoeShared;
+using PoeShared.Modularity;
 using PoeShared.Native;
 using PoeShared.Prism;
 using PoeShared.Scaffolding;
@@ -36,6 +38,7 @@ namespace EyeAuras.UI.Core.Models
         private static int GlobalAuraIdx;
 
         private readonly IAuraRepository repository;
+        private readonly IConfigSerializer configSerializer;
         private readonly string defaultAuraName;
 
         private ICloseController closeController;
@@ -48,6 +51,7 @@ namespace EyeAuras.UI.Core.Models
         public OverlayAuraModelBase(
             [NotNull] ISharedContext sharedContext,
             [NotNull] IAuraRepository repository,
+            [NotNull] IConfigSerializer configSerializer,
             [NotNull] IUniqueIdGenerator idGenerator,
             [NotNull] IFactory<IEyeOverlayViewModel, IOverlayWindowController, IAuraModelController> overlayViewModelFactory,
             [NotNull] IFactory<IOverlayWindowController, IWindowTracker> overlayWindowControllerFactory,
@@ -67,6 +71,7 @@ namespace EyeAuras.UI.Core.Models
             OnEnterActions = auraActions.Actions;
             
             this.repository = repository;
+            this.configSerializer = configSerializer;
             var matcher = new RegexStringMatcher().AddToWhitelist(".*");
             var windowTracker = windowTrackerFactory
                 .Create(matcher)
@@ -214,8 +219,18 @@ namespace EyeAuras.UI.Core.Models
         {
             OnEnterActions.Clear();
             Triggers.Clear();
-            source.TriggerProperties.Where(ValidateProperty).Select(x => repository.CreateModel<IAuraTrigger>(x)).ForEach(x => Triggers.Add(x));
-            source.OnEnterActionProperties.Where(ValidateProperty).Select(x => repository.CreateModel<IAuraAction>(x)).ForEach(x => OnEnterActions.Add(x));
+            
+            source.TriggerProperties
+                .Select(ToAuraProperties)
+                .Where(ValidateProperty)
+                .Select(x => repository.CreateModel<IAuraTrigger>(x))
+                .ForEach(x => Triggers.Add(x));
+            
+            source.OnEnterActionProperties
+                .Select(ToAuraProperties)
+                .Where(ValidateProperty)
+                .Select(x => repository.CreateModel<IAuraAction>(x))
+                .ForEach(x => OnEnterActions.Add(x));
         }
 
         protected override void Load(OverlayAuraProperties source)
@@ -251,8 +266,8 @@ namespace EyeAuras.UI.Core.Models
             var save = new OverlayAuraProperties
             {
                 Name = Name,
-                TriggerProperties = Triggers.Select(x => x.Properties).Where(ValidateProperty).ToList(),
-                OnEnterActionProperties = OnEnterActions.Select(x => x.Properties).Where(ValidateProperty).ToList(),
+                TriggerProperties = Triggers.Select(x => x.Properties).Where(ValidateProperty).Select(ToMetadata).ToList(),
+                OnEnterActionProperties = OnEnterActions.Select(x => x.Properties).Where(ValidateProperty).Select(ToMetadata).ToList(),
                 SourceRegionBounds = Overlay.Region.Bounds,
                 OverlayBounds = Overlay.NativeBounds,
                 WindowMatch = TargetWindow,
@@ -267,8 +282,60 @@ namespace EyeAuras.UI.Core.Models
             return save;
         }
 
+        private IAuraProperties ToAuraProperties(PoeConfigMetadata<IAuraProperties> metadata)
+        {
+            if (metadata.Value == null)
+            {
+                Log.Warn($"Trying to re-serialize metadata type {metadata.TypeName} (v{metadata.Version}) {metadata.AssemblyName}...");
+                var serialized = configSerializer.Serialize(metadata);
+                if (string.IsNullOrEmpty(serialized))
+                {
+                    throw new ApplicationException($"Something went wrong when re-serializing metadata: {metadata}\n{metadata.ConfigValue}");
+                }
+                var deserialized = configSerializer.Deserialize<PoeConfigMetadata<IAuraProperties>>(serialized);
+                if (deserialized.Value != null)
+                {
+                    Log.Debug($"Successfully restored type {metadata.TypeName} (v{metadata.Version}) {metadata.AssemblyName}: {deserialized.Value}");
+                    metadata = deserialized;
+                }
+                else
+                {
+                    Log.Warn($"Failed to restore type {metadata.TypeName} (v{metadata.Version}) {metadata.AssemblyName}");
+                }
+            }
+            
+            if (metadata.Value == null)
+            {
+                
+                return new ProxyAuraProperties(metadata);
+            }
+
+            return metadata.Value;
+        }
+        
+        private PoeConfigMetadata<IAuraProperties> ToMetadata(IAuraProperties properties)
+        {
+            if (properties is ProxyAuraProperties proxyAuraProperties)
+            {
+                return proxyAuraProperties.Metadata;
+            }
+            
+            return new PoeConfigMetadata<IAuraProperties>
+            {
+                AssemblyName = properties.GetType().Assembly.GetName().Name,
+                TypeName = properties.GetType().FullName,
+                Value = properties,
+                Version = properties.Version,
+            };
+        }
+        
         private bool ValidateProperty(IAuraProperties properties)
         {
+            if (properties == null)
+            {
+                return false;
+            }
+            
             if (properties is EmptyAuraProperties)
             {
                 Log.Warn($"[{Name}({Id})] {nameof(EmptyAuraProperties)} should never be used for Models Save/Load purposes - too generic");

@@ -7,6 +7,6 @@ namespace EyeAuras.DefaultAuras.Triggers.WinActive
     {
         public WindowMatchParams WindowMatchParams { get; set; }
 
-        public int Version { get; set; } = 1;
+        public int Version { get; set; } = 2;
     }
 }
