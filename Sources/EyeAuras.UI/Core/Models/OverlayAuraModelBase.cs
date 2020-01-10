@@ -86,21 +86,21 @@ namespace EyeAuras.UI.Core.Models
                 .Create(overlayController, this)
                 .AddTo(Anchors);
             sw.Step($"Overlay view model created: {overlayViewModel}");
-
+            
+            Overlay = overlayViewModel;
             Observable.Merge(
                     overlayViewModel.WhenValueChanged(x => x.AttachedWindow, false).ToUnit(),
+                    overlayViewModel.WhenValueChanged(x => x.IsLocked, false).ToUnit(),
                     this.WhenValueChanged(x => x.IsActive, false).ToUnit())
                 .StartWithDefault()
                 .Select(
                     () => new
                     {
-                        IsActive,
+                        OverlayShouldBeShown = IsActive || !overlayViewModel.IsLocked,
                         WindowIsAttached = overlayViewModel.AttachedWindow != null
                     })
-                .Subscribe(x => overlayController.IsEnabled = x.IsActive && x.WindowIsAttached)
+                .Subscribe(x => overlayController.IsEnabled = x.OverlayShouldBeShown && x.WindowIsAttached)
                 .AddTo(Anchors);
-            
-            Overlay = overlayViewModel;
             sw.Step($"Overlay view model initialized: {overlayViewModel}");
 
             Observable.CombineLatest(

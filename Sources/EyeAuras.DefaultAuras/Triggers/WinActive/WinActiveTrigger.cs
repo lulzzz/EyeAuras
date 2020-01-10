@@ -67,7 +67,7 @@ namespace EyeAuras.DefaultAuras.Triggers.WinActive
                         CurrentProcessId
                     })
                 .Do(x => Log.Debug($"WinActiveTrigger data updated(target: {TargetWindow}): {x}"))
-                .Subscribe(x => IsActive = x.IsActive || x.CurrentProcessId == x.ActiveProcessId);
+                .Subscribe(x => IsActive = x.IsActive);
         }
 
         protected override void Load(WinActiveTriggerProperties source)

@@ -69,7 +69,7 @@ namespace EyeAuras.DefaultAuras.Triggers.HotkeyIsActive
                 .Subscribe(
                     hotkeyData =>
                     {
-                        Log.Info($"Hotkey {hotkeyData.Hotkey} pressed, state: {(hotkeyData.KeyDown ? "down" : "up")}, suppressed: {suppressKey}");
+                        Log.Debug($"Hotkey {hotkeyData.Hotkey} pressed, state: {(hotkeyData.KeyDown ? "down" : "up")}, suppressed: {suppressKey}");
 
                         if (HotkeyMode == HotkeyMode.Click)
                         {
