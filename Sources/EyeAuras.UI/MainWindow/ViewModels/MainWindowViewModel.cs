@@ -294,6 +294,8 @@ namespace EyeAuras.UI.MainWindow.ViewModels
 
         public IGenericSettingsViewModel Settings { get; }
 
+        public Size MinSize { get; } = new Size(950, 650);
+
         public IEyeAuraViewModel SelectedTab
         {
             get => selectedTab;
@@ -589,12 +591,15 @@ namespace EyeAuras.UI.MainWindow.ViewModels
             };
             Log.Debug($"Current SystemInformation: {systemInformation.DumpToTextRaw()}");
 
-            if (UnsafeNative.IsOutOfBounds(config.MainWindowBounds, systemInformation.MonitorBounds))
+            if (!config.MainWindowBounds.Size.IsNotEmpty() || UnsafeNative.IsOutOfBounds(config.MainWindowBounds, systemInformation.MonitorBounds))
             {
-                var screenCenter = UnsafeNative.GetPositionAtTheCenter(systemInformation.MonitorBounds, config.MainWindowBounds.Size);
+                var size = config.MainWindowBounds.Size.IsNotEmpty()
+                    ? config.MainWindowBounds.Size
+                    : MinSize;
+                var screenCenter = UnsafeNative.GetPositionAtTheCenter(systemInformation.MonitorBounds, size);
                 Log.Warn(
-                    $"Main window is out of screen bounds(screen: {systemInformation.MonitorBounds}, main window bounds: {config.MainWindowBounds}) , resetting Location to {screenCenter}");
-                config.MainWindowBounds = new Rect(screenCenter, config.MainWindowBounds.Size);
+                    $"Main window is out of screen bounds(screen: {systemInformation.MonitorBounds}, main window bounds: {config.MainWindowBounds}, using size {size}), resetting Location to {screenCenter}");
+                config.MainWindowBounds = new Rect(screenCenter, size);
             }
 
             foreach (var auraProperties in config.Auras.EmptyIfNull())
