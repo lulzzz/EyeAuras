@@ -284,7 +284,6 @@ namespace EyeAuras.Tests.Modularity
         private JsonConfigSerializer CreateInstance()
         {
             var result = new JsonConfigSerializer();
-            result.RegisterConverter(new PoeConfigConverter());
             return result;
         }
     }
