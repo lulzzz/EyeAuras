@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using EyeAuras.OnTopReplica.Native;
 using PoeShared.Native;
@@ -12,24 +13,24 @@ namespace EyeAuras.OnTopReplica.WindowSeekers
     /// </summary>
     public sealed class TaskWindowSeeker : BaseWindowSeeker
     {
-        private readonly ConcurrentDictionary<IntPtr, WindowHandle> windows = new ConcurrentDictionary<IntPtr, WindowHandle>();
-
-        public override ICollection<WindowHandle> Windows => windows.Values;
+        public override IReadOnlyCollection<WindowHandle> Windows { get; protected set; } = new List<WindowHandle>();
 
         public override void Refresh()
         {
-            var windowsSnapshot = new ConcurrentDictionary<IntPtr, WindowHandle>();
-            WindowManagerMethods.EnumWindows((hwnd, lParam) => RefreshCallback(hwnd, lParam, handle => windowsSnapshot[handle.Handle] = handle), IntPtr.Zero);
+            var windowsSnapshot = new List<WindowHandle>();
+            WindowManagerMethods.EnumWindows((hwnd, lParam) => RefreshCallback(
+                hwnd,
+                handle =>
+                {
+                    handle.ZOrder = windowsSnapshot.Count;
+                    windowsSnapshot.Add(handle);
+                }), 
+                IntPtr.Zero);
             
-            var windowHandles = windowsSnapshot.ToArray();
-            var zOrder = UnsafeNative.GetZOrder(windowHandles.Select(x => x.Key).ToArray());
-            for (var i = 0; i < zOrder.Length; i++)
-            {
-                windowHandles[i].Value.ZOrder = zOrder[i];
-            }
+            Windows = new ReadOnlyCollection<WindowHandle>(windowsSnapshot);
         }
 
-        private bool RefreshCallback(IntPtr hwnd, IntPtr lParam, Action<WindowHandle> addHandler)
+        private bool RefreshCallback(IntPtr hwnd, Action<WindowHandle> addHandler)
         {
             if (BlacklistedWindows.Contains(hwnd))
             {
@@ -43,10 +44,10 @@ namespace EyeAuras.OnTopReplica.WindowSeekers
 
             var handle = new WindowHandle(hwnd);
 
-            return InspectWindow(handle);
+            return InspectWindow(handle, addHandler);
         }
 
-        private bool InspectWindow(WindowHandle handle)
+        private bool InspectWindow(WindowHandle handle, Action<WindowHandle> addHandler)
         {
             //Code taken from: http://www.thescarms.com/VBasic/alttab.aspx
 
@@ -72,8 +73,7 @@ namespace EyeAuras.OnTopReplica.WindowSeekers
             if ((exStyle & WindowMethods.WindowExStyles.ToolWindow) == 0 && !hasOwner || //unowned non-tool window
                 (exStyle & WindowMethods.WindowExStyles.AppWindow) == WindowMethods.WindowExStyles.AppWindow && hasOwner)
             {
-                //owned application window
-                windows[handle.Handle] = handle;
+                addHandler(handle);
             }
 
             return true;

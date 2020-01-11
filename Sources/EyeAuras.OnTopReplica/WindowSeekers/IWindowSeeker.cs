@@ -10,7 +10,7 @@ namespace EyeAuras.OnTopReplica.WindowSeekers
         /// <summary>
         ///     Get the list of matching windows, ordered by priority (optionally).
         /// </summary>
-        ICollection<WindowHandle> Windows { get; }
+        IReadOnlyCollection<WindowHandle> Windows { get; }
 
         /// <summary>
         ///     Refreshes the list of windows.
