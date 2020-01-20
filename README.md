@@ -1,6 +1,8 @@
 ![](https://img.shields.io/github/release-date/iXab3r/EyeAuras.svg) ![](https://img.shields.io/github/downloads/iXab3r/EyeAuras/total.svg) ![](https://img.shields.io/github/last-commit/iXab3r/EyeAuras.svg)
 [![Discord Chat](https://img.shields.io/discord/636487289689866240.svg)](https://discord.gg/pFHHebM)  
 
+# More info and examples on [EyeAuras website](https://eyeauras.net/)
+
 # Prerequisites
 - Windows 7 or later
 - Windows Aero (aka Desktop Composition) enabled - application uses DWM to create clones
@@ -18,8 +20,8 @@
 * UI customization - you can clone and resize/move ANY part of ANY window => you can finally move some action bars to the center of the screen. Or bring HP bar closer to your eye line. Or make some important indicators (e.g. debuffs) much bigger and more visible.
 
 ## Features
-- Clone any of your windows via global Hotkey or a set of Matching rules and keep it always-on-top while working with other windows
-- Select a subregion of the cloned window
+- Clone any of your windows via global Hotkey or a set of Matching rules and keep it always-on-top while working with other applications
+- Select and scale a subregion of the cloned window
 - Click-through mode - make any of your overlays absolutely transparent to mouse clicks !
 - Add Triggers(e.g. WindowIsActive) which can automatically show/hide overlay when a certain condition is met
 - Add Actions(e.g. PlaySound) which will be executed when corresponding Trigger activates/deactivates
