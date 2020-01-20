@@ -53,6 +53,13 @@
 * Application requires [.NET Core SDK 3.0](https://dotnet.microsoft.com/download/dotnet-core/3.0 ".NET Core SDK 3.0") 
 * I am usually using [Jetbrains Rider](https://www.jetbrains.com/rider/ "Jetbrains Rider") so there MAY be some issues if you are using Microsoft Visual Studio, although I am trying to keep things compatible
 
+### Build from command line
+1. git clone https://github.com/iXab3r/EyeAuras.git
+2. cd EyeAuras
+3. git submodule init
+4. InitSymlinks.cmd
+5. dotnet build
+That's it. Working version will be in **Sources/bin** folder
 
 ## Licensing 
 EyeAuras is licensed under the MS-RL (Microsoft Reciprocal License).
