@@ -47,6 +47,13 @@
 ![Play Sound](https://i.imgur.com/jYnyzeM.png)
 ![Win Activate](https://i.imgur.com/vDts9Hi.png)
 
+## How to build application
+* I am extensively using [git-submodules](https://git-scm.com/docs/git-submodule "git-submodules") so you may have to run extra commands (git submodule update) if your git-client does not fully support this tech. I would highly recommend to use [Git Extensions](https://gitextensions.github.io/ "Git Extensions") which is awesome, free and open-source and makes submodules integration seamless
+* The main "catch-up-moment" is that you need to run InitSymlinks.cmd before building an application - this is due to the fact that git symlinks are not supported on some older versions of Windows and I am using them to create links to submodules
+* Application requires [.NET Core SDK 3.0](https://dotnet.microsoft.com/download/dotnet-core/3.0 ".NET Core SDK 3.0") 
+* I am usually using [Jetbrains Rider](https://www.jetbrains.com/rider/ "Jetbrains Rider") so there MAY be some issues if you are using Microsoft Visual Studio, although I am trying to keep things compatible
+
+
 ## Licensing 
 EyeAuras is licensed under the MS-RL (Microsoft Reciprocal License).
 
